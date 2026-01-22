@@ -1,0 +1,15 @@
+{
+  "id": "indy-downtime",
+  "title": "Indy Downtime Tracker",
+  "description": "A module to track player downtime projects.",
+  "version": "#{VERSION}#",
+  "authors": [{ "name": "PinguTwo" }],
+  "compatibility": { "minimum": "13", "verified": "13" },
+  "socket": true,
+  "url": "#{URL}#",
+  "manifest": "#{MANIFEST}#",
+  "download": "#{DOWNLOAD}#",
+  "esmodules": ["scripts/indy-downtime.js"],
+  "styles": ["styles/indy-downtime.css"]
+}
+

@@ -1,0 +1,175 @@
+<div class="drep-settings" autocomplete="off">
+  <div class="form-group">
+    <label>Tracker</label>
+    <div class="drep-tracker-row">
+      <select name="currentTrackerId">
+        {{#each trackerOptions}}
+          <option value="{{this.id}}" {{#if (eq ../currentTrackerId this.id)}}selected{{/if}}>{{this.label}}</option>
+        {{/each}}
+      </select>
+      <button type="button" class="dialog-button" data-drep-action="add-tracker">
+        Add
+      </button>
+      <button type="button" class="dialog-button" data-drep-action="remove-tracker" {{#if isSingleTracker}}disabled{{/if}}>
+        Remove
+      </button>
+    </div>
+    <p class="notes">Each tracker creates its own character sheet tab.</p>
+  </div>
+
+  <div class="form-group">
+    <label>Tracker Name</label>
+    <input type="text" name="trackerName" value="{{trackerName}}" />
+    <p class="notes">Used to identify this tracker in the settings list.</p>
+  </div>
+
+  <div class="form-group">
+    <label>Tab Icon</label>
+    <input type="text" name="tabIcon" value="{{trackerTabIcon}}" />
+    <p class="notes">Font Awesome class (for example: <code>fas fa-fire</code>).</p>
+  </div>
+
+  <div class="form-group">
+    <label class="checkbox">
+      <input type="checkbox" name="hideDcFromPlayers" {{#if hideDcFromPlayers}}checked{{/if}} />
+      Hide DCs from players
+    </label>
+    <p class="notes">When enabled, only the GM sees DCs on the tracker tab.</p>
+  </div>
+
+  <div class="form-group">
+    <label>Header Label</label>
+    <input type="text" name="headerLabel" value="{{headerLabel}}" />
+    <p class="notes">Shown at the top of the downtime tracker panel.</p>
+  </div>
+
+  <div class="form-group">
+    <label>Tab Label</label>
+    <input type="text" name="tabLabel" value="{{tabLabel}}" />
+    <p class="notes">Shown in the character sheet tab bar.</p>
+  </div>
+
+  <div class="form-group">
+    <label>Interval Label</label>
+    <input type="text" name="intervalLabel" value="{{intervalLabel}}" />
+    <p class="notes">Controls labels like "Roll {Interval} Check".</p>
+  </div>
+
+  <div class="form-group">
+    <label>Restrict to Actor UUIDs</label>
+    <textarea name="restrictedActorUuids" rows="4" class="drep-json" data-drep-drop="actor-uuids">{{restrictedActorUuidsText}}</textarea>
+    <p class="notes">Optional. Drop actor sheets here or enter one UUID per line. When set, only these actors see the tab.</p>
+  </div>
+
+  <div class="form-group">
+    <label>Active Phase</label>
+    <select name="activePhaseId">
+      {{#each phaseOptions}}
+        <option value="{{this.id}}" {{#if (eq ../activePhaseId this.id)}}selected{{/if}} {{#unless this.unlocked}}disabled{{/unless}}>
+          {{this.label}}
+        </option>
+      {{/each}}
+    </select>
+    <p class="notes">Only unlocked phases are selectable.</p>
+  </div>
+
+  <fieldset class="drep-panel">
+    <legend>Configuration</legend>
+    <div class="form-group">
+      <button type="button" class="dialog-button" data-drep-action="open-skill-aliases">
+        Edit Skill Aliases
+      </button>
+      <p class="notes">Map custom skill IDs to system skills.</p>
+    </div>
+    <div class="form-group">
+      <button type="button" class="dialog-button" data-drep-action="open-phase-config">
+        Edit Phase Configuration
+      </button>
+      <p class="notes">Edit phase details, skills, DCs, and narratives.</p>
+    </div>
+    <div class="form-group">
+      <button type="button" class="dialog-button" data-drep-action="open-progress-state">
+        Edit Progress State
+      </button>
+      <p class="notes">Adjust phase progress, failures, and check count.</p>
+    </div>
+  </fieldset>
+
+  <details class="drep-panel drep-collapsible">
+    <summary>Activity Log</summary>
+    {{#if state.log.length}}
+      <div class="drep-log">
+        {{#each state.log}}
+          <div class="drep-log-item {{#if this.success}}success{{else}}failure{{/if}}">
+            <div class="drep-log-main">
+              <strong>Check {{#if this.checkNumber}}{{this.checkNumber}}{{else}}{{this.windowDay}}{{/if}}:</strong>
+              {{this.actorName}} rolled {{this.skillLabel}} vs DC {{this.dc}}.
+              Result: {{this.total}} ({{#if this.success}}Success{{else}}Failure{{/if}})
+            </div>
+            <div class="drep-log-actions">
+              <button type="button" class="dialog-button" data-drep-action="log-toggle" data-log-index="{{@index}}">
+                Toggle Success
+              </button>
+              <button type="button" class="dialog-button" data-drep-action="log-delete" data-log-index="{{@index}}">
+                Remove Entry
+              </button>
+            </div>
+          </div>
+        {{/each}}
+      </div>
+      <div class="form-group">
+        <button type="button" class="dialog-button" data-drep-action="log-recalc">
+          Recalculate Progress From Log
+        </button>
+      </div>
+    {{else}}
+      <div class="drep-muted">No downtime checks recorded yet.</div>
+    {{/if}}
+  </details>
+
+  <fieldset>
+    <legend>Maintenance</legend>
+    <div class="form-group">
+      <button type="button" class="dialog-button" data-drep-action="reset-progress">
+        <i class="fas fa-undo"></i>
+        Reset Phase Progress
+      </button>
+      <p class="notes">Resets progress, completion, and failure streaks for all phases.</p>
+    </div>
+    <div class="form-group">
+      <button type="button" class="dialog-button" data-drep-action="reset-phase-config">
+        <i class="fas fa-cog"></i>
+        Reset Phase Configuration
+      </button>
+      <p class="notes">Restores the default phase configuration.</p>
+    </div>
+    <div class="form-group">
+      <button type="button" class="dialog-button" data-drep-action="reset-log">
+        <i class="fas fa-eraser"></i>
+        Clear Activity Log
+      </button>
+      <p class="notes">Clears recorded checks.</p>
+    </div>
+    <div class="form-group">
+      <button type="button" class="dialog-button" data-drep-action="reset-checks">
+        <i class="fas fa-redo-alt"></i>
+        Reset Check Count
+      </button>
+    <p class="notes">Resets the interval check counter.</p>
+    </div>
+    <div class="form-group">
+      <button type="button" class="dialog-button" data-drep-action="reset-all">
+        <i class="fas fa-bomb"></i>
+        Reset All Tracking
+      </button>
+      <p class="notes">Resets phases, log, check count, and sets the active phase to Phase 1.</p>
+    </div>
+  </fieldset>
+
+  <footer class="sheet-footer flexrow">
+    <button type="submit" class="dialog-button">
+      <i class="far fa-save"></i>
+      Save Settings
+    </button>
+  </footer>
+</div>

@@ -1,0 +1,184 @@
+<div class="drep-settings drep-dialog">
+  <input type="hidden" name="trackerId" value="{{trackerId}}" />
+  <input type="hidden" name="phaseOrder" value="{{phaseOrder}}" />
+  <p class="notes">
+    Edit phase structure, skills, DCs, and narratives. Changes apply when you save.
+  </p>
+
+  <nav class="drep-phase-tabs">
+    {{#each phases}}
+      <button type="button" class="drep-tab-button" data-tab="{{this.id}}">
+        Phase {{this.number}}
+      </button>
+    {{/each}}
+    <button type="button" class="drep-tab-button drep-add-phase" data-drep-action="add-phase">
+      + Add Phase
+    </button>
+  </nav>
+
+  {{#each phases}}
+    <section class="drep-phase-tab" data-tab="{{this.id}}">
+      <fieldset class="drep-phase-block">
+        <legend>Phase {{this.number}}: {{this.name}}</legend>
+        {{#unless this.isPhase1}}
+          <div class="drep-phase-actions">
+            <button type="button" class="dialog-button" data-drep-action="remove-phase" data-phase-id="{{this.id}}">
+              Remove Phase
+            </button>
+          </div>
+        {{/unless}}
+
+      <div class="drep-grid">
+        <label>
+          Name
+          <input type="text" name="phases.{{this.id}}.name" value="{{this.name}}" />
+        </label>
+        <label>
+          Narrative Duration
+          <input type="text" name="phases.{{this.id}}.narrativeDuration" value="{{this.narrativeDuration}}" />
+        </label>
+        <label>
+          Expected Gain
+          <input type="text" name="phases.{{this.id}}.expectedGain" value="{{this.expectedGain}}" />
+        </label>
+        <label>
+          Target
+          <input type="number" name="phases.{{this.id}}.target" value="{{this.target}}" min="0" />
+        </label>
+      </div>
+
+      <div class="drep-grid">
+        <label class="checkbox">
+          <input type="checkbox" name="phases.{{this.id}}.allowCriticalBonus" {{#if this.allowCriticalBonus}}checked{{/if}} />
+          Allow critical bonus
+        </label>
+        <label class="checkbox">
+          <input type="checkbox" name="phases.{{this.id}}.failureEvents" {{#if this.failureEvents}}checked{{/if}} />
+          Failures trigger events
+        </label>
+      </div>
+
+      <div class="form-group">
+        <label>Skills (comma-separated)</label>
+        <input type="text" name="phases.{{this.id}}.skills" value="{{this.skillsText}}" class="drep-skill-list" data-phase-id="{{this.id}}" {{#if this.isPhase1}}data-phase1="true"{{/if}} />
+      </div>
+
+      <div class="form-group drep-check-order" data-phase-id="{{this.id}}">
+        <label class="checkbox">
+          <input type="checkbox" name="phases.{{this.id}}.enforceCheckOrder" {{#if this.enforceCheckOrder}}checked{{/if}} />
+          Enforce check order
+        </label>
+        <input type="hidden" name="phases.{{this.id}}.checkOrder" value="{{this.checkOrderValue}}" />
+        <ol class="drep-check-order-list" data-phase-id="{{this.id}}">
+          {{#each this.checkOrderEntries}}
+            <li draggable="true" data-order="{{this.key}}">{{this.label}}</li>
+          {{/each}}
+        </ol>
+        <p class="notes">Drag entries to reorder the check sequence.</p>
+      </div>
+
+      <div class="drep-grid">
+        <label>
+          DC Penalty Skill
+          <select name="phases.{{this.id}}.dcPenaltySkill" data-phase-id="{{this.id}}" class="drep-penalty-skill">
+            {{#each this.penaltySkillOptions}}
+              <option value="{{this.key}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>
+            {{/each}}
+          </select>
+        </label>
+        <label>
+          DC Penalty Per Missing
+          <input type="number" name="phases.{{this.id}}.dcPenaltyPerMissing" value="{{this.penaltyPerMissing}}" min="0" />
+        </label>
+        <label>
+          Failure Event Table (UUID)
+          <input type="text" name="phases.{{this.id}}.failureEventTable" value="{{this.failureEventTable}}" data-drep-drop="rolltable" />
+        </label>
+        <label>
+          Phase Image
+          <div class="drep-image-input">
+            <input type="text" name="phases.{{this.id}}.image" value="{{this.image}}" />
+            <button type="button" class="file-picker" data-type="image" data-target="phases.{{this.id}}.image">
+              <i class="fas fa-file-import"></i>
+            </button>
+          </div>
+        </label>
+      </div>
+
+      {{#if this.isPhase1}}
+        <div class="form-group drep-skill-targets" data-phase-id="{{this.id}}">
+          <label>Skill Targets</label>
+          <div class="drep-state-grid">
+            {{#each this.skillTargetRows}}
+              <label>
+                {{this.label}}
+                <input type="number" name="phases.{{../id}}.skillTargets.{{this.key}}" value="{{this.value}}" min="0" />
+              </label>
+            {{/each}}
+          </div>
+        </div>
+
+        <div class="form-group drep-skill-steps" data-phase-id="{{this.id}}">
+          <label>Skill DC Steps</label>
+          <div class="drep-state-grid">
+            {{#each this.skillDcStepRows}}
+              <label>
+                {{this.label}}
+                <input type="text" name="phases.{{../id}}.skillDcSteps.{{this.key}}" value="{{this.value}}" placeholder="13, 14, 15" />
+              </label>
+            {{/each}}
+          </div>
+        </div>
+
+        <details class="drep-panel drep-collapsible drep-skill-narratives" data-phase-id="{{this.id}}">
+          <summary>Skill Narratives</summary>
+          {{#each this.skillNarrativeRows}}
+            <div class="form-group drep-narrative-group">
+              <label>{{this.label}}</label>
+              <textarea name="phases.{{../id}}.skillNarratives.{{this.key}}" rows="4">{{this.value}}</textarea>
+              <p class="notes"><span class="drep-note-lines">One line per step:<br>step|Title|Text</span></p>
+            </div>
+          {{/each}}
+        </details>
+      {{else}}
+        <div class="form-group drep-skill-dcs" data-phase-id="{{this.id}}">
+          <label>Skill DCs</label>
+          <div class="drep-state-grid">
+            {{#each this.skillDcRows}}
+              <label>
+                {{this.label}}
+                <input type="number" name="phases.{{../id}}.skillDcs.{{this.key}}" value="{{this.value}}" min="0" />
+              </label>
+            {{/each}}
+          </div>
+        </div>
+
+      <div class="form-group">
+          <label>Progress Narrative</label>
+          <textarea name="phases.{{this.id}}.progressNarrative" rows="5">{{this.progressNarrativeText}}</textarea>
+          <p class="notes">One line per threshold: <code>progress|Title|Text</code></p>
+        </div>
+      {{/if}}
+
+      <div class="form-group drep-failure-lines">
+        <label>Failure Lines</label>
+        <textarea name="phases.{{this.id}}.failureLines" rows="3">{{this.failureLinesText}}</textarea>
+        <p class="notes">One line per entry.</p>
+      </div>
+      </fieldset>
+    </section>
+  {{/each}}
+
+  <footer class="sheet-footer flexrow">
+    <button type="submit" class="dialog-button">
+      <i class="far fa-save"></i>
+      Save
+    </button>
+  </footer>
+</div>
+
+
+
+
+
+

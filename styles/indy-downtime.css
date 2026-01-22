@@ -1,0 +1,510 @@
+.indy-downtime .window-content {
+  padding: 16px;
+}
+
+.drep-app {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  color: var(--color-text-dark-primary);
+}
+
+.drep-app.embedded {
+  gap: 12px;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.drep-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.drep-app.embedded .drep-header h1 {
+  font-size: xx-large !important;
+  font-family: 'Modesto Condensed' !important;
+}
+
+.drep-app.embedded .drep-subtitle {
+  font-size: large;
+}
+
+.drep-header h1 {
+  font-size: 20px;
+  margin: 0 0 4px;
+}
+
+.drep-subtitle {
+  color: var(--color-text-dark-secondary);
+  font-size: xx-large;
+}
+
+.drep-app.embedded .drep-subtitle,
+.drep-app.embedded .drep-status-grid label,
+.drep-app.embedded .drep-muted {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.drep-app.embedded .drep-value {
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.drep-phase-title {
+  font-size: 28px;
+  font-weight: 700;
+  margin-top: 2px;
+}
+
+.drep-status {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.drep-status-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: stretch;
+  gap: 16px;
+}
+
+.drep-status-grid {
+  min-width: 0;
+}
+
+.drep-phase-art {
+  align-self: stretch;
+}
+
+.drep-phase-art img {
+  width: 300px;
+  height: 100%;
+  min-height: 220px;
+  max-height: 360px;
+  object-fit: contain;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.drep-app.embedded .drep-phase-art img {
+  width: 260px;
+  min-height: 200px;
+  max-height: 320px;
+}
+
+@media (max-width: 720px) {
+  .drep-status-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.drep-pill {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.drep-pill.active {
+  background: rgba(243, 156, 18, 0.2);
+  color: #a65d00;
+}
+
+.drep-pill.complete {
+  background: rgba(39, 174, 96, 0.2);
+  color: #1b6d3a;
+}
+
+.drep-status-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  padding: 12px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.drep-app.embedded .drep-status-grid {
+  margin-bottom: 6px;
+}
+
+.drep-status-grid label {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-text-dark-secondary);
+}
+
+.drep-app.embedded .drep-status-grid {
+  grid-template-columns: 1fr;
+  padding: 8px;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.drep-value {
+  font-size: 14px;
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+.drep-muted {
+  color: var(--color-text-dark-secondary);
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.drep-progress-bar {
+  height: 8px;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-top: 8px;
+}
+
+.drep-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #f39c12, #e67e22);
+}
+
+.drep-panel {
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 10px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.drep-settings .drep-panel {
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.drep-tracker-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.drep-tracker-row select {
+  flex: 1 1 220px;
+}
+
+.drep-panel + .drep-panel,
+.drep-status-grid + .drep-panel {
+  margin-top: 8px;
+}
+
+.drep-app.embedded .drep-panel {
+  padding: 10px;
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.drep-panel h2 {
+  font-size: 15px;
+  margin: 0 0 10px;
+}
+
+.drep-collapsible summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.drep-collapsible[open] summary {
+  margin-bottom: 10px;
+}
+
+.drep-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.drep-grid {
+  row-gap: 10px;
+}
+
+.drep-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.drep-app.embedded .drep-grid {
+  grid-template-columns: 1fr;
+  justify-items: start;
+}
+
+.drep-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-text-dark-secondary);
+}
+
+.drep-skill-title {
+  margin-top: 4px;
+  font-size: large;
+  text-transform: none;
+  font-family: 'Modesto Condensed';
+}
+
+.drep-penalty-note {
+  margin-top: 2px;
+}
+
+.drep-hidden {
+  display: none;
+}
+
+.drep-grid label .drep-value {
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.drep-grid input,
+.drep-grid select {
+  font-size: 13px;
+  padding: 6px 8px;
+  width: 100%;
+  min-width: 0;
+  text-overflow: ellipsis;
+}
+
+.drep-grid select {
+  height: 42px;
+  line-height: 1.2;
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
+.drep-button {
+  padding: 6px 10px;
+  font-weight: 600;
+  border-style: groove;
+  background: darkslategray;
+}
+
+.drep-button-primary {
+  display: inline-flex;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 10px 16px;
+  font-size: 14px;
+  line-height: 1;
+  border: 1px solid rgba(0, 0, 0, 0.35);
+  border-radius: 6px;
+  background: linear-gradient(180deg, #e6b956, #c6861a);
+  color: #1b1200;
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.25);
+}
+
+.drep-button-primary:hover {
+  background: linear-gradient(180deg, #f2c264, #d2921f);
+}
+
+.drep-button-primary:active {
+  transform: translateY(1px);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.2);
+}
+
+.drep-app.embedded .drep-button-primary {
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
+  background: linear-gradient(180deg, #f2c264, #c6861a) !important;
+  color: #1b1200 !important;
+}
+
+.drep-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.drep-app.embedded .drep-form {
+  align-items: flex-start;
+}
+
+.drep-app.embedded .drep-actions {
+  justify-content: flex-start;
+}
+
+.drep-checkbox {
+  align-items: center;
+  gap: 8px;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.drep-log {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 240px;
+  overflow: auto;
+}
+
+.drep-app.embedded .drep-log {
+  max-height: 180px;
+}
+.drep-log-item {
+  border-radius: 8px;
+  padding: 8px;
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.drep-app.embedded .drep-log-item {
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.drep-log-item.success {
+  border-left: 3px solid #27ae60;
+}
+
+.drep-log-item.failure {
+  border-left: 3px solid #c0392b;
+}
+
+.drep-log-note {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--color-text-dark-secondary);
+}
+
+.drep-log-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+
+.drep-dialog .drep-phase-block {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  padding: 12px;
+  margin: 0 0 12px;
+}
+
+.drep-dialog .drep-phase-block legend {
+  font-weight: 600;
+  padding: 0 6px;
+}
+
+.drep-dialog textarea {
+  width: 100%;
+}
+
+.drep-dialog .form-group.drep-narrative-group,
+.drep-dialog .form-group.drep-failure-lines {
+  display: block;
+}
+
+.drep-dialog .drep-narrative-group label,
+.drep-dialog .drep-failure-lines label {
+  display: block;
+  margin-bottom: 6px;
+}
+
+.drep-dialog .drep-narrative-group textarea,
+.drep-dialog .drep-failure-lines textarea {
+  width: 100%;
+  margin-left: 0;
+}
+
+.drep-dialog .drep-narrative-group {
+  margin: 10px 0 16px;
+}
+
+.drep-dialog .drep-failure-lines textarea {
+  min-height: 120px;
+}
+
+.drep-dialog .drep-note-lines {
+  display: inline-block;
+  line-height: 1.3;
+}
+
+.drep-dialog {
+  max-height: 70vh;
+  overflow: auto;
+}
+
+.drep-settings {
+  max-height: 75vh;
+  overflow-y: auto;
+}
+
+.drep-phase-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.drep-tab-button {
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.25);
+  color: inherit;
+  cursor: pointer;
+}
+
+.drep-tab-button.active {
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.drep-phase-tab {
+  display: none;
+}
+
+.drep-phase-tab.active {
+  display: block;
+}
+
+.drep-phase-actions {
+  margin: 8px 0 0;
+}
+
+.drep-alias-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.drep-settings .drep-json {
+  width: 100%;
+  font-family: monospace;
+}
+
+.drep-state-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 8px;
+}
+
+.drep-image-input {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.drep-chat h3 {
+  margin: 0 0 6px;
+}
+
+.drep-chat .narrative {
+  margin-top: 6px;
+}
+
+.drep-check-order-list {\r\n  margin: 6px 0 0;\r\n  padding-left: 18px;\r\n}\r\n\r\n.drep-check-order-list li {\r\n  margin-bottom: 6px;\r\n  padding: 4px 6px;\r\n  border-radius: 6px;\r\n  background: rgba(0, 0, 0, 0.25);\r\n  border: 1px solid rgba(255, 255, 255, 0.08);\r\n  cursor: move;\r\n}\r\n

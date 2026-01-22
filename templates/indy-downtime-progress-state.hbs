@@ -1,0 +1,47 @@
+<div class="drep-settings drep-dialog">
+  <input type="hidden" name="trackerId" value="{{trackerId}}" />
+  <div class="form-group">
+    <label>Check Count</label>
+    <input type="number" name="checkCount" value="{{checkCount}}" min="0" />
+  </div>
+
+  {{#each phases}}
+    <fieldset class="drep-phase-block">
+      <legend>Phase {{this.number}}: {{this.name}}</legend>
+      {{#if this.isPhase1}}
+        <div class="drep-state-grid">
+          {{#each this.skillRows}}
+            <label>
+              {{this.label}} Progress
+              <input type="number" name="phase1Skill_{{this.key}}" value="{{this.value}}" min="0" />
+            </label>
+          {{/each}}
+        </div>
+      {{else}}
+        <div class="form-group">
+          <label>
+            Progress (Target {{this.target}})
+            <input type="number" name="{{this.id}}Progress" value="{{this.progress}}" min="0" />
+          </label>
+        </div>
+      {{/if}}
+      <div class="form-group">
+        <label>
+          Failures in Row
+          <input type="number" name="{{this.id}}FailuresInRow" value="{{this.failuresInRow}}" min="0" />
+        </label>
+      </div>
+      <label class="checkbox">
+        <input type="checkbox" name="{{this.id}}Completed" {{#if this.completed}}checked{{/if}} />
+        Mark Complete
+      </label>
+    </fieldset>
+  {{/each}}
+
+  <footer class="sheet-footer flexrow">
+    <button type="submit" class="dialog-button">
+      <i class="far fa-save"></i>
+      Save
+    </button>
+  </footer>
+</div>

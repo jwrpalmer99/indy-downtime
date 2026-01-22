@@ -1,0 +1,143 @@
+{{#if tab}}
+<section class="tab {{tab.cssClass}}" data-tab="{{tab.id}}" data-group="{{tab.group}}">
+{{/if}}
+  <section class="drep-app {{#if embedded}}embedded{{/if}}" data-drep-root="true" data-drep-tracker="{{trackerId}}">
+  <header class="drep-header">
+    <div>
+      <h1>{{headerLabel}}</h1>
+      <div class="drep-subtitle drep-phase-title">{{#if showPhaseNumber}}Phase {{activePhaseNumber}}: {{/if}}{{activePhase.name}}</div>
+    </div>
+    <div class="drep-status">
+      {{#if activePhase.completed}}
+        <span class="drep-pill complete">Complete</span>
+      {{/if}}
+    </div>
+  </header>
+
+  <section class="drep-status-row">
+    <div class="drep-status-grid">
+      <div>
+        <label>Progress</label>
+        <div class="drep-value">{{activePhase.progress}} / {{activePhase.target}}</div>
+        <div class="drep-progress-bar">
+          <div class="drep-progress-fill" style="width: {{progressPercent}}%;"></div>
+        </div>
+      </div>
+      {{#if phase1Skills.length}}
+        {{#each phase1Skills}}
+          <div class="drep-phase1-skill">
+            <label>{{this.label}}</label>
+            <div class="drep-value">{{this.value}} / {{this.target}}</div>
+            <div class="drep-progress-bar">
+              <div class="drep-progress-fill" style="width: {{this.percent}}%;"></div>
+            </div>
+          </div>
+        {{/each}}
+      {{/if}}
+    </div>
+    {{#if activePhase.image}}
+      <div class="drep-phase-art">
+        <img src="{{activePhase.image}}" alt="{{activePhase.name}}" />
+      </div>
+    {{/if}}
+  </section>
+
+  <section class="drep-panel">
+    <h2>{{intervalLabel}} Check</h2>
+    {{#if canRoll}}
+      {{#if forcedSkillChoice}}
+        <div class="drep-muted">{{forcedSkillLabel}} is required for the next check.</div>
+      {{/if}}
+      <div class="drep-form">
+        <div class="drep-grid">
+          {{#if showActorSelect}}
+            <label>
+          <select data-drep-name="actorId" class="always-interactive">
+                <option value="">Select actor</option>
+                {{#each actors}}
+                  <option value="{{this.id}}" {{#if (eq ../lastActorId this.id)}}selected{{/if}}>{{this.name}}</option>
+                {{/each}}
+              </select>
+            </label>
+          {{else}}
+            <label>
+              <input type="hidden" data-drep-name="actorId" value="{{sheetActor.id}}" class="always-interactive" />
+            </label>
+          {{/if}}
+          <label>
+            <select data-drep-name="skillChoice" {{#if forcedSkillChoice}}disabled data-drep-disabled="true"{{else}}{{#if enforceOrder}}disabled data-drep-disabled="true"{{/if}}{{/if}} class="always-interactive">
+              {{#each skillChoices}}
+                <option value="{{this.key}}" {{#if (eq ../forcedSkillChoice this.key)}}selected{{else if (eq ../lastSkillChoice this.key)}}selected{{/if}}>{{this.label}}{{#if ../showDc}} (DC {{this.dc}}){{/if}}</option>
+              {{/each}}
+            </select>
+            {{#each skillTitles}}
+              <span class="drep-hidden" data-drep-skill-title="{{@key}}" data-title="{{this}}"></span>
+            {{/each}}
+            <div class="drep-muted drep-skill-title">Current Focus: {{selectedSkillTitle}}</div>
+            {{#if phase1Penalty}}
+              <div class="drep-muted drep-penalty-note">{{phase1Penalty}}</div>
+            {{/if}}
+          </label>
+        </div>
+        <div class="drep-actions">
+          <button type="button" data-drep-action="roll-interval" class="always-interactive drep-button drep-button-primary">Roll {{intervalLabel}} Check</button>
+        </div>
+      </div>
+    {{else}}
+      <div class="drep-muted">
+        This phase is already finished.
+      </div>
+    {{/if}}
+  </section>
+
+  <details class="drep-panel drep-collapsible" open>
+    <summary>Recent Activity</summary>
+    {{#if state.log.length}}
+      <div class="drep-log">
+        {{#each state.log}}
+          <div class="drep-log-item {{#if this.success}}success{{else}}failure{{/if}}">
+            {{#if (eq this.type "phase-complete")}}
+              <div class="drep-log-main">
+                <strong>Phase Complete:</strong> {{this.phaseName}}
+                {{#if this.nextPhaseName}} → {{this.nextPhaseName}} active{{/if}}
+              </div>
+            {{else}}
+              <div class="drep-log-main">
+                <strong>Check {{#if this.checkNumber}}{{this.checkNumber}}{{else}}{{this.windowDay}}{{/if}}:</strong>
+                {{this.actorName}} rolled {{this.skillLabel}}{{#if ../showDc}} vs DC {{this.dc}}{{/if}}.
+                Result: {{this.total}} ({{#if this.success}}Success{{else}}Failure{{/if}})
+                {{#if this.progressGained}}
+                  | Progress +{{this.progressGained}}{{#if this.criticalBonusApplied}} (critical){{/if}}
+                {{/if}}
+              </div>
+              {{#if this.narrativeTitle}}
+                <div class="drep-log-note"><strong>{{this.narrativeTitle}}:</strong> {{this.narrativeText}}</div>
+              {{/if}}
+              {{#if this.contextNote}}
+                <div class="drep-log-note"><strong>Note:</strong> {{this.contextNote}}</div>
+              {{/if}}
+              {{#if this.failureLine}}
+                <div class="drep-log-note">
+                  <strong>{{#if this.failureEvent}}Event{{else}}Strain{{/if}}:</strong> {{this.failureLine}}
+                </div>
+              {{/if}}
+              {{#if this.failureEventResult}}
+                <div class="drep-log-note">
+                  <strong>Event Table:</strong> {{this.failureEventResult}}
+                </div>
+              {{/if}}
+            {{/if}}
+          </div>
+        {{/each}}
+      </div>
+    {{else}}
+      <div class="drep-muted">No downtime checks recorded yet.</div>
+    {{/if}}
+  </details>
+  </section>
+{{#if tab}}
+</section>
+{{/if}}
+
+
+
