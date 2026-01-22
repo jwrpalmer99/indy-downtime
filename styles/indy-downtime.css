@@ -70,7 +70,12 @@
 }
 
 .drep-status-grid {
-  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.03);
 }
 
 .drep-phase-art {
@@ -118,17 +123,10 @@
   color: #1b6d3a;
 }
 
-.drep-status-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 12px;
-  padding: 12px;
-  border-radius: 8px;
-  background: rgba(0, 0, 0, 0.03);
-}
-
 .drep-app.embedded .drep-status-grid {
-  margin-bottom: 6px;
+  padding: 8px;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.45);
 }
 
 .drep-status-grid label {
@@ -136,13 +134,6 @@
   text-transform: uppercase;
   letter-spacing: 0.03em;
   color: var(--color-text-dark-secondary);
-}
-
-.drep-app.embedded .drep-status-grid {
-  grid-template-columns: 1fr;
-  padding: 8px;
-  gap: 8px;
-  background: rgba(0, 0, 0, 0.45);
 }
 
 .drep-value {
@@ -251,7 +242,7 @@
   color: var(--color-text-dark-secondary);
 }
 
-.drep-skill-title {
+.drep-check-title {
   margin-top: 4px;
   font-size: large;
   text-transform: none;
@@ -507,4 +498,367 @@
   margin-top: 6px;
 }
 
-.drep-check-order-list {\r\n  margin: 6px 0 0;\r\n  padding-left: 18px;\r\n}\r\n\r\n.drep-check-order-list li {\r\n  margin-bottom: 6px;\r\n  padding: 4px 6px;\r\n  border-radius: 6px;\r\n  background: rgba(0, 0, 0, 0.25);\r\n  border: 1px solid rgba(255, 255, 255, 0.08);\r\n  cursor: move;\r\n}\r\n
+.drep-progress-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.drep-check-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.drep-check-group-name {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-dark-secondary);
+}
+
+.drep-check-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.drep-check-row {
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.drep-app.embedded .drep-check-row {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.drep-check-row.complete {
+  opacity: 0.75;
+}
+
+.drep-check-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.drep-check-label {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.drep-phase-section {
+  margin-top: 12px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.drep-phase-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.drep-phase-section-header h3 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.drep-group-card {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  padding: 10px;
+  margin-bottom: 10px;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.drep-group-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.drep-group-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.drep-group-chip {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  font-size: 11px;
+  cursor: grab;
+}
+
+.drep-check-card {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  padding: 8px;
+  background: rgba(0, 0, 0, 0.18);
+  cursor: grab;
+}
+
+.drep-check-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 8px;
+}
+
+.drep-check-actions {
+  margin-top: 8px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.drep-deps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  margin-top: 8px;
+  padding: 6px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px dashed rgba(255, 255, 255, 0.16);
+  min-height: 32px;
+}
+
+.drep-deps-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-dark-secondary);
+}
+
+.drep-deps-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.drep-dep-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  font-size: 11px;
+}
+
+.drep-dep-remove {
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.drep-line-card {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  padding: 8px;
+  background: rgba(0, 0, 0, 0.18);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.drep-line-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.drep-check-fields label,
+.drep-group-title label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-text-dark-secondary);
+}
+
+
+.drep-check-header .drep-value {
+  margin-top: 0;
+}
+
+.drep-group-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.drep-group-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.drep-group-card > summary {
+  padding: 4px 0;
+}
+
+.drep-group-card[open] > summary {
+  margin-bottom: 6px;
+}
+
+.drep-checks-section > summary {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.drep-checks-section {
+  margin-top: 8px;
+}
+
+.drep-phase-section.drep-collapsible > summary {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.drep-collapsible > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.drep-summary-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.drep-summary-chip {
+  display: inline-flex;
+  align-items: center;
+  max-width: 180px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.drep-summary-chip.drep-check-chip,
+.drep-summary-chip.drep-group-chip {
+  cursor: grab;
+}
+
+
+.drep-check-fields .drep-field-full {
+  grid-column: 1 / -1;
+}
+
+.drep-check-description {
+  font-size: 12px;
+  text-transform: none;
+  margin-top: 2px;
+}
+
+.drep-group-summary .drep-summary-chips {
+  margin-left: auto;
+}
+
+
+.drep-check-header-row {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+}
+
+.drep-check-name {
+  flex: 1;
+}
+
+.drep-check-remove {
+  white-space: nowrap;
+}
+
+.drep-input-compact {
+  width: 72px;
+}
+
+
+.drep-collapsible > summary {
+  list-style: none;
+}
+
+.drep-collapsible > summary::marker {
+  content: "";
+}
+
+.drep-collapsible > summary::-webkit-details-marker {
+  display: none;
+}
+
+
+
+
+
+
+.drep-group-card {
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.32);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+.drep-group-card:nth-of-type(odd) {
+  background: rgba(0, 0, 0, 0.36);
+}
+
+.drep-group-card:nth-of-type(even) {
+  background: rgba(0, 0, 0, 0.44);
+}
+
+.drep-check-card {
+  border-color: rgba(255, 255, 255, 0.22);
+  background: rgba(0, 0, 0, 0.26);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+}
+
+
+.drep-summary-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  color: var(--color-text-dark-secondary);
+}
+
+.drep-summary-toggle .drep-collapse {
+  display: none;
+}
+
+.drep-collapsible[open] > summary .drep-expand {
+  display: none;
+}
+
+.drep-collapsible[open] > summary .drep-collapse {
+  display: inline-block;
+}

@@ -1,13 +1,10 @@
 import { DEFAULT_PHASE_CONFIG } from "../constants.js";
-import {
-  parseCheckOrder,
-  parseCheckOrderToken,
-  parseList,
-  parseNumberList,
-  parseNarrativeLines,
-} from "./parse.js";
-import { getSkillAliases, getSkillLabel, resolveSkillKey } from "./labels.js";
+import { parseList } from "./parse.js";
+import { getSkillAliases, getSkillLabel, resolveSkillKey, clampNumber } from "./labels.js";
 import { getCurrentTracker, getTrackerById } from "./tracker.js";
+
+const DEFAULT_CHECK_TARGET = 1;
+const DEFAULT_CHECK_DC = 13;
 
 function getPhaseConfig(trackerId) {
   const tracker = trackerId ? getTrackerById(trackerId) : getCurrentTracker();
@@ -18,7 +15,6 @@ function getPhaseConfig(trackerId) {
   return normalizePhaseConfig(stored);
 }
 
-
 function normalizePhaseConfig(config) {
   const normalizePhaseEntry = (entry, fallback) => {
     const merged = foundry.utils.mergeObject(fallback, entry ?? {}, {
@@ -26,49 +22,27 @@ function normalizePhaseConfig(config) {
       overwrite: true,
     });
     merged.image = typeof merged.image === "string" ? merged.image : "";
-    merged.skills =
-      Array.isArray(merged.skills) && merged.skills.length
-        ? merged.skills
-        : fallback.skills ?? getDefaultSkills();
-    const perMissing = Number(merged.dcPenaltyPerMissing);
-    merged.dcPenaltyPerMissing = Number.isFinite(perMissing)
-      ? Math.max(0, perMissing)
-      : Number(fallback.dcPenaltyPerMissing ?? 0);
-    merged.dcPenaltySkill =
-      typeof merged.dcPenaltySkill === "string"
-        ? merged.dcPenaltySkill
-        : fallback.dcPenaltySkill ?? "insight";
-    if (!merged.skills.includes(merged.dcPenaltySkill)) {
-      merged.dcPenaltySkill = merged.skills.includes("insight")
-        ? "insight"
-        : merged.skills[0] ?? "";
-    }
-    if (merged.id === "phase1") {
-      if (merged.allowEmptyPhase) {
-        merged.skillTargets = merged.skillTargets ?? {};
-        merged.skillDcSteps = merged.skillDcSteps ?? {};
-        merged.skillNarratives = merged.skillNarratives ?? {};
-        if (!Number.isFinite(merged.target)) {
-          merged.target = 0;
-        }
-      } else {
-        merged.skillTargets = normalizeSkillTargets(merged, fallback);
-        if (!Number.isFinite(merged.target) || merged.target <= 0) {
-          merged.target = getPhaseTotalTarget(merged);
-        }
-        merged.skillDcSteps = merged.skillDcSteps ?? fallback.skillDcSteps;
-        merged.skillNarratives =
-          merged.skillNarratives ?? fallback.skillNarratives;
-      }
-    } else {
-      merged.skillDcs = merged.skillDcs ?? fallback.skillDcs;
-    }
+    merged.allowCriticalBonus = Boolean(merged.allowCriticalBonus);
+    merged.failureEvents = Boolean(merged.failureEvents);
     merged.failureEventTable =
       typeof merged.failureEventTable === "string"
         ? merged.failureEventTable
         : fallback.failureEventTable ?? "";
-    merged.enforceCheckOrder = Boolean(merged.enforceCheckOrder);
-    merged.checkOrder = normalizeCheckOrder(merged, merged.checkOrder);
+
+    merged.groups = normalizePhaseGroups(merged, fallback);
+    merged.successLines = normalizePhaseLines(
+      merged.successLines ?? fallback.successLines
+    );
+    merged.failureLines = normalizePhaseLines(
+      merged.failureLines ?? fallback.failureLines
+    );
+
+    const totalTarget = getPhaseTotalTarget(merged);
+    const target = Number(merged.target);
+    merged.target = Number.isFinite(target) && target > 0
+      ? Math.min(target, totalTarget)
+      : totalTarget;
+
     return merged;
   };
 
@@ -102,7 +76,6 @@ function normalizePhaseConfig(config) {
   return output;
 }
 
-
 function parsePhaseConfig(raw) {
   try {
     const parsed = JSON.parse(raw);
@@ -112,7 +85,7 @@ function parsePhaseConfig(raw) {
       );
       return null;
     }
-  return normalizePhaseConfig(parsed);
+    return normalizePhaseConfig(parsed);
   } catch (error) {
     console.error(error);
     ui.notifications.error(
@@ -122,74 +95,206 @@ function parsePhaseConfig(raw) {
   }
 }
 
+function normalizePhaseGroups(phase, fallback) {
+  if (Array.isArray(phase?.groups)) {
+    return normalizeGroups(phase.groups);
+  }
+  const legacy = buildGroupsFromLegacyPhase(phase, fallback);
+  return normalizeGroups(legacy);
+}
 
-function normalizeSkillTargets(phase, fallback) {
-  const targets = {};
+function normalizeGroups(groups) {
+  const usedGroupIds = new Set();
+  const usedCheckIds = new Set();
+  return (groups ?? []).map((group, index) => {
+    const id = ensureUniqueId(
+      typeof group?.id === "string" ? group.id : `group${index + 1}`,
+      usedGroupIds
+    );
+    const name =
+      typeof group?.name === "string" && group.name.trim()
+        ? group.name.trim()
+        : `Group ${index + 1}`;
+    const checks = normalizeChecks(group?.checks ?? [], id, usedCheckIds);
+    return {
+      id,
+      name,
+      checks,
+    };
+  });
+}
+
+function normalizeChecks(checks, groupId, usedCheckIds) {
+  return (checks ?? []).map((check, index) => {
+    const id = ensureUniqueId(
+      typeof check?.id === "string" ? check.id : `${groupId}-check${index + 1}`,
+      usedCheckIds
+    );
+    const name =
+      typeof check?.name === "string" && check.name.trim()
+        ? check.name.trim()
+        : `Check ${index + 1}`;
+    const skill =
+      typeof check?.skill === "string" && check.skill.trim()
+        ? check.skill.trim()
+        : "";
+    const dc = Number(check?.dc);
+    const description =
+      typeof check?.description === "string" ? check.description.trim() : "";
+    const target = DEFAULT_CHECK_TARGET;
+    const dependsOn = parseList(check?.dependsOn ?? check?.dependsOnChecks ?? "");
+    return {
+      id,
+      name,
+      skill,
+      description,
+      dc: Number.isFinite(dc) ? dc : DEFAULT_CHECK_DC,
+      target,
+      dependsOn,
+      groupId,
+      step: Number.isFinite(Number(check?.step)) ? Number(check.step) : null,
+    };
+  });
+}
+
+function normalizePhaseLines(lines) {
+  const usedLineIds = new Set();
+  return (lines ?? []).map((line, index) => {
+    const id = ensureUniqueId(
+      typeof line?.id === "string" ? line.id : `line${index + 1}`,
+      usedLineIds
+    );
+    const text = typeof line?.text === "string" ? line.text.trim() : "";
+    const dependsOnChecks = parseList(line?.dependsOnChecks ?? line?.dependsOn ?? "");
+    const dependsOnGroups = parseList(line?.dependsOnGroups ?? "");
+    return {
+      id,
+      text,
+      dependsOnChecks,
+      dependsOnGroups,
+    };
+  });
+}
+
+function buildGroupsFromLegacyPhase(phase, fallback) {
   const skills = Array.isArray(phase?.skills) && phase.skills.length
     ? phase.skills
-    : fallback?.skills ?? getDefaultSkills();
-  for (const key of skills) {
-    const direct = phase?.skillTargets?.[key];
-    const fallbackTarget = fallback?.skillTargets?.[key];
-    const legacy = phase?.skillTarget;
-    const resolved = Number.isFinite(direct)
-      ? direct
-      : Number.isFinite(fallbackTarget)
-        ? fallbackTarget
-        : Number.isFinite(legacy)
-          ? legacy
-          : 2;
-    targets[key] = Math.max(0, resolved);
+    : Array.isArray(fallback?.skills) && fallback.skills.length
+      ? fallback.skills
+      : getDefaultSkills();
+  const skillAliases = getSkillAliases();
+  const checks = [];
+  const successLines = [];
+  for (const skill of skills) {
+    const label = getSkillLabel(resolveSkillKey(skill, skillAliases));
+    const steps = phase?.skillDcSteps?.[skill] ?? fallback?.skillDcSteps?.[skill];
+    const targetValue = Number(phase?.skillTargets?.[skill] ?? fallback?.skillTargets?.[skill] ?? 1);
+    const stepCount = Array.isArray(steps) && steps.length ? steps.length : 0;
+    if (stepCount) {
+      for (let step = 1; step <= stepCount; step += 1) {
+        const dcValue = Number(steps[step - 1] ?? steps[steps.length - 1] ?? DEFAULT_CHECK_DC);
+        const narrative = phase?.skillNarratives?.[skill]?.[step] ?? null;
+        const name = narrative?.title || `${label} ${step}`;
+        const id = `${skill}-${step}`;
+        const dependsOn = step > 1 ? [`${skill}-${step - 1}`] : [];
+        checks.push({
+          id,
+          name,
+          skill,
+          dc: Number.isFinite(dcValue) ? dcValue : DEFAULT_CHECK_DC,
+          target: DEFAULT_CHECK_TARGET,
+          dependsOn,
+          step,
+        });
+        if (narrative?.text) {
+          successLines.push({
+            id: `success-${id}`,
+            text: narrative.title ? `${narrative.title}: ${narrative.text}` : narrative.text,
+            dependsOnChecks: [id],
+            dependsOnGroups: [],
+          });
+        }
+      }
+    } else {
+      const dcValue = Number(phase?.skillDcs?.[skill] ?? fallback?.skillDcs?.[skill] ?? DEFAULT_CHECK_DC);
+      const target = Number.isFinite(targetValue) && targetValue > 0 ? targetValue : DEFAULT_CHECK_TARGET;
+      checks.push({
+        id: skill,
+        name: label,
+        skill,
+        dc: Number.isFinite(dcValue) ? dcValue : DEFAULT_CHECK_DC,
+        target,
+        dependsOn: [],
+        step: null,
+      });
+    }
   }
-  return targets;
-}
 
-
-function buildNewPhase(baseIndex) {
-  const template =
-    DEFAULT_PHASE_CONFIG[1] ?? DEFAULT_PHASE_CONFIG[0];
-  const id = `phase${baseIndex}`;
-  return foundry.utils.mergeObject(
-    template,
-    {
-      id,
-      name: `Phase ${baseIndex}`,
-      target: 6,
-      failureEvents: false,
-      allowCriticalBonus: false,
-      image: "",
-      failureEventTable: "",
-      progressNarrative: {},
-      failureLines: ["Momentum slows, but nothing breaks."],
-    },
-    { inplace: false, overwrite: true }
-  );
-}
-
-
-function buildEmptyPhase1() {
-  return {
-    id: "phase1",
-    name: "New Phase",
-    narrativeDuration: "",
-    expectedGain: "",
-    target: 0,
-    allowCriticalBonus: false,
-    failureEvents: false,
-    skills: [],
-    skillTargets: {},
-    image: "",
-    skillDcSteps: {},
-    dcPenaltySkill: "",
-    dcPenaltyPerMissing: 0,
-    failureEventTable: "",
-    skillNarratives: {},
-    progressNarrative: {},
-    failureLines: [],
-    allowEmptyPhase: true,
+  const group = {
+    id: "group1",
+    name: "Checks",
+    checks,
   };
+
+  if (Array.isArray(phase?.progressNarrative)) {
+    for (const item of phase.progressNarrative) {
+      if (item?.text) {
+        successLines.push({
+          id: `success-${successLines.length + 1}`,
+          text: item.text,
+          dependsOnChecks: [],
+          dependsOnGroups: [],
+        });
+      }
+    }
+  } else if (phase?.progressNarrative && typeof phase.progressNarrative === "object") {
+    for (const entry of Object.values(phase.progressNarrative)) {
+      if (entry?.text) {
+        successLines.push({
+          id: `success-${successLines.length + 1}`,
+          text: entry.text,
+          dependsOnChecks: [],
+          dependsOnGroups: [],
+        });
+      }
+    }
+  }
+
+  if (!Array.isArray(phase?.successLines) && successLines.length) {
+    phase.successLines = successLines;
+  }
+
+  if (!Array.isArray(phase?.failureLines) && Array.isArray(phase?.failureLines)) {
+    phase.failureLines = phase.failureLines.map((text, index) => ({
+      id: `failure-${index + 1}`,
+      text,
+      dependsOnChecks: [],
+      dependsOnGroups: [],
+    }));
+  }
+
+  if (Array.isArray(phase?.failureLines) && phase.failureLines.length && typeof phase.failureLines[0] === "string") {
+    phase.failureLines = phase.failureLines.map((text, index) => ({
+      id: `failure-${index + 1}`,
+      text,
+      dependsOnChecks: [],
+      dependsOnGroups: [],
+    }));
+  }
+
+  return [group];
 }
 
+function ensureUniqueId(raw, used) {
+  let id = String(raw ?? "").trim() || "id";
+  let suffix = 1;
+  while (used.has(id)) {
+    suffix += 1;
+    id = `${id}-${suffix}`;
+  }
+  used.add(id);
+  return id;
+}
 
 function getActivePhase(state, trackerId) {
   const definition = getPhaseDefinition(state.activePhaseId, trackerId) ?? {
@@ -199,49 +304,37 @@ function getActivePhase(state, trackerId) {
     progress: 0,
     completed: false,
     failuresInRow: 0,
+    checkProgress: {},
   };
   const merged = {
     ...definition,
     ...phaseState,
   };
-  if (definition.id === "phase1") {
-    merged.skillProgress = getPhase1SkillProgress(merged);
-    merged.progress = getPhase1TotalProgress(merged);
-    merged.completed = isPhaseComplete(merged);
-  }
+  merged.checkProgress = buildCheckProgressMap(merged, phaseState.checkProgress);
+  merged.progress = getPhaseProgress(merged, merged.checkProgress);
+  merged.completed = isPhaseComplete({ ...merged });
   return merged;
 }
-
 
 function getPhaseDefinition(phaseId, trackerId) {
   return getPhaseConfig(trackerId).find((phase) => phase.id === phaseId);
 }
 
-
 function initializePhaseState(state, phase) {
   if (!state?.phases || !phase) return;
-  const phaseState = {
+  state.phases[phase.id] = {
     progress: 0,
     completed: false,
     failuresInRow: 0,
+    checkProgress: buildCheckProgressMap(phase, {}),
   };
-  if (phase.id === "phase1") {
-    phaseState.skillProgress = buildEmptySkillProgress(phase);
-    phaseState.progress = getPhase1TotalProgress({
-      ...phase,
-      skillProgress: phaseState.skillProgress,
-    });
-  }
-  state.phases[phase.id] = phaseState;
 }
-
 
 function getPhaseNumber(phaseId, trackerId) {
   const config = getPhaseConfig(trackerId);
   const index = config.findIndex((phase) => phase.id === phaseId);
   return index >= 0 ? index + 1 : 1;
 }
-
 
 function getFirstPhaseId(trackerId, phaseConfig) {
   const config = Array.isArray(phaseConfig)
@@ -250,328 +343,214 @@ function getFirstPhaseId(trackerId, phaseConfig) {
   return config[0]?.id ?? "phase1";
 }
 
-
 function getDefaultSkills() {
-  return DEFAULT_PHASE_CONFIG[0]?.skills ?? [];
+  return DEFAULT_PHASE_CONFIG[0]?.groups?.[0]?.checks?.map((check) => check.skill).filter(Boolean) ?? ["insight", "persuasion", "religion"];
 }
 
+function getPhaseGroups(phase) {
+  return Array.isArray(phase?.groups) ? phase.groups : [];
+}
 
-function getPhaseSkillList(phase) {
-  if (Array.isArray(phase?.skills) && phase.skills.length) {
-    return phase.skills;
+function getPhaseChecks(phase) {
+  const groups = getPhaseGroups(phase);
+  const output = [];
+  for (const group of groups) {
+    for (const check of group.checks ?? []) {
+      output.push({ ...check, groupId: group.id, groupName: group.name });
+    }
   }
-  if (phase?.allowEmptyPhase) return [];
-  return getDefaultSkills();
+  return output;
 }
 
-
-function getPhaseSkillChoices(phase, skillAliases) {
-  const skills = getPhaseSkillList(phase);
-  return skills.map((key) => {
-    const resolvedKey = resolveSkillKey(key, skillAliases);
-    return {
-      key,
-      label: getSkillLabel(resolvedKey),
-    };
-  });
+function getPhaseCheckById(phase, checkId) {
+  return getPhaseChecks(phase).find((check) => check.id === checkId) ?? null;
 }
 
-
-function buildEmptySkillProgress(phase) {
-  const progress = {};
-  for (const key of getPhaseSkillList(phase)) {
-    progress[key] = 0;
-  }
-  return progress;
+function getPhaseCheckLabel(check, skillAliases) {
+  if (!check) return "";
+  if (check.name) return check.name;
+  const key = check.skill;
+  if (!key) return "";
+  return getSkillLabel(resolveSkillKey(key, skillAliases));
 }
 
-
-function getPhaseSkillTarget(phase, skillChoice) {
-  const target = phase?.skillTargets?.[skillChoice];
-  if (Number.isFinite(target) && target >= 0) return target;
-  const legacy = Number(phase?.skillTarget);
-  if (Number.isFinite(legacy) && legacy >= 0) return legacy;
-  return 2;
+function getPhaseCheckTarget() {
+  return DEFAULT_CHECK_TARGET;
 }
-
 
 function getPhaseTotalTarget(phase) {
-  const skills = getPhaseSkillList(phase);
-  return skills.reduce(
-    (total, key) => total + getPhaseSkillTarget(phase, key),
+  return getPhaseChecks(phase).reduce(
+    (total, check) => total + getPhaseCheckTarget(check),
     0
   );
 }
 
-
-function getForcedSkillChoice(phase) {
-  if (!phase) return "";
-  const forced = phase.forceSkillAfterFailures ?? "";
-  if (!forced) return "";
-  if (Number(phase.failuresInRow) >= 2) return forced;
-  return "";
-}
-
-
-function hasForcedSkillRule(phase) {
-  return Boolean(phase?.forceSkillAfterFailures);
-}
-
-
-function getPhase1SkillProgress(phase) {
-  const skills = getPhaseSkillList(phase);
+function buildCheckProgressMap(phase, stored) {
   const progress = {};
-  for (const key of skills) {
-    progress[key] = Number(phase?.skillProgress?.[key] ?? 0);
+  const checks = getPhaseChecks(phase);
+  for (const check of checks) {
+    const target = getPhaseCheckTarget(check);
+    const current = Number(stored?.[check.id] ?? 0);
+    progress[check.id] = clampNumber(current, 0, target);
   }
   return progress;
 }
 
-
-function getPhase1TotalProgress(phase) {
-  const progress = getPhase1SkillProgress(phase);
-  return getPhaseSkillList(phase).reduce(
-    (total, key) =>
-      total + Math.min(progress[key] ?? 0, getPhaseSkillTarget(phase, key)),
-    0
-  );
+function getPhaseProgress(phase, checkProgress) {
+  const progressMap = checkProgress ?? buildCheckProgressMap(phase, {});
+  return getPhaseChecks(phase).reduce((total, check) => {
+    const current = Math.min(progressMap[check.id] ?? 0, getPhaseCheckTarget(check));
+    return total + current;
+  }, 0);
 }
 
+function isCheckComplete(check, checkProgress) {
+  const target = getPhaseCheckTarget(check);
+  const current = Number(checkProgress?.[check.id] ?? 0);
+  return current >= target;
+}
 
-function buildPhase1SkillData(phase, labels) {
-  const progress = getPhase1SkillProgress(phase);
-  return getPhaseSkillList(phase).map((key) => {
-    const target = getPhaseSkillTarget(phase, key);
-    const value = Math.min(progress[key] ?? 0, target);
-    const percent = target > 0 ? Math.round((value / target) * 100) : 0;
+function isCheckUnlocked(phase, check, checkProgress) {
+  const deps = Array.isArray(check?.dependsOn) ? check.dependsOn : [];
+  if (!deps.length) return true;
+  return deps.every((depId) => {
+    const depCheck = getPhaseCheckById(phase, depId);
+    if (!depCheck) return true;
+    const target = getPhaseCheckTarget(depCheck);
+    const current = Number(checkProgress?.[depId] ?? 0);
+    return current >= target;
+  });
+}
+
+function getPhaseDc(phase, checkId) {
+  const check = typeof checkId === "object" ? checkId : getPhaseCheckById(phase, checkId);
+  if (!check) return DEFAULT_CHECK_DC;
+  const dc = Number(check.dc);
+  return Number.isFinite(dc) ? dc : DEFAULT_CHECK_DC;
+}
+
+function getPhaseCheckChoices(phase, checkProgress, skillAliases) {
+  return getPhaseChecks(phase).map((check) => {
+    const complete = isCheckComplete(check, checkProgress);
+    const unlocked = isCheckUnlocked(phase, check, checkProgress);
+    const skillLabel = check.skill
+      ? getSkillLabel(resolveSkillKey(check.skill, skillAliases))
+      : "";
     return {
-      key,
-      label: labels[key] ?? key,
-      value,
-      target,
-      percent,
+      key: check.id,
+      label: getPhaseCheckLabel(check, skillAliases),
+      description: check.description ?? "",
+      skill: check.skill,
+      skillLabel,
+      dc: getPhaseDc(phase, check),
+      groupId: check.groupId,
+      groupName: check.groupName,
+      complete,
+      locked: !unlocked || complete,
+      dependsOn: check.dependsOn ?? [],
     };
   });
 }
 
+function getPhaseAvailableChecks(phase, checkProgress) {
+  return getPhaseChecks(phase).filter((check) => {
+    if (isCheckComplete(check, checkProgress)) return false;
+    return isCheckUnlocked(phase, check, checkProgress);
+  });
+}
 
-function getPhaseDc(phase, skillChoice) {
-  if (!phase) return 13;
-  const skills = getPhaseSkillList(phase);
-  if (!skills.includes(skillChoice)) return 13;
-  if (phase.id === "phase1") {
-    const progress = getPhase1SkillProgress(phase);
-    const target = getPhaseSkillTarget(phase, skillChoice);
-    const maxIndex = Math.max(0, target - 1);
-    const stepIndex = Math.min(progress[skillChoice] ?? 0, maxIndex);
-    const steps = phase.skillDcSteps?.[skillChoice];
-    let base = 13;
-    if (Array.isArray(steps) && steps.length) {
-      base = Number(steps[stepIndex] ?? steps[steps.length - 1] ?? 13);
-    }
-    const penalty = getPhaseOtherSkillPenalty(phase, skillChoice);
-    return base + penalty;
+function pickLineForCheck(lines, checkId, groupId) {
+  if (!Array.isArray(lines) || !lines.length) return "";
+  const checkMatches = lines.filter((line) =>
+    line?.text && Array.isArray(line.dependsOnChecks) && line.dependsOnChecks.includes(checkId)
+  );
+  if (checkMatches.length) {
+    return checkMatches[Math.floor(Math.random() * checkMatches.length)].text;
   }
-  const dc = phase.skillDcs?.[skillChoice];
-  const base = Number.isFinite(dc) ? dc : 15;
-  return base + getPhaseOtherSkillPenalty(phase, skillChoice);
-}
-
-
-function getPhase1Narrative(phase, skillChoice, skillProgress) {
-  if (!skillProgress || !phase) return null;
-  const value = skillProgress[skillChoice];
-  return phase.skillNarratives?.[skillChoice]?.[value] ?? null;
-}
-
-
-function getPhase1ContextNote() {
-  return "";
-}
-
-
-function getPenaltySkillKey(phase) {
-  const skills = getPhaseSkillList(phase);
-  if (phase?.dcPenaltySkill && skills.includes(phase.dcPenaltySkill)) {
-    return phase.dcPenaltySkill;
+  const groupMatches = lines.filter((line) =>
+    line?.text &&
+    (!line.dependsOnChecks?.length) &&
+    Array.isArray(line.dependsOnGroups) &&
+    line.dependsOnGroups.includes(groupId)
+  );
+  if (groupMatches.length) {
+    return groupMatches[Math.floor(Math.random() * groupMatches.length)].text;
   }
-  if (skills.includes("insight")) return "insight";
-  return skills[0] ?? "";
+  const unconstrained = lines.filter((line) =>
+    line?.text && (!line.dependsOnChecks?.length && !line.dependsOnGroups?.length)
+  );
+  if (!unconstrained.length) return "";
+  return unconstrained[Math.floor(Math.random() * unconstrained.length)].text;
 }
-
-
-function getPhaseOtherSkillPenalty(phase, skillChoice) {
-  if (!phase) return 0;
-  const penaltySkill = getPenaltySkillKey(phase);
-  if (!penaltySkill || skillChoice === penaltySkill) return 0;
-  const perMissing = Number(phase.dcPenaltyPerMissing ?? 0);
-  if (!Number.isFinite(perMissing) || perMissing <= 0) return 0;
-  const progress =
-    phase.id === "phase1" ? getPhase1SkillProgress(phase) : {};
-  const target =
-    phase.id === "phase1"
-      ? getPhaseSkillTarget(phase, penaltySkill)
-      : 0;
-  const current = Number(progress[penaltySkill] ?? 0);
-  return Math.max(0, target - current) * perMissing;
-}
-
-
-function getPhasePenaltyInfo(phase, skillLabels) {
-  if (!phase) return "";
-  const penaltySkill = getPenaltySkillKey(phase);
-  if (!penaltySkill) return "";
-  const label = skillLabels?.[penaltySkill] ?? penaltySkill;
-  const penalty = getPhaseOtherSkillPenalty(phase, "");
-  if (!penalty) return "";
-  return `+${penalty} DC to other checks until ${label} reaches its target.`;
-}
-
-
-function getNextSkillTitle(phase, skillChoice, skillLabels) {
-  if (!phase || !skillChoice) return "";
-  if (phase.id !== "phase1") {
-    return skillLabels?.[skillChoice] ?? skillChoice;
-  }
-  const progress = getPhase1SkillProgress(phase);
-  const currentValue = Number(progress[skillChoice] ?? 0);
-  const target = getPhaseSkillTarget(phase, skillChoice);
-  if (currentValue >= target) {
-    return skillLabels?.[skillChoice] ?? skillChoice;
-  }
-  const narrative =
-    phase.skillNarratives?.[skillChoice]?.[currentValue + 1] ?? null;
-  return narrative?.title ?? skillLabels?.[skillChoice] ?? skillChoice;
-}
-
-
-function buildDefaultCheckOrder(phase) {
-  const skills = getPhaseSkillList(phase);
-  if (!skills.length) return [];
-  if (phase?.id === "phase1") {
-    const order = [];
-    for (const key of skills) {
-      const target = getPhaseSkillTarget(phase, key);
-      for (let step = 1; step <= target; step += 1) {
-        order.push(`${key}:${step}`);
-      }
-    }
-    return order;
-  }
-  return [...skills];
-}
-
-
-function normalizeCheckOrder(phase, order) {
-  const skills = getPhaseSkillList(phase);
-  if (!skills.length) return [];
-  const list = Array.isArray(order) ? order : parseCheckOrder(order);
-  if (!list.length) return buildDefaultCheckOrder(phase);
-
-  const output = [];
-  const seen = new Set();
-  for (const entry of list) {
-    const token = parseCheckOrderToken(entry);
-    if (!token.skill || !skills.includes(token.skill)) continue;
-    if (phase?.id === "phase1") {
-      const target = getPhaseSkillTarget(phase, token.skill);
-      const step = token.step ?? 0;
-      if (step <= 0 || step > target) continue;
-      const key = `${token.skill}:${step}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      output.push(key);
-    } else {
-      if (seen.has(token.skill)) continue;
-      seen.add(token.skill);
-      output.push(token.skill);
-    }
-  }
-
-  return output.length ? output : buildDefaultCheckOrder(phase);
-}
-
-
-function getCheckOrderLabel(phase, token, skillAliases) {
-  const parsed = parseCheckOrderToken(token);
-  const skillKey = parsed.skill || token;
-  const label = getSkillLabel(resolveSkillKey(skillKey, skillAliases));
-  if (phase?.id === "phase1") {
-    const step = parsed.step ?? 0;
-    const title = phase?.skillNarratives?.[skillKey]?.[step]?.title ?? "";
-    return title ? `${label} ${step}: ${title}` : `${label} ${step}`;
-  }
-  return label;
-}
-
-
-function getNextOrderedSkillChoice(phase) {
-  if (!phase?.enforceCheckOrder) return "";
-  const order = normalizeCheckOrder(phase, phase.checkOrder);
-  if (!order.length) return "";
-  if (phase.id !== "phase1") {
-    return parseCheckOrderToken(order[0]).skill || order[0];
-  }
-  const progress = getPhase1SkillProgress(phase);
-  for (const entry of order) {
-    const token = parseCheckOrderToken(entry);
-    if (!token.skill) continue;
-    const target = getPhaseSkillTarget(phase, token.skill);
-    const current = progress[token.skill] ?? 0;
-    const step = token.step ?? 0;
-    if (current < target && current < step) {
-      return token.skill;
-    }
-  }
-  return "";
-}
-
-
 
 function isPhaseComplete(phase) {
   if (!phase) return false;
-  if (phase.id === "phase1") {
-    const progress = getPhase1SkillProgress(phase);
-    return getPhaseSkillList(phase).every(
-      (key) => (progress[key] ?? 0) >= getPhaseSkillTarget(phase, key)
-    );
-  }
-  return phase.progress >= phase.target;
+  return Number(phase.progress ?? 0) >= Number(phase.target ?? 0);
 }
 
 export {
-  isPhaseComplete,
   getPhaseConfig,
   normalizePhaseConfig,
   parsePhaseConfig,
-  normalizeSkillTargets,
-  buildNewPhase,
   buildEmptyPhase1,
+  buildNewPhase,
   getActivePhase,
   getPhaseDefinition,
   initializePhaseState,
   getPhaseNumber,
   getFirstPhaseId,
   getDefaultSkills,
-  getPhaseSkillList,
-  getPhaseSkillChoices,
-  buildEmptySkillProgress,
-  getPhaseSkillTarget,
+  getPhaseGroups,
+  getPhaseChecks,
+  getPhaseCheckById,
+  getPhaseCheckLabel,
+  getPhaseCheckTarget,
   getPhaseTotalTarget,
-  getForcedSkillChoice,
-  hasForcedSkillRule,
-  getPhase1SkillProgress,
-  getPhase1TotalProgress,
-  buildPhase1SkillData,
+  buildCheckProgressMap,
+  getPhaseProgress,
+  isCheckComplete,
+  isCheckUnlocked,
   getPhaseDc,
-  getPhase1Narrative,
-  getPhase1ContextNote,
-  getPenaltySkillKey,
-  getPhaseOtherSkillPenalty,
-  getPhasePenaltyInfo,
-  getNextSkillTitle,
-  buildDefaultCheckOrder,
-  normalizeCheckOrder,
-  getCheckOrderLabel,
-  getNextOrderedSkillChoice,
+  getPhaseCheckChoices,
+  getPhaseAvailableChecks,
+  pickLineForCheck,
+  isPhaseComplete,
 };
+
+function buildEmptyPhase1() {
+  return {
+    id: "phase1",
+    name: "Phase 1",
+    narrativeDuration: "",
+    expectedGain: "",
+    target: 1,
+    allowCriticalBonus: false,
+    failureEvents: false,
+    failureEventTable: "",
+    image: "",
+    groups: [],
+    successLines: [],
+    failureLines: [],
+  };
+}
+
+function buildNewPhase(baseIndex) {
+  const template = DEFAULT_PHASE_CONFIG[1] ?? DEFAULT_PHASE_CONFIG[0];
+  const id = `phase${baseIndex}`;
+  return foundry.utils.mergeObject(
+    template,
+    {
+      id,
+      name: `Phase ${baseIndex}`,
+      target: 0,
+      allowCriticalBonus: false,
+      failureEvents: false,
+      failureEventTable: "",
+      image: "",
+      groups: [],
+      successLines: [],
+      failureLines: [],
+    },
+    { inplace: false, overwrite: true }
+  );
+}

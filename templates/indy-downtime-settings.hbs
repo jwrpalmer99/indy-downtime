@@ -96,14 +96,14 @@
   </fieldset>
 
   <details class="drep-panel drep-collapsible">
-    <summary>Activity Log</summary>
+    <summary><span class="drep-summary-toggle"><i class="fa-solid fa-angle-down drep-expand"></i><i class="fa-solid fa-angle-up drep-collapse"></i></span><span>Activity Log</span></summary>
     {{#if state.log.length}}
       <div class="drep-log">
         {{#each state.log}}
           <div class="drep-log-item {{#if this.success}}success{{else}}failure{{/if}}">
             <div class="drep-log-main">
               <strong>Check {{#if this.checkNumber}}{{this.checkNumber}}{{else}}{{this.windowDay}}{{/if}}:</strong>
-              {{this.actorName}} rolled {{this.skillLabel}} vs DC {{this.dc}}.
+              {{this.actorName}} rolled {{#if this.checkName}}{{this.checkName}} ({{this.skillLabel}}){{else}}{{this.skillLabel}}{{/if}} vs DC {{this.dc}}.
               Result: {{this.total}} ({{#if this.success}}Success{{else}}Failure{{/if}})
             </div>
             <div class="drep-log-actions">

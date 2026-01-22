@@ -1,24 +1,18 @@
-import { debugLog, getIntervalLabel, getSkillAliases, getSkillLabel, pickFailureLine, resolveSkillKey, shouldHideDc } from "./labels.js";
+import { debugLog, getIntervalLabel, getSkillAliases, getSkillLabel, resolveSkillKey } from "./labels.js";
 import {
   getActivePhase,
-  getDefaultSkills,
-  getPhaseConfig,
-  getPhaseDc,
+  getPhaseCheckById,
   getPhaseDefinition,
-  getPhase1ContextNote,
-  getPhase1Narrative,
-  getPhase1SkillProgress,
-  getPhase1TotalProgress,
-  getPhaseSkillList,
-  getPhaseSkillTarget,
-  getForcedSkillChoice,
-  getNextOrderedSkillChoice,
-  hasForcedSkillRule,
+  getPhaseCheckLabel,
+  getPhaseCheckTarget,
+  getPhaseDc,
+  getPhaseProgress,
+  getPhaseAvailableChecks,
   initializePhaseState,
   isPhaseComplete,
+  pickLineForCheck,
 } from "./phase.js";
 import {
-  buildPhase1ProgressLine,
   getNextIncompletePhaseId,
   getWorldState,
   setWorldState,
@@ -57,7 +51,6 @@ async function rollSkill(actor, skillKey, advantage) {
   }
 }
 
-
 async function rollSkillDirect(actor, skillKey, advantage) {
   const skillData = actor.system?.skills?.[skillKey];
   const mod = Number(skillData?.total ?? skillData?.mod ?? 0);
@@ -70,40 +63,34 @@ async function rollSkillDirect(actor, skillKey, advantage) {
   return roll;
 }
 
-
-async function runIntervalRoll({ actor, skillChoice, trackerId }) {
+async function runIntervalRoll({ actor, checkChoice, trackerId }) {
   const skillAliases = getSkillAliases();
   const resolvedTrackerId = trackerId ?? getCurrentTrackerId();
-  const phaseConfig = getPhaseConfig(resolvedTrackerId);
   const state = getWorldState(resolvedTrackerId);
   const activePhase = getActivePhase(state, resolvedTrackerId);
   if (activePhase.completed) return;
 
-  const orderedSkillChoice = getNextOrderedSkillChoice(activePhase);
-  const forcedSkillChoice =
-    getForcedSkillChoice(activePhase) || orderedSkillChoice;
-  let allowedSkills = getPhaseSkillList(activePhase);
-  if (activePhase.id === "phase1") {
-    const progress = getPhase1SkillProgress(activePhase);
-    allowedSkills = allowedSkills.filter((key) => {
-      const target = getPhaseSkillTarget(activePhase, key);
-      return (progress[key] ?? 0) < target;
-    });
-  }
-  if (!allowedSkills.length) {
-    ui.notifications.warn("Indy Downtime Tracker: configure skills before rolling.");
+  const availableChecks = getPhaseAvailableChecks(
+    activePhase,
+    activePhase.checkProgress
+  );
+  if (!availableChecks.length) {
+    ui.notifications.warn("Indy Downtime Tracker: configure checks before rolling.");
     return;
   }
-  const resolvedSkillChoice = forcedSkillChoice
-    ? forcedSkillChoice
-    : skillChoice || allowedSkills[0] || getDefaultSkills()[0] || "";
-  const finalSkillChoice = allowedSkills.includes(resolvedSkillChoice)
-    ? resolvedSkillChoice
-    : allowedSkills[0] || getDefaultSkills()[0] || "";
-  const skillKey = resolveSkillKey(finalSkillChoice, skillAliases);
-  const skillLabel = getSkillLabel(skillKey);
 
-  const dc = getPhaseDc(activePhase, finalSkillChoice);
+  let selectedCheck =
+    (checkChoice && getPhaseCheckById(activePhase, checkChoice)) || null;
+  if (!selectedCheck || !availableChecks.find((check) => check.id === selectedCheck.id)) {
+    selectedCheck = availableChecks[0];
+  }
+  if (!selectedCheck) return;
+
+  const skillKey = resolveSkillKey(selectedCheck.skill, skillAliases);
+  const skillLabel = skillKey ? getSkillLabel(skillKey) : selectedCheck.skill;
+  const checkLabel = getPhaseCheckLabel(selectedCheck, skillAliases);
+
+  const dc = getPhaseDc(activePhase, selectedCheck);
   const roll = await rollSkill(actor, skillKey, false);
   if (!roll) return;
 
@@ -114,67 +101,42 @@ async function runIntervalRoll({ actor, skillChoice, trackerId }) {
 
   let progressGained = 0;
   let criticalBonusApplied = false;
-  let narrative = null;
-  let contextNote = "";
+  let successLine = "";
+  let failureLine = "";
+
   if (success) {
-    if (activePhase.id === "phase1") {
-      const phase1Progress = getPhase1SkillProgress(activePhase);
-      const currentValue = phase1Progress[finalSkillChoice] ?? 0;
-      const maxValue = getPhaseSkillTarget(activePhase, finalSkillChoice);
-      if (currentValue < maxValue) {
-        progressGained = 1;
-        let nextValue = Math.min(currentValue + 1, maxValue);
-        if (
-          activePhase.allowCriticalBonus &&
-          isCriticalSuccess(roll)
-        ) {
-          const boosted = Math.min(nextValue + 1, maxValue);
-          if (boosted > nextValue) {
-            nextValue = boosted;
-            progressGained += 1;
-            criticalBonusApplied = true;
-          }
-        }
-        phase1Progress[finalSkillChoice] = nextValue;
-        activePhase.skillProgress = phase1Progress;
-        narrative = getPhase1Narrative(
-          activePhase,
-          finalSkillChoice,
-          activePhase.skillProgress
-        );
-        contextNote = getPhase1ContextNote(
-          finalSkillChoice,
-          activePhase.skillProgress,
-          progressGained > 0
-        );
-      }
-      activePhase.progress = getPhase1TotalProgress(activePhase);
-      activePhase.completed = isPhaseComplete(activePhase);
-      activePhase.failuresInRow = 0;
-    } else {
+    const currentValue = Number(activePhase.checkProgress?.[selectedCheck.id] ?? 0);
+    const target = getPhaseCheckTarget(selectedCheck);
+    if (currentValue < target) {
       progressGained = 1;
-      if (
-        activePhase.allowCriticalBonus &&
-        isCriticalSuccess(roll)
-      ) {
-        progressGained += 1;
-        criticalBonusApplied = true;
+      let nextValue = Math.min(currentValue + 1, target);
+      if (activePhase.allowCriticalBonus && isCriticalSuccess(roll)) {
+        const boosted = Math.min(nextValue + 1, target);
+        if (boosted > nextValue) {
+          nextValue = boosted;
+          progressGained += 1;
+          criticalBonusApplied = true;
+        }
       }
-      activePhase.progress = Math.min(
-        activePhase.progress + progressGained,
-        activePhase.target
-      );
-      activePhase.failuresInRow = 0;
-      narrative =
-        activePhase.progressNarrative?.[activePhase.progress] ?? null;
+      activePhase.checkProgress[selectedCheck.id] = nextValue;
     }
-  } else if (hasForcedSkillRule(activePhase)) {
-    activePhase.failuresInRow += 1;
+    activePhase.progress = getPhaseProgress(activePhase, activePhase.checkProgress);
+    activePhase.completed = isPhaseComplete({ ...activePhase, progress: activePhase.progress });
+    activePhase.failuresInRow = 0;
+    successLine = pickLineForCheck(
+      activePhase.successLines,
+      selectedCheck.id,
+      selectedCheck.groupId
+    );
+  } else {
+    activePhase.failuresInRow = Number(activePhase.failuresInRow ?? 0) + 1;
+    failureLine = pickLineForCheck(
+      activePhase.failureLines,
+      selectedCheck.id,
+      selectedCheck.groupId
+    );
   }
 
-  const failureLine = success
-    ? null
-    : pickFailureLine(activePhase.failureLines);
   const failureEvent = Boolean(!success && activePhase.failureEvents);
   let failureEventResult = "";
   if (!success && failureEvent) {
@@ -185,7 +147,7 @@ async function runIntervalRoll({ actor, skillChoice, trackerId }) {
     progress: activePhase.progress,
     completed: activePhase.completed,
     failuresInRow: activePhase.failuresInRow,
-    skillProgress: activePhase.skillProgress ?? undefined,
+    checkProgress: activePhase.checkProgress ?? {},
   };
 
   if (isPhaseComplete(activePhase)) {
@@ -199,7 +161,11 @@ async function runIntervalRoll({ actor, skillChoice, trackerId }) {
     phaseName: activePhase.name,
     actorId: actor.id,
     actorName: actor.name,
-    skillChoice: finalSkillChoice,
+    checkId: selectedCheck.id,
+    checkName: checkLabel,
+    groupId: selectedCheck.groupId,
+    groupName: selectedCheck.groupName,
+    skillChoice: selectedCheck.skill,
     skillKey,
     skillLabel,
     dc,
@@ -207,11 +173,8 @@ async function runIntervalRoll({ actor, skillChoice, trackerId }) {
     success,
     progressGained,
     criticalBonusApplied,
-    narrativeTitle: narrative?.title ?? "",
-    narrativeText: narrative?.text ?? "",
-    contextNote,
-    skillProgress: activePhase.skillProgress ?? undefined,
-    failureLine: failureLine ?? "",
+    successLine,
+    failureLine,
     failureEvent,
     failureEventResult,
     timestamp: Date.now(),
@@ -221,6 +184,7 @@ async function runIntervalRoll({ actor, skillChoice, trackerId }) {
   await setWorldState(state, resolvedTrackerId);
   await postSummaryMessage({
     actor,
+    checkLabel,
     skillLabel,
     dc,
     total,
@@ -229,24 +193,16 @@ async function runIntervalRoll({ actor, skillChoice, trackerId }) {
     progressTarget: activePhase.target,
     progressGained,
     criticalBonusApplied,
-    narrative,
-    contextNote,
+    successLine,
     failureLine,
     failureEvent,
     failureEventResult,
-    forcedSkillChoice,
-    forcedSkillLabel: forcedSkillChoice
-      ? getSkillLabel(resolveSkillKey(forcedSkillChoice, skillAliases))
-      : "",
-    phase1SkillProgress: activePhase.skillProgress,
-    phase1SkillTargets: activePhase.skillTargets,
-    phase1SkillList: getPhaseSkillList(activePhase),
   });
 }
 
-
 async function postSummaryMessage({
   actor,
+  checkLabel,
   skillLabel,
   dc,
   total,
@@ -255,16 +211,10 @@ async function postSummaryMessage({
   progressTarget,
   progressGained,
   criticalBonusApplied,
-  narrative,
-  contextNote,
+  successLine,
   failureLine,
   failureEvent,
   failureEventResult,
-  forcedSkillChoice,
-  forcedSkillLabel,
-  phase1SkillProgress,
-  phase1SkillTargets,
-  phase1SkillList,
 }) {
   const outcome = success ? "Success" : "Failure";
   const progressLine = success
@@ -272,25 +222,11 @@ async function postSummaryMessage({
         progressGained ? ` (+${progressGained})` : ""
       }</p>`
     : `<p><strong>Progress:</strong> ${progress} / ${progressTarget}</p>`;
-  const phase1Line = buildPhase1ProgressLine(
-    phase1SkillProgress,
-    phase1SkillTargets,
-    phase1SkillList
-  );
-  const phase1Block = phase1Line
-    ? `<p><strong>Phase 1:</strong> ${phase1Line}</p>`
-    : "";
   const criticalLine = criticalBonusApplied
     ? "<p><strong>Critical:</strong> Bonus progress applied.</p>"
     : "";
-  const forcedNote = forcedSkillChoice
-    ? `<p><strong>Note:</strong> Two failures in a row. ${forcedSkillLabel} was required.</p>`
-    : "";
-  const narrativeBlock = narrative
-    ? `<div class="narrative"><strong>${narrative.title}:</strong> ${narrative.text}</div>`
-    : "";
-  const contextBlock = contextNote
-    ? `<div class="narrative"><strong>Note:</strong> ${contextNote}</div>`
+  const successBlock = successLine
+    ? `<div class="narrative"><strong>Success:</strong> ${successLine}</div>`
     : "";
   const failureBlock = failureLine
     ? `<div class="narrative"><strong>${
@@ -303,16 +239,14 @@ async function postSummaryMessage({
 
   const content = `
       <div class="drep-chat">
-        <h3>${getIntervalLabel()} Check: ${skillLabel}</h3>
+        <h3>${getIntervalLabel()} Check: ${checkLabel}</h3>
         <p><strong>Actor:</strong> ${actor.name}</p>
+        <p><strong>Skill:</strong> ${skillLabel}</p>
         <p><strong>DC:</strong> ${dc}</p>
         <p><strong>Result:</strong> ${total} (${outcome})</p>
         ${progressLine}
-        ${phase1Block}
         ${criticalLine}
-        ${forcedNote}
-        ${narrativeBlock}
-        ${contextBlock}
+        ${successBlock}
         ${failureBlock}
         ${failureEventBlock}
       </div>`;
@@ -321,7 +255,6 @@ async function postSummaryMessage({
     content,
   });
 }
-
 
 async function handleCompletion(state, activePhase, actor, trackerId) {
   const nextPhaseId = getNextIncompletePhaseId(state, trackerId);
@@ -345,21 +278,6 @@ async function handleCompletion(state, activePhase, actor, trackerId) {
     initializePhaseState(state, nextPhase);
   }
 
-  if (activePhase.id === "phase3") {
-    const existing = state.journalId && game.journal.get(state.journalId);
-    if (!existing) {
-      const entry = await JournalEntry.create({
-        name: "The Shared Ember",
-        content: `
-            <h2>The Shared Ember</h2>
-            <p>The Shared Ember exists. Ash-Twenty-Seven emerges, and the Cogs now have a safe place.</p>
-          `,
-        folder: null,
-      });
-      state.journalId = entry?.id ?? "";
-    }
-  }
-
   await setWorldState(state, trackerId);
 
   const completionNote = nextPhaseName
@@ -371,7 +289,6 @@ async function handleCompletion(state, activePhase, actor, trackerId) {
   });
 }
 
-
 function isCriticalSuccess(roll) {
   const die = roll?.dice?.[0];
   if (!die || !die.results?.length) return false;
@@ -379,9 +296,6 @@ function isCriticalSuccess(roll) {
     die.results[0]?.result ?? die.results[0]?.value ?? die.total ?? 0;
   return die.faces && result === die.faces;
 }
-
-
-
 
 async function rollFailureEventTable(phase, actor) {
   const uuid = typeof phase?.failureEventTable === "string"
@@ -409,7 +323,6 @@ async function rollFailureEventTable(phase, actor) {
     return "";
   }
 }
-
 
 export {
   rollSkill,

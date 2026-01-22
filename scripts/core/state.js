@@ -4,29 +4,22 @@ import {
   MODULE_ID,
   SOCKET_EVENT_REQUEST,
   SOCKET_EVENT_STATE,
-  TRACKERS_SETTING,
 } from "../constants.js";
 import { clampNumber, debugLog, getSkillAliases, getSkillLabel } from "./labels.js";
 import {
-  buildEmptySkillProgress,
-  getDefaultSkills,
+  buildCheckProgressMap,
   getFirstPhaseId,
-  getPhase1ContextNote,
-  getPhase1Narrative,
-  getPhase1SkillProgress,
-  getPhase1TotalProgress,
+  getPhaseCheckById,
+  getPhaseCheckLabel,
+  getPhaseCheckTarget,
   getPhaseConfig,
   getPhaseDc,
-  getPhaseDefinition,
-  getPhaseNumber,
-  getPhaseSkillList,
-  getPhaseSkillTarget,
-  getPhaseTotalTarget,
-  hasForcedSkillRule,
+  getPhaseProgress,
+  getPhaseChecks,
   isPhaseComplete,
+  pickLineForCheck,
 } from "./phase.js";
 import { resolveSkillKey } from "./labels.js";
-import { pickFailureLine } from "./labels.js";
 import {
   getCurrentTracker,
   getCurrentTrackerId,
@@ -43,7 +36,6 @@ function getWorldState(trackerId) {
   );
 }
 
-
 async function setWorldState(state, trackerId) {
   if (!game.user?.isGM) {
     requestStateUpdate(state, trackerId);
@@ -54,7 +46,6 @@ async function setWorldState(state, trackerId) {
   notifyStateUpdated(trackerKey);
 }
 
-
 function normalizeProjectState(source, phaseConfig) {
   const stored = source ?? {};
   const state = foundry.utils.mergeObject(DEFAULT_STATE, stored, {
@@ -62,11 +53,7 @@ function normalizeProjectState(source, phaseConfig) {
     overwrite: true,
   });
   if (!Number.isFinite(state.checkCount)) {
-    if (Number.isFinite(stored?.windowDaysUsed)) {
-      state.checkCount = stored.windowDaysUsed;
-    } else if (Number.isFinite(stored?.daysElapsed)) {
-      state.checkCount = stored.daysElapsed;
-    } else if (Array.isArray(stored?.log) && stored.log.length) {
+    if (Array.isArray(stored?.log) && stored.log.length) {
       const maxLogged = stored.log.reduce((max, entry) => {
         const value = Number(entry?.checkNumber ?? entry?.windowDay ?? 0);
         return Number.isFinite(value) ? Math.max(max, value) : max;
@@ -81,40 +68,22 @@ function normalizeProjectState(source, phaseConfig) {
     : getPhaseConfig();
   state.phases = state.phases ?? {};
   for (const phase of resolvedConfig) {
-    const fallback = { progress: 0, completed: false, failuresInRow: 0 };
-    state.phases[phase.id] = foundry.utils.mergeObject(
+    const fallback = { progress: 0, completed: false, failuresInRow: 0, checkProgress: {} };
+    const existing = foundry.utils.mergeObject(
       fallback,
       state.phases[phase.id] ?? {},
       { inplace: false, overwrite: true }
     );
-    if (phase.id === "phase1") {
-      const existing = state.phases[phase.id];
-      if (!existing.skillProgress) {
-        existing.skillProgress = migratePhase1Progress(
-          existing.progress ?? 0,
-          phase
-        );
-      }
-      existing.progress = getPhase1TotalProgress(existing);
-      existing.completed = isPhaseComplete({ ...phase, ...existing });
-    } else if (state.phases[phase.id].progress >= phase.target) {
-      state.phases[phase.id].completed = true;
+    if (!existing.checkProgress || typeof existing.checkProgress !== "object") {
+      existing.checkProgress = {};
     }
-  }
-  if (!stored?.phases && Number.isFinite(stored?.progress)) {
-    const phase1 = state.phases.phase1;
-    const phase1Config =
-      resolvedConfig.find((phase) => phase.id === "phase1") ??
-      DEFAULT_PHASE_CONFIG[0];
-    const target = phase1Config?.target ?? 0;
-    phase1.progress = target
-      ? Math.min(stored.progress, target)
-      : stored.progress;
-    phase1.completed = Boolean(stored.completed);
-    if (target && phase1.progress >= target) {
-      phase1.completed = true;
-    }
-    phase1.skillProgress = migratePhase1Progress(phase1.progress, phase1Config);
+    existing.checkProgress = migrateLegacyCheckProgress(phase, existing);
+    existing.progress = Math.min(
+      getPhaseProgress(phase, existing.checkProgress),
+      Number(phase.target ?? 0)
+    );
+    existing.completed = isPhaseComplete({ ...phase, progress: existing.progress });
+    state.phases[phase.id] = existing;
   }
   const firstPhaseId = getFirstPhaseId(null, resolvedConfig);
   if (!resolvedConfig.some((phase) => phase.id === state.activePhaseId)) {
@@ -127,6 +96,22 @@ function normalizeProjectState(source, phaseConfig) {
   return state;
 }
 
+function migrateLegacyCheckProgress(phase, phaseState) {
+  const progress = buildCheckProgressMap(phase, phaseState.checkProgress);
+  const legacy = phaseState.skillProgress;
+  if (legacy && typeof legacy === "object") {
+    for (const check of getPhaseChecks(phase)) {
+      const value = Number(legacy?.[check.skill] ?? 0);
+      if (!Number.isFinite(value)) continue;
+      if (check.step) {
+        progress[check.id] = value >= check.step ? 1 : 0;
+      } else {
+        progress[check.id] = clampNumber(value, 0, getPhaseCheckTarget(check));
+      }
+    }
+  }
+  return progress;
+}
 
 function applyStateOverridesFromForm(state, formData, phaseConfig) {
   if (!state || !formData || !Array.isArray(phaseConfig)) return;
@@ -135,48 +120,43 @@ function applyStateOverridesFromForm(state, formData, phaseConfig) {
     state.checkCount = Math.max(0, checkCount);
   }
 
+  const checkProgressData = formData.checkProgress ?? {};
+
   for (const phase of phaseConfig) {
     const phaseState = state.phases[phase.id] ?? {
       progress: 0,
       completed: false,
       failuresInRow: 0,
+      checkProgress: {},
     };
     const failureValue = Number(formData[`${phase.id}FailuresInRow`]);
     if (Number.isFinite(failureValue)) {
       phaseState.failuresInRow = Math.max(0, failureValue);
     }
 
-    if (phase.id === "phase1") {
-      const skillProgress = buildEmptySkillProgress(phase);
-      for (const key of getPhaseSkillList(phase)) {
-        const value = Number(formData[`phase1Skill_${key}`]);
-        if (Number.isFinite(value)) {
-          const target = getPhaseSkillTarget(phase, key);
-          skillProgress[key] = clampNumber(value, 0, target);
-        }
-      }
-      phaseState.skillProgress = skillProgress;
-      phaseState.progress = getPhase1TotalProgress({
-        ...phase,
-        skillProgress,
-      });
-    } else {
-      const progressValue = Number(formData[`${phase.id}Progress`]);
-      if (Number.isFinite(progressValue)) {
-        phaseState.progress = clampNumber(progressValue, 0, phase.target ?? 0);
+    const nextProgress = buildCheckProgressMap(phase, phaseState.checkProgress);
+    const overrides = checkProgressData?.[phase.id] ?? {};
+    for (const check of getPhaseChecks(phase)) {
+      const value = Number(overrides?.[check.id]);
+      if (Number.isFinite(value)) {
+        nextProgress[check.id] = clampNumber(value, 0, getPhaseCheckTarget(check));
       }
     }
+    phaseState.checkProgress = nextProgress;
+    phaseState.progress = Math.min(
+      getPhaseProgress(phase, nextProgress),
+      Number(phase.target ?? 0)
+    );
 
     if (formData[`${phase.id}Completed`] !== undefined) {
       phaseState.completed = Boolean(formData[`${phase.id}Completed`]);
     } else {
-      phaseState.completed = isPhaseComplete({ ...phase, ...phaseState });
+      phaseState.completed = isPhaseComplete({ ...phase, progress: phaseState.progress });
     }
 
     state.phases[phase.id] = phaseState;
   }
 }
-
 
 function recalculateStateFromLog(state, trackerId) {
   const phaseConfig = getPhaseConfig(trackerId);
@@ -193,7 +173,7 @@ function recalculateStateFromLog(state, trackerId) {
       progress: 0,
       completed: false,
       failuresInRow: 0,
-      skillProgress: phase.id === "phase1" ? buildEmptySkillProgress(phase) : undefined,
+      checkProgress: buildCheckProgressMap(phase, {}),
     };
   }
 
@@ -209,7 +189,11 @@ function recalculateStateFromLog(state, trackerId) {
 
   for (const phase of phaseConfig) {
     const phaseState = rebuilt.phases[phase.id];
-    phaseState.completed = isPhaseComplete({ ...phase, ...phaseState });
+    phaseState.progress = Math.min(
+      getPhaseProgress(phase, phaseState.checkProgress),
+      Number(phase.target ?? 0)
+    );
+    phaseState.completed = isPhaseComplete({ ...phase, progress: phaseState.progress });
   }
 
   rebuilt.log = rebuiltLog.sort(
@@ -227,7 +211,6 @@ function recalculateStateFromLog(state, trackerId) {
   return rebuilt;
 }
 
-
 function applyLogEntryToState(entry, state, phaseConfig, skillAliases) {
   if (entry?.type === "phase-complete") {
     return entry;
@@ -236,122 +219,95 @@ function applyLogEntryToState(entry, state, phaseConfig, skillAliases) {
     phaseConfig.find((candidate) => candidate.id === entry.phaseId) ??
     phaseConfig[0];
   const phaseState = state.phases[phase.id];
-  const skillChoice = resolveSkillChoice(entry, phase, skillAliases);
-  const skillKey = entry.skillKey ?? resolveSkillKey(skillChoice, skillAliases);
-  const skillLabel = getSkillLabel(skillKey);
+  const resolved = resolveCheckFromEntry(entry, phase, skillAliases);
+  const check = resolved.check;
+  const checkId = check?.id ?? entry.checkId ?? "";
+  const groupId = check?.groupId ?? entry.groupId ?? "";
+  const skillKey = check?.skill
+    ? resolveSkillKey(check.skill, skillAliases)
+    : entry.skillKey ?? resolveSkillKey(entry.skillChoice ?? "", skillAliases);
+  const skillLabel = skillKey ? getSkillLabel(skillKey) : "";
   const success = Boolean(entry.success);
-  const dc = getPhaseDc(phase, skillChoice);
+  const dc = getPhaseDc(phase, check);
 
   let progressGained = 0;
   let criticalBonusApplied = Boolean(entry.criticalBonusApplied);
-  let narrative = null;
-  let contextNote = "";
+  let successLine = entry.successLine ?? "";
   let failureLine = entry.failureLine ?? "";
   let failureEvent = Boolean(entry.failureEvent);
 
-  if (success) {
-    if (phase.id === "phase1") {
-      const skillTarget = getPhaseSkillTarget(phase, skillChoice);
-      const currentValue = phaseState.skillProgress?.[skillChoice] ?? 0;
-      if (currentValue < skillTarget) {
-        progressGained = 1;
-        let nextValue = Math.min(currentValue + 1, skillTarget);
-        if (phase.allowCriticalBonus && criticalBonusApplied) {
-          const boosted = Math.min(nextValue + 1, skillTarget);
-          if (boosted > nextValue) {
-            nextValue = boosted;
-            progressGained += 1;
-          }
-        }
-        phaseState.skillProgress[skillChoice] = nextValue;
-        narrative = getPhase1Narrative(
-          phase,
-          skillChoice,
-          phaseState.skillProgress
-        );
-        contextNote = getPhase1ContextNote(
-          skillChoice,
-          phaseState.skillProgress,
-          progressGained > 0
-        );
+  if (check) {
+    const currentValue = phaseState.checkProgress?.[check.id] ?? 0;
+    const target = getPhaseCheckTarget(check);
+    if (success) {
+      if (currentValue < target) {
+        const increment = Number.isFinite(Number(entry.progressGained))
+          ? Number(entry.progressGained)
+          : 1;
+        const nextValue = clampNumber(currentValue + increment, 0, target);
+        progressGained = nextValue - currentValue;
+        phaseState.checkProgress[check.id] = nextValue;
       } else {
         criticalBonusApplied = false;
       }
-      phaseState.progress = getPhase1TotalProgress({
-        ...phase,
-        skillProgress: phaseState.skillProgress,
-      });
+      phaseState.failuresInRow = 0;
+      if (!successLine) {
+        successLine = pickLineForCheck(phase.successLines, checkId, groupId);
+      }
+      failureLine = "";
+      failureEvent = false;
     } else {
-      if (phaseState.progress < phase.target) {
-        progressGained = 1;
-        let nextValue = Math.min(phaseState.progress + 1, phase.target);
-        if (phase.allowCriticalBonus && criticalBonusApplied) {
-          const boosted = Math.min(nextValue + 1, phase.target);
-          if (boosted > nextValue) {
-            nextValue = boosted;
-            progressGained += 1;
-          }
-        }
-        phaseState.progress = nextValue;
-        narrative = phase.progressNarrative?.[phaseState.progress] ?? null;
-      } else {
-        criticalBonusApplied = false;
+      criticalBonusApplied = false;
+      phaseState.failuresInRow = Number(phaseState.failuresInRow ?? 0) + 1;
+      if (!failureLine) {
+        failureLine = pickLineForCheck(phase.failureLines, checkId, groupId);
       }
+      failureEvent = Boolean(phase.failureEvents);
     }
-    phaseState.failuresInRow = 0;
-    failureLine = "";
-    failureEvent = false;
-  } else {
-    criticalBonusApplied = false;
-    if (hasForcedSkillRule(phase)) {
-      phaseState.failuresInRow += 1;
-    }
-    if (!failureLine) {
-      failureLine = pickFailureLine(phase.failureLines);
-    }
-    failureEvent = Boolean(phase.failureEvents);
   }
 
   return {
     ...entry,
     phaseId: phase.id,
     phaseName: phase.name,
-    skillChoice,
+    checkId,
+    checkName: check ? getPhaseCheckLabel(check, skillAliases) : entry.checkName ?? "",
+    groupId,
+    groupName: check?.groupName ?? entry.groupName ?? "",
     skillKey,
     skillLabel,
     dc,
     success,
     progressGained,
     criticalBonusApplied,
-    narrativeTitle: narrative?.title ?? "",
-    narrativeText: narrative?.text ?? "",
-    contextNote,
+    successLine,
     failureLine,
     failureEvent,
   };
 }
 
-
-function resolveSkillChoice(entry, phase, skillAliases) {
-  const allowed = getPhaseSkillList(phase);
-  if (entry.skillChoice && allowed.includes(entry.skillChoice)) {
-    return entry.skillChoice;
+function resolveCheckFromEntry(entry, phase, skillAliases) {
+  if (entry?.checkId) {
+    const check = getPhaseCheckById(phase, entry.checkId);
+    if (check) return { check };
   }
-  const key = entry.skillKey;
-  if (key) {
-    for (const choice of allowed) {
-      if (resolveSkillKey(choice, skillAliases) === key) return choice;
-    }
+  const skillChoice = entry?.skillChoice;
+  if (skillChoice) {
+    const check = getPhaseChecks(phase).find((candidate) => candidate.skill === skillChoice);
+    if (check) return { check };
   }
-  return allowed[0] ?? getDefaultSkills()[0] ?? "";
+  const skillKey = entry?.skillKey;
+  if (skillKey) {
+    const check = getPhaseChecks(phase).find((candidate) => resolveSkillKey(candidate.skill, skillAliases) === skillKey);
+    if (check) return { check };
+  }
+  return { check: getPhaseChecks(phase)[0] ?? null };
 }
-
 
 function getLogSortValue(entry) {
   const value = Number(entry?.checkNumber ?? entry?.timestamp ?? 0);
   return Number.isFinite(value) ? value : 0;
 }
-
 
 function deriveCheckCount(log) {
   let maxValue = 0;
@@ -364,7 +320,6 @@ function deriveCheckCount(log) {
   return maxValue || (log?.length ?? 0);
 }
 
-
 function resetPhaseState(state, phaseConfig) {
   const config = Array.isArray(phaseConfig) ? phaseConfig : getPhaseConfig();
   state.phases = state.phases ?? {};
@@ -373,12 +328,10 @@ function resetPhaseState(state, phaseConfig) {
       progress: 0,
       completed: false,
       failuresInRow: 0,
-      skillProgress:
-        phase.id === "phase1" ? buildEmptySkillProgress(phase) : undefined,
+      checkProgress: buildCheckProgressMap(phase, {}),
     };
   }
 }
-
 
 function getNextIncompletePhaseId(state, trackerId, phaseConfig) {
   const config = Array.isArray(phaseConfig)
@@ -389,7 +342,6 @@ function getNextIncompletePhaseId(state, trackerId, phaseConfig) {
   }
   return "";
 }
-
 
 function isPhaseUnlocked(phaseId, state, trackerId, phaseConfig) {
   const config = Array.isArray(phaseConfig)
@@ -404,37 +356,6 @@ function isPhaseUnlocked(phaseId, state, trackerId, phaseConfig) {
   return true;
 }
 
-
-
-
-function migratePhase1Progress(total, phase) {
-  let remaining = Math.max(0, Number(total) || 0);
-  const progress = buildEmptySkillProgress(phase);
-  const skills = getPhaseSkillList(phase);
-  for (const key of skills) {
-    if (remaining <= 0) break;
-    const target = getPhaseSkillTarget(phase, key);
-    const value = Math.min(target, remaining);
-    progress[key] = value;
-    remaining -= value;
-  }
-  return progress;
-}
-
-
-function buildPhase1ProgressLine(progress, targets, skills) {
-  if (!progress || !targets) return "";
-  const list = Array.isArray(skills) && skills.length ? skills : getDefaultSkills();
-  const parts = list.map((key) => {
-    const target = Number(targets?.[key] ?? 0);
-    const value = Math.min(progress[key] ?? 0, target);
-    const label = key.charAt(0).toUpperCase() + key.slice(1);
-    return `${label} ${value}/${target}`;
-  });
-  return parts.join(", ");
-}
-
-
 function notifyStateUpdated(trackerId) {
   if (!game?.socket || !game.user?.isGM) return;
   game.socket.emit(`module.${MODULE_ID}`, {
@@ -443,7 +364,6 @@ function notifyStateUpdated(trackerId) {
     trackerId,
   });
 }
-
 
 function requestStateUpdate(state, trackerId) {
   if (!game?.socket) return;
@@ -456,7 +376,6 @@ function requestStateUpdate(state, trackerId) {
   ui.notifications.info("Indy Downtime Tracker: update sent to GM.");
 }
 
-
 export {
   getWorldState,
   setWorldState,
@@ -464,14 +383,11 @@ export {
   applyStateOverridesFromForm,
   recalculateStateFromLog,
   applyLogEntryToState,
-  resolveSkillChoice,
   getLogSortValue,
   deriveCheckCount,
   resetPhaseState,
   getNextIncompletePhaseId,
   isPhaseUnlocked,
-  migratePhase1Progress,
-  buildPhase1ProgressLine,
   notifyStateUpdated,
   requestStateUpdate,
 };

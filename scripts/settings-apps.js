@@ -6,7 +6,7 @@ import {
   DEFAULT_TAB_ICON,
   DEFAULT_TRACKER_NAME,
   MODULE_ID,
-  DEFAULT_PHASE_CONFIG 
+  DEFAULT_PHASE_CONFIG,
 } from "./constants.js";
 import {
   addTracker,
@@ -22,39 +22,35 @@ import {
   getHeaderLabel,
   getIntervalLabel,
   getPhaseConfig,
-  getPhaseSkillList,
-  getPhaseSkillTarget,
+  getPhaseGroups,
+  getPhaseChecks,
+  getPhaseCheckLabel,
+  getPhaseCheckTarget,
   getRestrictedActorUuids,
   getSkillAliases,
-  getSkillLabel,
+  getSkillOptions,
   getTabIcon,
   getTabLabel,
   getTrackerById,
   getTrackers,
   getWorldState,
+  initDependencyDragDrop,
   isPhaseUnlocked,
   normalizePhaseConfig,
   parseJsonPayload,
   parseRestrictedActorUuids,
-  refreshPhaseSkillSections,
+  parseList,
+  recalculateStateFromLog,
   removeCurrentTracker,
   resetPhaseState,
   sanitizeLabel,
-  serializeNarrativeLines,
-  serializeNumberList,
+  saveJsonToFile,
   setCurrentTrackerId,
   setTrackerPhaseConfig,
   setWorldState,
   updateTrackerSettings,
-  resolveSkillKey,
-  normalizeCheckOrder,
   getSettingsExportPayload,
-  getCheckOrderLabel,
-  parseList,
-  getCheckOrderListPhase,
   getStateExportPayload,
-  isCheckOrderValid   ,
-  rebuildCheckOrderList
 } from "./core-utils.js";
 import {
   refreshSheetTabLabel,
@@ -97,34 +93,11 @@ class DowntimeRepSettings extends HandlebarsApplicationMixin(ApplicationV2) {
     const trackerId = getCurrentTrackerId();
     const tracker = getTrackerById(trackerId) ?? getCurrentTracker();
     const state = getWorldState(trackerId);
-    const skillAliases = getSkillAliases();
     const headerLabel = getHeaderLabel(trackerId);
     const tabLabel = getTabLabel(trackerId);
     const intervalLabel = getIntervalLabel(trackerId);
     const restrictedActorUuids = getRestrictedActorUuids(trackerId);
     const phaseConfig = getPhaseConfig(trackerId);
-    const phase1Config =
-      phaseConfig.find((phase) => phase.id === "phase1") ?? phaseConfig[0];
-    const phase1SkillState = getPhaseSkillList(phase1Config).map((key) => ({
-      key,
-      label: getSkillLabel(resolveSkillKey(key, skillAliases)),
-      value: Number(state.phases.phase1?.skillProgress?.[key] ?? 0),
-      target: getPhaseSkillTarget(phase1Config, key),
-    }));
-    const phaseStateRows = phaseConfig.map((phase) => {
-      const phaseState = state.phases[phase.id] ?? {};
-      return {
-        id: phase.id,
-        name: phase.name,
-        target: phase.target,
-        progress: Number(phaseState.progress ?? 0),
-        completed: Boolean(phaseState.completed),
-        failuresInRow: Number(phaseState.failuresInRow ?? 0),
-        isPhase1: phase.id === "phase1",
-        image: phase.image ?? "",
-        skillRows: phase.id === "phase1" ? phase1SkillState : [],
-      };
-    });
     const phaseOptions = phaseConfig.map((phase) => {
       const unlocked = isPhaseUnlocked(phase.id, state, trackerId, phaseConfig);
       const completed = state.phases[phase.id]?.completed ?? false;
@@ -150,7 +123,6 @@ class DowntimeRepSettings extends HandlebarsApplicationMixin(ApplicationV2) {
       hideDcFromPlayers: Boolean(tracker?.hideDcFromPlayers),
       isSingleTracker: trackerOptions.length <= 1,
       state,
-      skillAliases,
       phaseOptions,
       activePhaseId: state.activePhaseId,
       criticalBonusEnabled: state.criticalBonusEnabled,
@@ -158,257 +130,18 @@ class DowntimeRepSettings extends HandlebarsApplicationMixin(ApplicationV2) {
       tabLabel,
       intervalLabel,
       restrictedActorUuidsText: restrictedActorUuids.join("\n"),
-      phaseStateRows,
     };
   }
-
-
 
   _onRender(context, options) {
     super._onRender(context, options);
     const html = $(this.element);
-    debugLog("Check order lists found", { count: html.find(".drep-check-order-list").length });
-    
-    const syncCheckOrderInputPhase = (list) => {
-      const phaseId = list.data("phaseId");
-      const input = html
-        .find(`input[name='phases.${phaseId}.checkOrder']`)
-        .first();
-      if (!input.length) return;
-      const order = getCheckOrderListPhase(list);
-      input.val(order.join(", "));
-      debugLog("Check order saved", { phaseId, order });
-    };
-
-    html.find(".drep-check-order-list").each((_, listEl) => {
-      const list = $(listEl);
-      debugLog("Check order list bind", {
-        phaseId: list.data("phaseId"),
-        items: list.find("li").length,
-      });
-      list.find("li").attr("draggable", true);
-      list.on("mousedown", "li", (event) => {
-        const order = $(event.currentTarget).data("order");
-        debugLog("Check order mousedown", {
-          phaseId: list.data("phaseId"),
-          order,
-        });
-      });
-      list.on("dragstart", "li", (event) => {
-        const order = $(event.currentTarget).data("order");
-        list.data("prevOrder", getCheckOrderListPhase(list));
-        debugLog("Check order dragstart", {
-          phaseId: list.data("phaseId"),
-          order,
-        });
-        event.originalEvent?.dataTransfer?.setData(
-          "text/plain",
-          $(event.currentTarget).data("order")
-        );
-        event.originalEvent?.dataTransfer?.setDragImage(
-          event.currentTarget,
-          8,
-          8
-        );
-      });
-      list.on("dragenter", "li", (event) => {
-        event.preventDefault();
-      });
-      list.on("dragover", (event) => {
-        event.preventDefault();
-        if (event.originalEvent?.dataTransfer) {
-          event.originalEvent.dataTransfer.dropEffect = "move";
-        }
-      });
-      list.on("drop", (event) => {
-        event.preventDefault();
-        const listPhaseId = list.data("phaseId");
-        debugLog("Check order drop", { phaseId: listPhaseId });
-        const data = event.originalEvent?.dataTransfer?.getData("text/plain");
-        if (!data) return;
-        const dragged = list.find(`li[data-order='${data}']`).first();
-        if (!dragged.length) return;
-        const target = $(event.target).closest("li");
-        const parseToken = (value) => {
-          const [skill, stepRaw] = String(value).split(":");
-          const step = Number(stepRaw);
-          return {
-            skill: (skill ?? "").trim(),
-            step: Number.isFinite(step) ? step : null,
-          };
-        };
-        if (target.length && target[0] !== dragged[0]) {
-          const draggedValue = dragged.attr("data-order") ?? data;
-          const targetValue = target.attr("data-order") ?? target.data("order");
-          const draggedToken = parseToken(draggedValue);
-          const targetToken = parseToken(targetValue);
-          const movingUp = target.index() < dragged.index();
-          if (
-            movingUp &&
-            draggedToken.skill &&
-            draggedToken.skill === targetToken.skill &&
-            Number.isFinite(draggedToken.step) &&
-            Number.isFinite(targetToken.step) &&
-            draggedToken.step > targetToken.step
-          ) {
-            debugLog("Check order blocked", {
-              phaseId: listPhaseId,
-              reason: "same-skill-order",
-              dragged: draggedToken,
-              target: targetToken,
-            });
-            return;
-          }
-          if (movingUp) {
-            dragged.insertBefore(target);
-          } else {
-            dragged.insertAfter(target);
-          }
-        } else {
-          list.append(dragged);
-        }
-        const nextOrder = getCheckOrderListPhase(list);
-        if (!isCheckOrderValid(nextOrder)) {
-          const prevOrder = list.data("prevOrder") ?? [];
-          debugLog("Check order invalid", {
-            phaseId: listPhaseId,
-            prevOrder,
-            nextOrder,
-          });
-          if (prevOrder.length) {
-            rebuildCheckOrderList(list, prevOrder);
-            syncCheckOrderInputPhase(list);
-          }
-          return;
-        }
-        syncCheckOrderInputPhase(list);
-      });
-    });
 
     html.find("[name='currentTrackerId']").on("change", (event) => {
       const selected = $(event.currentTarget).val();
       if (!selected) return;
       setCurrentTrackerId(selected);
       this.render();
-    });
-    html.find(".file-picker").on("click", (event) => {
-      event.preventDefault();
-      const button = event.currentTarget;
-      const target = button?.dataset?.target;
-      const type = button?.dataset?.type ?? "image";
-      if (!target) return;
-      const input = html.find(`[name='${target}']`).first();
-      if (!input.length) return;
-      const picker = new FilePicker({
-        type,
-        current: input.val(),
-        callback: (path) => {
-          input.val(path);
-        },
-      });
-      picker.browse();
-    });
-    const syncCheckOrderInput = (list) => {
-      const phaseId = list.data("phaseId");
-      const input = html
-        .find(`input[name='phases.${phaseId}.checkOrder']`)
-        .first();
-      if (!input.length) return;
-      const order = list
-        .find("li")
-        .map((_, item) => $(item).data("order"))
-        .get();
-      input.val(order.join(", "));
-      debugLog("Check order saved", { phaseId, order });
-    };
-
-    html.find(".drep-check-order-list").each((_, listEl) => {
-      const list = $(listEl);
-      debugLog("Check order list bind", { phaseId: list.data("phaseId"), items: list.find("li").length });
-      list.find("li").attr("draggable", true);
-      list.on("mousedown", "li", (event) => {
-        const order = $(event.currentTarget).data("order");
-        debugLog("Check order mousedown", { phaseId: list.data("phaseId"), order });
-      });
-      list.on("dragstart", "li", (event) => {
-        const order = $(event.currentTarget).data("order");
-        debugLog("Check order dragstart", { phaseId: list.data("phaseId"), order });
-        event.originalEvent?.dataTransfer?.setData(
-          "text/plain",
-          $(event.currentTarget).data("order")
-        );
-        event.originalEvent?.dataTransfer?.setDragImage(event.currentTarget, 8, 8);
-      });
-      list.on("dragenter", "li", (event) => {
-        event.preventDefault();
-      });
-      list.on("dragover", (event) => {
-        event.preventDefault();
-        event.originalEvent?.dataTransfer && (event.originalEvent.dataTransfer.dropEffect = "move");
-      });
-      list.on("drop", (event) => {
-        const listPhaseId = list.data("phaseId");
-        debugLog("Check order drop", { phaseId: listPhaseId });
-        event.preventDefault();
-        const data = event.originalEvent?.dataTransfer?.getData("text/plain");
-        if (!data) return;
-        const dragged = list.find(`li[data-order='${data}']`).first();
-        if (!dragged.length) return;
-        const target = $(event.target).closest("li");
-        const parseToken = (value) => {
-          const [skill, stepRaw] = String(value).split(":");
-          const step = Number(stepRaw);
-          return {
-            skill: (skill ?? "").trim(),
-            step: Number.isFinite(step) ? step : null,
-          };
-        };
-        if (target.length && target[0] !== dragged[0]) {
-          const draggedValue = dragged.attr("data-order") ?? data;
-          const targetValue = target.attr("data-order") ?? target.data("order");
-          const draggedToken = parseToken(draggedValue);
-          const targetToken = parseToken(targetValue);
-          const movingUp = target.index() < dragged.index();
-          if (
-            movingUp &&
-            draggedToken.skill &&
-            draggedToken.skill === targetToken.skill &&
-            Number.isFinite(draggedToken.step) &&
-            Number.isFinite(targetToken.step) &&
-            draggedToken.step > targetToken.step
-          ) {
-            debugLog("Check order blocked", {
-              phaseId: listPhaseId,
-              reason: "same-skill-order",
-              dragged: draggedToken,
-              target: targetToken,
-            });
-            return;
-          }
-          if (movingUp) {
-            dragged.insertBefore(target);
-          } else {
-            dragged.insertAfter(target);
-          }
-        } else {
-          list.append(dragged);
-        }
-        const nextOrder = getCheckOrderListPhase(list);
-        if (!isCheckOrderValid(nextOrder)) {
-          const prevOrder = list.data("prevOrder") ?? [];
-          debugLog("Check order invalid", {
-            phaseId: listPhaseId,
-            prevOrder,
-            nextOrder,
-          });
-          if (prevOrder.length) {
-            rebuildCheckOrderList(list, prevOrder);
-            syncCheckOrderInputPhase(list);
-          }
-          return;
-        }
-        syncCheckOrderInputPhase(list);
-      });
     });
     html.find("[data-drep-drop='actor-uuids']").on("dragover", (event) => {
       event.preventDefault();
@@ -514,13 +247,10 @@ class DowntimeRepSettings extends HandlebarsApplicationMixin(ApplicationV2) {
       }
     }
 
-    const skillAliases = getSkillAliases();
-
     applyStateOverridesFromForm(state, formData, phaseConfig);
     setTrackerPhaseConfig(trackerId, phaseConfig);
 
     await setWorldState(state, trackerId);
-    await game.settings.set(MODULE_ID, "skillAliases", skillAliases);
     updateTrackerSettings(trackerId, {
       name: trackerName,
       headerLabel: sanitizeLabel(formData.headerLabel, DEFAULT_HEADER_LABEL),
@@ -698,126 +428,6 @@ class DowntimeRepSkillAliases extends HandlebarsApplicationMixin(ApplicationV2) 
   _onRender(context, options) {
     super._onRender(context, options);
     const html = $(this.element);
-    debugLog("Check order lists found", { count: html.find(".drep-check-order-list").length });
-    const syncCheckOrderInput = (list) => {
-      const phaseId = list.data("phaseId");
-      const input = html
-        .find(`input[name='phases.${phaseId}.checkOrder']`)
-        .first();
-      if (!input.length) return;
-      const order = list
-        .find("li")
-        .map((_, item) => $(item).data("order"))
-        .get();
-      input.val(order.join(", "));
-      debugLog("Check order saved", { phaseId, order });
-    };
-
-    html.find(".drep-check-order-list").each((_, listEl) => {
-      const list = $(listEl);
-      debugLog("Check order list bind", {
-        phaseId: list.data("phaseId"),
-        items: list.find("li").length,
-      });
-      list.find("li").attr("draggable", true);
-      list.on("mousedown", "li", (event) => {
-        const order = $(event.currentTarget).data("order");
-        debugLog("Check order mousedown", {
-          phaseId: list.data("phaseId"),
-          order,
-        });
-      });
-      list.on("dragstart", "li", (event) => {
-        const order = $(event.currentTarget).data("order");
-        list.data("prevOrder", getCheckOrderListPhase(list));
-        debugLog("Check order dragstart", {
-          phaseId: list.data("phaseId"),
-          order,
-        });
-        event.originalEvent?.dataTransfer?.setData(
-          "text/plain",
-          $(event.currentTarget).data("order")
-        );
-        event.originalEvent?.dataTransfer?.setDragImage(
-          event.currentTarget,
-          8,
-          8
-        );
-      });
-      list.on("dragenter", "li", (event) => {
-        event.preventDefault();
-      });
-      list.on("dragover", (event) => {
-        event.preventDefault();
-        if (event.originalEvent?.dataTransfer) {
-          event.originalEvent.dataTransfer.dropEffect = "move";
-        }
-      });
-      list.on("drop", (event) => {
-        event.preventDefault();
-        const listPhaseId = list.data("phaseId");
-        debugLog("Check order drop", { phaseId: listPhaseId });
-        const data = event.originalEvent?.dataTransfer?.getData("text/plain");
-        if (!data) return;
-        const dragged = list.find(`li[data-order='${data}']`).first();
-        if (!dragged.length) return;
-        const target = $(event.target).closest("li");
-        const parseToken = (value) => {
-          const [skill, stepRaw] = String(value).split(":");
-          const step = Number(stepRaw);
-          return {
-            skill: (skill ?? "").trim(),
-            step: Number.isFinite(step) ? step : null,
-          };
-        };
-        if (target.length && target[0] !== dragged[0]) {
-          const draggedValue = dragged.attr("data-order") ?? data;
-          const targetValue = target.attr("data-order") ?? target.data("order");
-          const draggedToken = parseToken(draggedValue);
-          const targetToken = parseToken(targetValue);
-          const movingUp = target.index() < dragged.index();
-          if (
-            movingUp &&
-            draggedToken.skill &&
-            draggedToken.skill === targetToken.skill &&
-            Number.isFinite(draggedToken.step) &&
-            Number.isFinite(targetToken.step) &&
-            draggedToken.step > targetToken.step
-          ) {
-            debugLog("Check order blocked", {
-              phaseId: listPhaseId,
-              reason: "same-skill-order",
-              dragged: draggedToken,
-              target: targetToken,
-            });
-            return;
-          }
-          if (movingUp) {
-            dragged.insertBefore(target);
-          } else {
-            dragged.insertAfter(target);
-          }
-        } else {
-          list.append(dragged);
-        }
-        const nextOrder = getCheckOrderListPhase(list);
-        if (!isCheckOrderValid(nextOrder)) {
-          const prevOrder = list.data("prevOrder") ?? [];
-          debugLog("Check order invalid", {
-            phaseId: listPhaseId,
-            prevOrder,
-            nextOrder,
-          });
-          if (prevOrder.length) {
-            rebuildCheckOrderList(list, prevOrder);
-            syncCheckOrderInputPhase(list);
-          }
-          return;
-        }
-        syncCheckOrderInputPhase(list);
-      });
-    });
-
     html.find("[data-drep-action='add-alias']").on("click", (event) => {
       event.preventDefault();
       this._rows.push({ key: "", value: "" });
@@ -890,56 +500,45 @@ class DowntimeRepPhaseConfig extends HandlebarsApplicationMixin(ApplicationV2) {
   async _prepareContext(options) {
     const context = await super._prepareContext(options);
     const skillAliases = getSkillAliases();
+    const skillOptions = getSkillOptions();
     const phases = this._phaseConfig.map((phase, index) => {
-      const skills = getPhaseSkillList(phase);
-      const skillTargetRows = skills.map((key) => ({
-        key,
-        label: getSkillLabel(resolveSkillKey(key, skillAliases)),
-        value: Number(phase.skillTargets?.[key] ?? 0),
+      const groups = getPhaseGroups(phase).map((group) => {
+        const checks = (group.checks ?? []).map((check) => ({
+          id: check.id,
+          name: check.name ?? "",
+          skill: check.skill ?? "",
+          description: check.description ?? "",
+          dc: Number(check.dc ?? 0),
+          dependsOnValue: (check.dependsOn ?? []).join(", "),
+        }));
+        return {
+          id: group.id,
+          name: group.name ?? "",
+          checks,
+        };
+      });
+
+      const successLines = (phase.successLines ?? []).map((line) => ({
+        id: line.id,
+        text: line.text ?? "",
+        dependsOnChecksValue: (line.dependsOnChecks ?? []).join(", "),
+        dependsOnGroupsValue: (line.dependsOnGroups ?? []).join(", "),
       }));
-      const skillDcStepRows = skills.map((key) => ({
-        key,
-        label: getSkillLabel(resolveSkillKey(key, skillAliases)),
-        value: serializeNumberList(phase.skillDcSteps?.[key] ?? []),
+
+      const failureLines = (phase.failureLines ?? []).map((line) => ({
+        id: line.id,
+        text: line.text ?? "",
+        dependsOnChecksValue: (line.dependsOnChecks ?? []).join(", "),
+        dependsOnGroupsValue: (line.dependsOnGroups ?? []).join(", "),
       }));
-      const skillNarrativeRows = skills.map((key) => ({
-        key,
-        label: getSkillLabel(resolveSkillKey(key, skillAliases)),
-        value: serializeNarrativeLines(phase.skillNarratives?.[key] ?? {}),
-      }));
-      const skillDcRows = skills.map((key) => ({
-        key,
-        label: getSkillLabel(resolveSkillKey(key, skillAliases)),
-        value: Number(phase.skillDcs?.[key] ?? 0),
-      }))
-      const checkOrder = normalizeCheckOrder(phase, phase.checkOrder);
-      const checkOrderEntries = checkOrder.map((entry) => ({
-        key: entry,
-        label: getCheckOrderLabel(phase, entry, skillAliases),
-      }));
+
       return {
         ...phase,
         number: index + 1,
-        isPhase1: phase.id === "phase1",
-        skillsText: skills.join(", "),
-        penaltySkillOptions: skills.map((key) => ({
-          key,
-          label: getSkillLabel(resolveSkillKey(key, skillAliases)),
-          selected: key === phase.dcPenaltySkill,
-        })),
-        penaltyPerMissing: Number(phase.dcPenaltyPerMissing ?? 1),
-        failureEventTable: phase.failureEventTable ?? "",
-        enforceCheckOrder: Boolean(phase.enforceCheckOrder),
-        checkOrderValue: checkOrder.join(", "),
-        checkOrderEntries,
-        failureLinesText: (phase.failureLines ?? []).join("\n"),
-        progressNarrativeText: serializeNarrativeLines(
-          phase.progressNarrative ?? {}
-        ),
-        skillTargetRows,
-        skillDcStepRows,
-        skillNarrativeRows,
-        skillDcRows,
+        isPhase1: index === 0,
+        groups,
+        successLines,
+        failureLines,
       };
     });
 
@@ -948,141 +547,58 @@ class DowntimeRepPhaseConfig extends HandlebarsApplicationMixin(ApplicationV2) {
       trackerId: this._trackerId,
       phaseOrder: this._phaseConfig.map((phase) => phase.id).join(","),
       phases,
+      skillOptions,
     };
   }
 
   _onRender(context, options) {
     super._onRender(context, options);
     const html = $(this.element);
-    debugLog("Check order lists found", { count: html.find(".drep-check-order-list").length });
-    const syncCheckOrderInput = (list) => {
-      const phaseId = list.data("phaseId");
-      const input = html
-        .find(`input[name='phases.${phaseId}.checkOrder']`)
-        .first();
-      if (!input.length) return;
-      const order = list
-        .find("li")
-        .map((_, item) => $(item).data("order"))
-        .get();
-      input.val(order.join(", "));
-      debugLog("Check order saved", { phaseId, order });
+    initDependencyDragDrop(html, debugLog);
+    const syncFormState = () => {
+      try {
+        const formElement = html[0] instanceof HTMLFormElement
+          ? html[0]
+          : html.closest("form")[0] ?? this.element;
+        if (!formElement) return;
+        const raw = {};
+        for (const [key, value] of new FormData(formElement).entries()) {
+          raw[key] = value;
+        }
+        const data = foundry.utils.expandObject(raw);
+        const order = parseList(data.phaseOrder);
+        const base = order.length ? order.map((id) => ({ id })) : this._phaseConfig;
+        this._phaseConfig = applyPhaseConfigFormData(base, data);
+      } catch (error) {
+        debugLog("Phase config sync failed", { error: error?.message });
+      }
     };
 
-    html.find(".drep-check-order-list").each((_, listEl) => {
-      const list = $(listEl);
-      debugLog("Check order list bind", {
-        phaseId: list.data("phaseId"),
-        items: list.find("li").length,
+    const captureCollapseState = () => {
+      const state = {};
+      html.find("details[data-collapse-id]").each((_, element) => {
+        const id = element?.dataset?.collapseId;
+        if (!id) return;
+        state[id] = Boolean(element.open);
       });
-      list.find("li").attr("draggable", true);
-      list.on("mousedown", "li", (event) => {
-        const order = $(event.currentTarget).data("order");
-        debugLog("Check order mousedown", {
-          phaseId: list.data("phaseId"),
-          order,
-        });
-      });
-      list.on("dragstart", "li", (event) => {
-        const order = $(event.currentTarget).data("order");
-        list.data("prevOrder", getCheckOrderListPhase(list));
-        debugLog("Check order dragstart", {
-          phaseId: list.data("phaseId"),
-          order,
-        });
-        event.originalEvent?.dataTransfer?.setData(
-          "text/plain",
-          $(event.currentTarget).data("order")
-        );
-        event.originalEvent?.dataTransfer?.setDragImage(
-          event.currentTarget,
-          8,
-          8
-        );
-      });
-      list.on("dragenter", "li", (event) => {
-        event.preventDefault();
-      });
-      list.on("dragover", (event) => {
-        event.preventDefault();
-        if (event.originalEvent?.dataTransfer) {
-          event.originalEvent.dataTransfer.dropEffect = "move";
-        }
-      });
-      list.on("drop", (event) => {
-         const syncCheckOrderInputPhase = (list) => {
-          const phaseId = list.data("phaseId");
-          const input = html
-            .find(`input[name='phases.${phaseId}.checkOrder']`)
-            .first();
-          if (!input.length) return;
-          const order = getCheckOrderListPhase(list);
-          input.val(order.join(", "));
-          debugLog("Check order saved", { phaseId, order });
-        };
-        event.preventDefault();
-        const listPhaseId = list.data("phaseId");
-        debugLog("Check order drop", { phaseId: listPhaseId });
-        const data = event.originalEvent?.dataTransfer?.getData("text/plain");
-        if (!data) return;
-        const dragged = list.find(`li[data-order='${data}']`).first();
-        if (!dragged.length) return;
-        const target = $(event.target).closest("li");
-        const parseToken = (value) => {
-          const [skill, stepRaw] = String(value).split(":");
-          const step = Number(stepRaw);
-          return {
-            skill: (skill ?? "").trim(),
-            step: Number.isFinite(step) ? step : null,
-          };
-        };
-        if (target.length && target[0] !== dragged[0]) {
-          const draggedValue = dragged.attr("data-order") ?? data;
-          const targetValue = target.attr("data-order") ?? target.data("order");
-          const draggedToken = parseToken(draggedValue);
-          const targetToken = parseToken(targetValue);
-          const movingUp = target.index() < dragged.index();
-          if (
-            movingUp &&
-            draggedToken.skill &&
-            draggedToken.skill === targetToken.skill &&
-            Number.isFinite(draggedToken.step) &&
-            Number.isFinite(targetToken.step) &&
-            draggedToken.step > targetToken.step
-          ) {
-            debugLog("Check order blocked", {
-              phaseId: listPhaseId,
-              reason: "same-skill-order",
-              dragged: draggedToken,
-              target: targetToken,
-            });
-            return;
-          }
-          if (movingUp) {
-            dragged.insertBefore(target);
-          } else {
-            dragged.insertAfter(target);
-          }
-        } else {
-          list.append(dragged);
-        }
-        const nextOrder = getCheckOrderListPhase(list);
-        if (!isCheckOrderValid(nextOrder)) {
-          const prevOrder = list.data("prevOrder") ?? [];
-          debugLog("Check order invalid", {
-            phaseId: listPhaseId,
-            prevOrder,
-            nextOrder,
-          });
-          if (prevOrder.length) {
-            rebuildCheckOrderList(list, prevOrder);
-            syncCheckOrderInputPhase(list);
-          }
-          return;
-        }
-        syncCheckOrderInputPhase(list);
-      });
+      this._collapseState = { ...(this._collapseState ?? {}), ...state };
+    };
+
+    html.find("details[data-collapse-id]").each((_, element) => {
+      const id = element?.dataset?.collapseId;
+      if (!id) return;
+      if (this._collapseState?.[id]) {
+        element.open = true;
+      }
     });
+
+    html.on("toggle", "details[data-collapse-id]", (event) => {
+      const id = event.currentTarget?.dataset?.collapseId;
+      if (!id) return;
+      this._collapseState = this._collapseState ?? {};
+      this._collapseState[id] = event.currentTarget.open;
+    });
+
 
     const initialTab = this._activeTab ?? this._phaseConfig[0]?.id ?? "phase1";
     html.find(".drep-tab-button").removeClass("active");
@@ -1099,8 +615,10 @@ class DowntimeRepPhaseConfig extends HandlebarsApplicationMixin(ApplicationV2) {
       html.find(`.drep-tab-button[data-tab='${tab}']`).addClass("active");
       html.find(`.drep-phase-tab[data-tab='${tab}']`).addClass("active");
     });
+
     html.find("[data-drep-action='add-phase']").on("click", (event) => {
       event.preventDefault();
+      syncFormState();
       const existingIds = new Set(this._phaseConfig.map((phase) => phase.id));
       let index = this._phaseConfig.length + 1;
       let id = `phase${index}`;
@@ -1112,10 +630,13 @@ class DowntimeRepPhaseConfig extends HandlebarsApplicationMixin(ApplicationV2) {
       nextPhase.id = id;
       this._phaseConfig = normalizePhaseConfig([...this._phaseConfig, nextPhase]);
       this._activeTab = id;
+      captureCollapseState();
       this.render(true);
     });
+
     html.find("[data-drep-action='remove-phase']").on("click", (event) => {
       event.preventDefault();
+      syncFormState();
       const phaseId = event.currentTarget?.dataset?.phaseId;
       if (!phaseId || phaseId === "phase1") {
         ui.notifications.warn("Indy Downtime Tracker: Phase 1 cannot be removed.");
@@ -1126,15 +647,136 @@ class DowntimeRepPhaseConfig extends HandlebarsApplicationMixin(ApplicationV2) {
       );
       this._phaseConfig = normalizePhaseConfig(nextConfig);
       this._activeTab = this._phaseConfig[0]?.id ?? "phase1";
+      captureCollapseState();
       this.render(true);
     });
-    html.find(".drep-skill-list").on("change", (event) => {
-      const input = event.currentTarget;
-      const phaseId = input?.dataset?.phaseId;
-      if (!phaseId) return;
-      const phase1 = input?.dataset?.phase1 === "true";
-      refreshPhaseSkillSections(html, phaseId, phase1);
+
+    html.find("[data-drep-action='add-group']").on("click", (event) => {
+      event.preventDefault();
+      syncFormState();
+      const phaseId = event.currentTarget?.dataset?.phaseId;
+      const phase = this._phaseConfig.find((entry) => entry.id === phaseId);
+      if (!phase) return;
+      phase.groups = Array.isArray(phase.groups) ? phase.groups : [];
+      phase.groups.push({
+        id: foundry.utils.randomID(),
+        name: "",
+        checks: [],
+      });
+      this._activeTab = phaseId;
+      captureCollapseState();
+      this.render(true);
     });
+
+    html.find("[data-drep-action='remove-group']").on("click", (event) => {
+      event.preventDefault();
+      syncFormState();
+      const phaseId = event.currentTarget?.dataset?.phaseId;
+      const groupId = event.currentTarget?.dataset?.groupId;
+      const phase = this._phaseConfig.find((entry) => entry.id === phaseId);
+      if (!phase || !groupId) return;
+      phase.groups = (phase.groups ?? []).filter((group) => group.id !== groupId);
+      this._activeTab = phaseId;
+      captureCollapseState();
+      this.render(true);
+    });
+
+    html.find("[data-drep-action='add-check']").on("click", (event) => {
+      event.preventDefault();
+      syncFormState();
+      const phaseId = event.currentTarget?.dataset?.phaseId;
+      const groupId = event.currentTarget?.dataset?.groupId;
+      const phase = this._phaseConfig.find((entry) => entry.id === phaseId);
+      if (!phase || !groupId) return;
+      const group = (phase.groups ?? []).find((entry) => entry.id === groupId);
+      if (!group) return;
+      const options = getSkillOptions();
+      const defaultSkill = options[0]?.key ?? "";
+      group.checks = Array.isArray(group.checks) ? group.checks : [];
+      group.checks.push({
+        id: foundry.utils.randomID(),
+        name: "",
+        skill: defaultSkill,
+        description: "",
+        dc: 13,
+        value: 1,
+        dependsOn: [],
+      });
+      this._activeTab = phaseId;
+      captureCollapseState();
+      this.render(true);
+    });
+
+    html.find("[data-drep-action='remove-check']").on("click", (event) => {
+      event.preventDefault();
+      syncFormState();
+      const phaseId = event.currentTarget?.dataset?.phaseId;
+      const groupId = event.currentTarget?.dataset?.groupId;
+      const checkId = event.currentTarget?.dataset?.checkId;
+      const phase = this._phaseConfig.find((entry) => entry.id === phaseId);
+      if (!phase || !groupId || !checkId) return;
+      const group = (phase.groups ?? []).find((entry) => entry.id === groupId);
+      if (!group) return;
+      group.checks = (group.checks ?? []).filter((check) => check.id !== checkId);
+      this._activeTab = phaseId;
+      captureCollapseState();
+      this.render(true);
+    });
+
+    html.find("[data-drep-action='add-success-line']").on("click", (event) => {
+      event.preventDefault();
+      syncFormState();
+      const phaseId = event.currentTarget?.dataset?.phaseId;
+      const phase = this._phaseConfig.find((entry) => entry.id === phaseId);
+      if (!phase) return;
+      phase.successLines = Array.isArray(phase.successLines) ? phase.successLines : [];
+      phase.successLines.push({
+        id: foundry.utils.randomID(),
+        text: "",
+        dependsOnChecks: [],
+        dependsOnGroups: [],
+      });
+      this._activeTab = phaseId;
+      captureCollapseState();
+      this.render(true);
+    });
+
+    html.find("[data-drep-action='add-failure-line']").on("click", (event) => {
+      event.preventDefault();
+      syncFormState();
+      const phaseId = event.currentTarget?.dataset?.phaseId;
+      const phase = this._phaseConfig.find((entry) => entry.id === phaseId);
+      if (!phase) return;
+      phase.failureLines = Array.isArray(phase.failureLines) ? phase.failureLines : [];
+      phase.failureLines.push({
+        id: foundry.utils.randomID(),
+        text: "",
+        dependsOnChecks: [],
+        dependsOnGroups: [],
+      });
+      this._activeTab = phaseId;
+      captureCollapseState();
+      this.render(true);
+    });
+
+    html.find("[data-drep-action='remove-line']").on("click", (event) => {
+      event.preventDefault();
+      syncFormState();
+      const phaseId = event.currentTarget?.dataset?.phaseId;
+      const lineId = event.currentTarget?.dataset?.lineId;
+      const lineType = event.currentTarget?.dataset?.lineType;
+      const phase = this._phaseConfig.find((entry) => entry.id === phaseId);
+      if (!phase || !lineId || !lineType) return;
+      if (lineType === "success") {
+        phase.successLines = (phase.successLines ?? []).filter((line) => line.id !== lineId);
+      } else {
+        phase.failureLines = (phase.failureLines ?? []).filter((line) => line.id !== lineId);
+      }
+      this._activeTab = phaseId;
+      captureCollapseState();
+      this.render(true);
+    });
+
     html.find(".file-picker").on("click", (event) => {
       event.preventDefault();
       const button = event.currentTarget;
@@ -1152,6 +794,7 @@ class DowntimeRepPhaseConfig extends HandlebarsApplicationMixin(ApplicationV2) {
       });
       picker.browse();
     });
+
     html.find("[data-drep-drop='rolltable']").on("dragover", (event) => {
       event.preventDefault();
     });
@@ -1217,33 +860,30 @@ class DowntimeRepProgressState extends HandlebarsApplicationMixin(ApplicationV2)
     const state = getWorldState(this._trackerId);
     const phaseConfig = getPhaseConfig(this._trackerId);
     const skillAliases = getSkillAliases();
-    const phase1Config =
-      phaseConfig.find((phase) => phase.id === "phase1") ?? phaseConfig[0];
-    const phase1SkillState = getPhaseSkillList(phase1Config).map((key) => ({
-      key,
-      label: getSkillLabel(resolveSkillKey(key, skillAliases)),
-      value: Number(state.phases.phase1?.skillProgress?.[key] ?? 0),
-      target: getPhaseSkillTarget(phase1Config, key),
-    }));
     const phases = phaseConfig.map((phase, index) => {
       const phaseState = state.phases[phase.id] ?? {};
+      const checkRows = getPhaseChecks(phase).map((check) => ({
+        id: check.id,
+        name: getPhaseCheckLabel(check, skillAliases),
+        value: Number(phaseState.checkProgress?.[check.id] ?? 0),
+        target: getPhaseCheckTarget(check),
+      }));
       return {
         id: phase.id,
-        number: index + 1,
         name: phase.name,
+        number: index + 1,
         target: phase.target,
         progress: Number(phaseState.progress ?? 0),
         completed: Boolean(phaseState.completed),
         failuresInRow: Number(phaseState.failuresInRow ?? 0),
-        isPhase1: phase.id === "phase1",
-        skillRows: phase.id === "phase1" ? phase1SkillState : [],
+        checkRows,
       };
     });
 
     return {
       ...context,
-      checkCount: Number(state.checkCount ?? 0),
       trackerId: this._trackerId,
+      checkCount: state.checkCount ?? 0,
       phases,
     };
   }
@@ -1294,126 +934,6 @@ class DowntimeRepSettingsExport extends HandlebarsApplicationMixin(ApplicationV2
   _onRender(context, options) {
     super._onRender(context, options);
     const html = $(this.element);
-    debugLog("Check order lists found", { count: html.find(".drep-check-order-list").length });
-    const syncCheckOrderInput = (list) => {
-      const phaseId = list.data("phaseId");
-      const input = html
-        .find(`input[name='phases.${phaseId}.checkOrder']`)
-        .first();
-      if (!input.length) return;
-      const order = list
-        .find("li")
-        .map((_, item) => $(item).data("order"))
-        .get();
-      input.val(order.join(", "));
-      debugLog("Check order saved", { phaseId, order });
-    };
-
-    html.find(".drep-check-order-list").each((_, listEl) => {
-      const list = $(listEl);
-      debugLog("Check order list bind", {
-        phaseId: list.data("phaseId"),
-        items: list.find("li").length,
-      });
-      list.find("li").attr("draggable", true);
-      list.on("mousedown", "li", (event) => {
-        const order = $(event.currentTarget).data("order");
-        debugLog("Check order mousedown", {
-          phaseId: list.data("phaseId"),
-          order,
-        });
-      });
-      list.on("dragstart", "li", (event) => {
-        const order = $(event.currentTarget).data("order");
-        list.data("prevOrder", getCheckOrderListPhase(list));
-        debugLog("Check order dragstart", {
-          phaseId: list.data("phaseId"),
-          order,
-        });
-        event.originalEvent?.dataTransfer?.setData(
-          "text/plain",
-          $(event.currentTarget).data("order")
-        );
-        event.originalEvent?.dataTransfer?.setDragImage(
-          event.currentTarget,
-          8,
-          8
-        );
-      });
-      list.on("dragenter", "li", (event) => {
-        event.preventDefault();
-      });
-      list.on("dragover", (event) => {
-        event.preventDefault();
-        if (event.originalEvent?.dataTransfer) {
-          event.originalEvent.dataTransfer.dropEffect = "move";
-        }
-      });
-      list.on("drop", (event) => {
-        event.preventDefault();
-        const listPhaseId = list.data("phaseId");
-        debugLog("Check order drop", { phaseId: listPhaseId });
-        const data = event.originalEvent?.dataTransfer?.getData("text/plain");
-        if (!data) return;
-        const dragged = list.find(`li[data-order='${data}']`).first();
-        if (!dragged.length) return;
-        const target = $(event.target).closest("li");
-        const parseToken = (value) => {
-          const [skill, stepRaw] = String(value).split(":");
-          const step = Number(stepRaw);
-          return {
-            skill: (skill ?? "").trim(),
-            step: Number.isFinite(step) ? step : null,
-          };
-        };
-        if (target.length && target[0] !== dragged[0]) {
-          const draggedValue = dragged.attr("data-order") ?? data;
-          const targetValue = target.attr("data-order") ?? target.data("order");
-          const draggedToken = parseToken(draggedValue);
-          const targetToken = parseToken(targetValue);
-          const movingUp = target.index() < dragged.index();
-          if (
-            movingUp &&
-            draggedToken.skill &&
-            draggedToken.skill === targetToken.skill &&
-            Number.isFinite(draggedToken.step) &&
-            Number.isFinite(targetToken.step) &&
-            draggedToken.step > targetToken.step
-          ) {
-            debugLog("Check order blocked", {
-              phaseId: listPhaseId,
-              reason: "same-skill-order",
-              dragged: draggedToken,
-              target: targetToken,
-            });
-            return;
-          }
-          if (movingUp) {
-            dragged.insertBefore(target);
-          } else {
-            dragged.insertAfter(target);
-          }
-        } else {
-          list.append(dragged);
-        }
-        const nextOrder = getCheckOrderListPhase(list);
-        if (!isCheckOrderValid(nextOrder)) {
-          const prevOrder = list.data("prevOrder") ?? [];
-          debugLog("Check order invalid", {
-            phaseId: listPhaseId,
-            prevOrder,
-            nextOrder,
-          });
-          if (prevOrder.length) {
-            rebuildCheckOrderList(list, prevOrder);
-            syncCheckOrderInputPhase(list);
-          }
-          return;
-        }
-        syncCheckOrderInputPhase(list);
-      });
-    });
-
     const textarea = html.find("[data-drep-io='json']");
     html.find("[data-drep-action='export']").on("click", (event) => {
       event.preventDefault();
@@ -1472,126 +992,6 @@ class DowntimeRepStateExport extends HandlebarsApplicationMixin(ApplicationV2) {
   _onRender(context, options) {
     super._onRender(context, options);
     const html = $(this.element);
-    debugLog("Check order lists found", { count: html.find(".drep-check-order-list").length });
-    const syncCheckOrderInput = (list) => {
-      const phaseId = list.data("phaseId");
-      const input = html
-        .find(`input[name='phases.${phaseId}.checkOrder']`)
-        .first();
-      if (!input.length) return;
-      const order = list
-        .find("li")
-        .map((_, item) => $(item).data("order"))
-        .get();
-      input.val(order.join(", "));
-      debugLog("Check order saved", { phaseId, order });
-    };
-
-    html.find(".drep-check-order-list").each((_, listEl) => {
-      const list = $(listEl);
-      debugLog("Check order list bind", {
-        phaseId: list.data("phaseId"),
-        items: list.find("li").length,
-      });
-      list.find("li").attr("draggable", true);
-      list.on("mousedown", "li", (event) => {
-        const order = $(event.currentTarget).data("order");
-        debugLog("Check order mousedown", {
-          phaseId: list.data("phaseId"),
-          order,
-        });
-      });
-      list.on("dragstart", "li", (event) => {
-        const order = $(event.currentTarget).data("order");
-        list.data("prevOrder", getCheckOrderListPhase(list));
-        debugLog("Check order dragstart", {
-          phaseId: list.data("phaseId"),
-          order,
-        });
-        event.originalEvent?.dataTransfer?.setData(
-          "text/plain",
-          $(event.currentTarget).data("order")
-        );
-        event.originalEvent?.dataTransfer?.setDragImage(
-          event.currentTarget,
-          8,
-          8
-        );
-      });
-      list.on("dragenter", "li", (event) => {
-        event.preventDefault();
-      });
-      list.on("dragover", (event) => {
-        event.preventDefault();
-        if (event.originalEvent?.dataTransfer) {
-          event.originalEvent.dataTransfer.dropEffect = "move";
-        }
-      });
-      list.on("drop", (event) => {
-        event.preventDefault();
-        const listPhaseId = list.data("phaseId");
-        debugLog("Check order drop", { phaseId: listPhaseId });
-        const data = event.originalEvent?.dataTransfer?.getData("text/plain");
-        if (!data) return;
-        const dragged = list.find(`li[data-order='${data}']`).first();
-        if (!dragged.length) return;
-        const target = $(event.target).closest("li");
-        const parseToken = (value) => {
-          const [skill, stepRaw] = String(value).split(":");
-          const step = Number(stepRaw);
-          return {
-            skill: (skill ?? "").trim(),
-            step: Number.isFinite(step) ? step : null,
-          };
-        };
-        if (target.length && target[0] !== dragged[0]) {
-          const draggedValue = dragged.attr("data-order") ?? data;
-          const targetValue = target.attr("data-order") ?? target.data("order");
-          const draggedToken = parseToken(draggedValue);
-          const targetToken = parseToken(targetValue);
-          const movingUp = target.index() < dragged.index();
-          if (
-            movingUp &&
-            draggedToken.skill &&
-            draggedToken.skill === targetToken.skill &&
-            Number.isFinite(draggedToken.step) &&
-            Number.isFinite(targetToken.step) &&
-            draggedToken.step > targetToken.step
-          ) {
-            debugLog("Check order blocked", {
-              phaseId: listPhaseId,
-              reason: "same-skill-order",
-              dragged: draggedToken,
-              target: targetToken,
-            });
-            return;
-          }
-          if (movingUp) {
-            dragged.insertBefore(target);
-          } else {
-            dragged.insertAfter(target);
-          }
-        } else {
-          list.append(dragged);
-        }
-        const nextOrder = getCheckOrderListPhase(list);
-        if (!isCheckOrderValid(nextOrder)) {
-          const prevOrder = list.data("prevOrder") ?? [];
-          debugLog("Check order invalid", {
-            phaseId: listPhaseId,
-            prevOrder,
-            nextOrder,
-          });
-          if (prevOrder.length) {
-            rebuildCheckOrderList(list, prevOrder);
-            syncCheckOrderInputPhase(list);
-          }
-          return;
-        }
-        syncCheckOrderInputPhase(list);
-      });
-    });
-
     const textarea = html.find("[data-drep-io='json']");
     html.find("[data-drep-action='export']").on("click", (event) => {
       event.preventDefault();
@@ -1609,8 +1009,6 @@ class DowntimeRepStateExport extends HandlebarsApplicationMixin(ApplicationV2) {
       const parsed = parseJsonPayload(raw);
       if (!parsed) return;
       await applyStateImportPayload(parsed);
-      rerenderCharacterSheets();
-      rerenderSettingsApps();
       rerenderCharacterSheets();
       rerenderSettingsApps();
       ui.notifications.info("Indy Downtime Tracker: state imported.");

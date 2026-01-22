@@ -8,23 +8,15 @@
   {{#each phases}}
     <fieldset class="drep-phase-block">
       <legend>Phase {{this.number}}: {{this.name}}</legend>
-      {{#if this.isPhase1}}
-        <div class="drep-state-grid">
-          {{#each this.skillRows}}
-            <label>
-              {{this.label}} Progress
-              <input type="number" name="phase1Skill_{{this.key}}" value="{{this.value}}" min="0" />
-            </label>
-          {{/each}}
-        </div>
-      {{else}}
-        <div class="form-group">
+      <div class="drep-muted">Progress: {{this.progress}} / {{this.target}}</div>
+      <div class="drep-state-grid">
+        {{#each this.checkRows}}
           <label>
-            Progress (Target {{this.target}})
-            <input type="number" name="{{this.id}}Progress" value="{{this.progress}}" min="0" />
+            {{this.name}} (Target {{this.target}})
+            <input type="number" name="checkProgress.{{../id}}.{{this.id}}" value="{{this.value}}" min="0" />
           </label>
-        </div>
-      {{/if}}
+        {{/each}}
+      </div>
       <div class="form-group">
         <label>
           Failures in Row

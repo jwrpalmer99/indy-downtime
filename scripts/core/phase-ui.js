@@ -1,175 +1,306 @@
-import {
-  parseCheckOrder,
-  parseCheckOrderToken,
-  parseList,
-  parseNarrativeLines,
-  parseNumberList,
-} from "./parse.js";
-import { getSkillAliases, getSkillLabel, resolveSkillKey } from "./labels.js";
-import { buildDefaultCheckOrder, getPhaseSkillList, normalizePhaseConfig } from "./phase.js";
+import { parseList } from "./parse.js";
+import { normalizePhaseConfig } from "./phase.js";
 
-function refreshPhaseSkillSections(html, phaseId, isPhase1) {
-  const skillAliases = getSkillAliases();
-  const skillText = html
-    .find(`.drep-skill-list[data-phase-id='${phaseId}']`)
-    .val();
-  const skills = parseList(skillText);
-  if (!skills.length) return;
+function initDependencyDragDrop(html, logger = () => {}) {
+  const getCheckLabel = (checkId) => {
+    const input = html.find(`input[name*="checks.${checkId}.name"]`).first();
+    const value = String(input.val() ?? "").trim();
+    if (value) return value;
+    const card = html.find(`.drep-check-card[data-check-id='${checkId}']`).first();
+    return card.data("checkName") || checkId;
+  };
 
-  const penaltySelect = html.find(
-    `.drep-penalty-skill[data-phase-id='${phaseId}']`
-  );
-  if (penaltySelect.length) {
-    const current = penaltySelect.val();
-    penaltySelect.empty();
-    for (const key of skills) {
-      const label = getSkillLabel(resolveSkillKey(key, skillAliases));
-      penaltySelect.append(`<option value="${key}">${label}</option>`);
-    }
-    if (skills.includes(current)) {
-      penaltySelect.val(current);
-    }
-  }
+  const getGroupLabel = (groupId) => {
+    const input = html.find(`input[name*="groups.${groupId}.name"]`).first();
+    const value = String(input.val() ?? "").trim();
+    return value || groupId;
+  };
 
-  const targetValues = isPhase1
-    ? extractPhaseSkillValues(html, phaseId, "skillTargets")
-    : {};
-  const stepValues = isPhase1
-    ? extractPhaseSkillValues(html, phaseId, "skillDcSteps")
-    : {};
-  const narrativeValues = isPhase1
-    ? extractPhaseSkillValues(html, phaseId, "skillNarratives")
-    : {};
+  const renderDeps = (container) => {
+    const chips = container.find(".drep-deps-chips");
+    if (!chips.length) return;
+    chips.empty();
 
-  if (isPhase1) {
-    const targetContainer = html.find(
-      `.drep-skill-targets[data-phase-id='${phaseId}'] .drep-state-grid`
-    );
-    const stepContainer = html.find(
-      `.drep-skill-steps[data-phase-id='${phaseId}'] .drep-state-grid`
-    );
-    const narrativeContainer = html.find(
-      `.drep-skill-narratives[data-phase-id='${phaseId}']`
-    );
+    const checkInput = container.find(".drep-deps-input-checks").first();
+    const groupInput = container.find(".drep-deps-input-groups").first();
 
-    if (targetContainer.length) {
-      targetContainer.empty();
-      for (const key of skills) {
-        const label = getSkillLabel(resolveSkillKey(key, skillAliases));
-        const value = targetValues[key] ?? "";
-        targetContainer.append(`
-          <label>
-            ${label}
-            <input type="number" name="phases.${phaseId}.skillTargets.${key}" value="${value}" min="0" />
-          </label>
-        `);
-      }
-    }
+    const checkIds = checkInput.length ? parseList(checkInput.val()) : [];
+    const groupIds = groupInput.length ? parseList(groupInput.val()) : [];
 
-    if (stepContainer.length) {
-      stepContainer.empty();
-      for (const key of skills) {
-        const label = getSkillLabel(resolveSkillKey(key, skillAliases));
-        const value = stepValues[key] ?? "";
-        stepContainer.append(`
-          <label>
-            ${label}
-            <input type="text" name="phases.${phaseId}.skillDcSteps.${key}" value="${value}" placeholder="13, 14, 15" />
-          </label>
-        `);
-      }
-    }
-
-    if (narrativeContainer.length) {
-      const summary = narrativeContainer.find("summary");
-      narrativeContainer.children(".form-group").remove();
-      for (const key of skills) {
-        const label = getSkillLabel(resolveSkillKey(key, skillAliases));
-        const value = narrativeValues[key] ?? "";
-        const block = $(`
-          <div class="form-group">
-            <label>${label}</label>
-            <textarea name="phases.${phaseId}.skillNarratives.${key}" rows="4"></textarea>
-            <p class="notes"><span class="drep-note-lines">One line per step:<br>step|Title|Text</span></p>
-          </div>
-        `);
-        block.find("textarea").val(value);
-        summary.after(block);
-      }
-    }
-  } else {
-    const dcContainer = html.find(
-      `.drep-skill-dcs[data-phase-id='${phaseId}'] .drep-state-grid`
-    );
-    const dcValues = extractPhaseSkillValues(html, phaseId, "skillDcs");
-    if (dcContainer.length) {
-      dcContainer.empty();
-      for (const key of skills) {
-        const label = getSkillLabel(resolveSkillKey(key, skillAliases));
-        const value = dcValues[key] ?? "";
-        dcContainer.append(`
-          <label>
-            ${label}
-            <input type="number" name="phases.${phaseId}.skillDcs.${key}" value="${value}" min="0" />
-          </label>
-        `);
-      }
-    }
-  }
-  const checkOrderList = html.find(
-    `.drep-check-order-list[data-phase-id='${phaseId}']`
-  );
-  if (checkOrderList.length) {
-    const labelForEntry = (entry) => {
-      const token = parseCheckOrderToken(entry);
-      const skillKey = token.skill || entry;
-      const label = getSkillLabel(resolveSkillKey(skillKey, skillAliases));
-      if (isPhase1) {
-        const step = token.step ?? 1;
-        return `${label} ${step}`;
-      }
-      return label;
-    };
-    const phase = {
-      id: isPhase1 ? "phase1" : phaseId,
-      skills,
-      skillTargets: targetValues,
-    };
-    const order = buildDefaultCheckOrder(phase);
-    checkOrderList.empty();
-    for (const entry of order) {
-      checkOrderList.append(
-        `<li draggable="true" data-order="${entry}">${labelForEntry(entry)}</li>`
+    for (const id of checkIds) {
+      chips.append(
+        `<span class="drep-dep-chip" data-dep-type="check" data-dep-id="${id}">${getCheckLabel(id)}<button type="button" class="drep-dep-remove" title="Remove">x</button></span>`
       );
     }
-    const checkOrderInput = html.find(
-      `input[name='phases.${phaseId}.checkOrder']`
-    );
-    if (checkOrderInput.length) {
-      checkOrderInput.val(order.join(", "));
+    for (const id of groupIds) {
+      chips.append(
+        `<span class="drep-dep-chip" data-dep-type="group" data-dep-id="${id}">${getGroupLabel(id)}<button type="button" class="drep-dep-remove" title="Remove">x</button></span>`
+      );
     }
-  }
-}
+  };
+  const dialogContainer = html.closest(".drep-dialog").length
+    ? html.closest(".drep-dialog")
+    : html;
+  const windowContent = dialogContainer.find(".window-content").first();
 
+  const findScrollableElement = (root) => {
+    if (!root || !root.querySelectorAll) return null;
+    let best = null;
+    let bestDelta = 0;
+    const nodes = [root, ...root.querySelectorAll("*")];
+    for (const node of nodes) {
+      if (!node || !node.scrollHeight || !node.clientHeight) continue;
+      const delta = node.scrollHeight - node.clientHeight;
+      if (delta <= 1) continue;
+      const style = getComputedStyle(node);
+      if (!style || !["auto", "scroll"].includes(style.overflowY)) continue;
+      if (delta > bestDelta) {
+        best = node;
+        bestDelta = delta;
+      }
+    }
+    return best;
+  };
 
-function extractPhaseSkillValues(html, phaseId, field) {
-  const values = {};
-  html
-    .find(`[name^="phases.${phaseId}.${field}."]`)
-    .each((_, input) => {
-      const name = input.name;
-      const key = name.split(".").pop();
-      values[key] = $(input).val();
+  const resolveScrollable = () => {
+    const roots = [
+      dialogContainer[0],
+      windowContent[0],
+      html[0],
+      document.scrollingElement,
+    ].filter(Boolean);
+    for (const root of roots) {
+      const candidate = findScrollableElement(root);
+      if (candidate) return candidate;
+    }
+    return roots[0] || null;
+  };
+
+  let scrollContainer = resolveScrollable();
+  logger("Scroll container", {
+    tag: scrollContainer?.tagName,
+    className: scrollContainer?.className,
+    scrollHeight: scrollContainer?.scrollHeight,
+    clientHeight: scrollContainer?.clientHeight,
+  });
+  let scrollDirection = 0;
+  let scrollRaf = null;
+
+  const getScrollCandidates = () => {
+    const candidates = [
+      scrollContainer,
+      windowContent[0],
+      dialogContainer[0],
+      html[0],
+      document.scrollingElement,
+    ].filter(Boolean);
+    const seen = new Set();
+    return candidates.filter((el) => {
+      if (seen.has(el)) return false;
+      seen.add(el);
+      return true;
     });
-  return values;
-}
+  };
 
+  const getBoundsElement = () => scrollContainer ?? windowContent[0] ?? dialogContainer[0] ?? html[0] ?? null;
+
+  const tryScroll = (delta) => {
+    for (const element of getScrollCandidates()) {
+      if (element.scrollHeight <= element.clientHeight) continue;
+      const maxScroll = Math.max(0, element.scrollHeight - element.clientHeight);
+      const prev = element.scrollTop;
+      const next = Math.min(maxScroll, Math.max(0, prev + delta));
+      if (next !== prev) {
+        element.scrollTop = next;
+        scrollContainer = element;
+        return true;
+      }
+    }
+    return false;
+  };
+
+  const startAutoScroll = () => {
+    if (scrollDirection === 0) {
+      scrollRaf = null;
+      return;
+    }
+    const didScroll = tryScroll(scrollDirection * 8);
+    if (!didScroll) {
+      scrollContainer = resolveScrollable();
+    }
+    scrollRaf = requestAnimationFrame(startAutoScroll);
+  };
+
+  const handleDragOver = (event) => {
+    if (!scrollContainer || scrollContainer.scrollHeight <= scrollContainer.clientHeight) {
+      scrollContainer = resolveScrollable();
+    }
+    if (!scrollContainer) return;
+
+    const boundsElement = getBoundsElement();
+    if (!boundsElement) return;
+    const rect = boundsElement.getBoundingClientRect();
+    const threshold = 60;
+    const y = Number.isFinite(event.clientY) ? event.clientY : event.originalEvent?.clientY;
+    const isNearTop = y < rect.top + threshold;
+    const isNearBottom = y > rect.bottom - threshold;
+    console.log("[indy-downtime] Drag scroll", {
+      y,
+      top: rect.top,
+      bottom: rect.bottom,
+      threshold,
+      isNearTop,
+      isNearBottom,
+      scrollTop: scrollContainer.scrollTop,
+      scrollHeight: scrollContainer.scrollHeight,
+      clientHeight: scrollContainer.clientHeight,
+    });
+
+    if (isNearTop) {
+      const distance = rect.top + threshold - y;
+      scrollDirection = -Math.min(1, Math.max(0.15, distance / threshold));
+      if (!scrollRaf) startAutoScroll();
+    } else if (isNearBottom) {
+      const distance = y - (rect.bottom - threshold);
+      scrollDirection = Math.min(1, Math.max(0.15, distance / threshold));
+      if (!scrollRaf) startAutoScroll();
+    } else {
+      scrollDirection = 0;
+      if (scrollRaf) {
+        cancelAnimationFrame(scrollRaf);
+        scrollRaf = null;
+      }
+    }
+  };
+
+  const stopAutoScroll = () => {
+    scrollDirection = 0;
+    if (scrollRaf) {
+      cancelAnimationFrame(scrollRaf);
+      scrollRaf = null;
+    }
+    scrollContainer = null;
+  };
+  const updateInputList = (input, id) => {
+    const existing = parseList(input.val());
+    if (existing.includes(id)) return existing;
+    existing.push(id);
+    input.val(existing.join(", "));
+    return existing;
+  };
+
+  html.find(".drep-check-card").attr("draggable", true);
+  html.find(".drep-check-chip").attr("draggable", true);
+  html.on("dragstart", ".drep-check-card, .drep-check-chip", (event) => {
+    if (!scrollContainer || scrollContainer.scrollHeight <= scrollContainer.clientHeight) {
+      scrollContainer = resolveScrollable();
+    }
+    const checkId = event.currentTarget?.dataset?.checkId;
+    if (!checkId) return;
+    event.originalEvent?.dataTransfer?.setData(
+      "text/plain",
+      JSON.stringify({ type: "check", id: checkId })
+    );
+    logger("Drag check", { checkId });
+  });
+
+  html.find(".drep-group-chip").attr("draggable", true);
+  html.on("dragstart", ".drep-group-chip", (event) => {
+    if (!scrollContainer || scrollContainer.scrollHeight <= scrollContainer.clientHeight) {
+      scrollContainer = resolveScrollable();
+    }
+    const groupId = event.currentTarget?.dataset?.groupId;
+    if (!groupId) return;
+    event.originalEvent?.dataTransfer?.setData(
+      "text/plain",
+      JSON.stringify({ type: "group", id: groupId })
+    );
+    logger("Drag group", { groupId });
+  });
+  html.on("dragover", (event) => {
+    event.preventDefault();
+    handleDragOver(event);
+  });
+
+  $(document).on("dragover.drepAutoScroll", (event) => {
+    handleDragOver(event);
+  });
+
+  html.on("dragend drop", () => {
+    stopAutoScroll();
+  });
+
+  html.on("dragover", ".drep-deps", (event) => {
+    event.preventDefault();
+    if (event.originalEvent?.dataTransfer) {
+      event.originalEvent.dataTransfer.dropEffect = "move";
+    }
+  });
+
+  html.on("drop", ".drep-deps", (event) => {
+    event.preventDefault();
+    const container = $(event.currentTarget);
+    const raw = event.originalEvent?.dataTransfer?.getData("text/plain");
+    if (!raw) return;
+    let payload = null;
+    try {
+      payload = JSON.parse(raw);
+    } catch (error) {
+      return;
+    }
+    if (!payload?.id || !payload?.type) return;
+
+    const depsType = container.data("depsType");
+    if (depsType === "check" && payload.type !== "check") return;
+
+    if (depsType === "check") {
+      const checkId = container.data("checkId");
+      if (payload.id === checkId) return;
+      const input = container.find(".drep-deps-input-checks").first();
+      if (!input.length) return;
+      updateInputList(input, payload.id);
+    } else {
+      if (payload.type === "check") {
+        const input = container.find(".drep-deps-input-checks").first();
+        if (!input.length) return;
+        updateInputList(input, payload.id);
+      } else if (payload.type === "group") {
+        const input = container.find(".drep-deps-input-groups").first();
+        if (!input.length) return;
+        updateInputList(input, payload.id);
+      }
+    }
+
+    renderDeps(container);
+  });
+
+  html.on("click", ".drep-dep-remove", (event) => {
+    event.preventDefault();
+    const chip = $(event.currentTarget).closest(".drep-dep-chip");
+    const container = chip.closest(".drep-deps");
+    const depType = chip.data("depType");
+    const depId = chip.data("depId");
+    if (!depId) return;
+
+    const inputClass = depType === "group" ? ".drep-deps-input-groups" : ".drep-deps-input-checks";
+    const input = container.find(inputClass).first();
+    if (!input.length) return;
+    const next = parseList(input.val()).filter((entry) => entry !== depId);
+    input.val(next.join(", "));
+    renderDeps(container);
+  });
+
+  html.find(".drep-deps").each((_, element) => {
+    renderDeps($(element));
+  });
+}
 
 function applyPhaseConfigFormData(phaseConfig, formData) {
   const phasesData = formData?.phases ?? {};
   const updated = phaseConfig.map((phase) => {
     const data = phasesData?.[phase.id] ?? {};
     const next = foundry.utils.deepClone(phase);
+
     if (typeof data.name === "string" && data.name.trim()) {
       next.name = data.name.trim();
     }
@@ -184,103 +315,40 @@ function applyPhaseConfigFormData(phaseConfig, formData) {
     }
     next.allowCriticalBonus = Boolean(data.allowCriticalBonus);
     next.failureEvents = Boolean(data.failureEvents);
-
-    if (typeof data.skills === "string" && data.skills.trim()) {
-      next.skills = parseList(data.skills);
-    }
-
-    if (next.id === "phase1") {
-      const skillTargets = {};
-      const skillDcSteps = {};
-      const skillNarratives = {};
-      for (const key of getPhaseSkillList(next)) {
-        const targetValue = data.skillTargets?.[key];
-        if (Number.isFinite(Number(targetValue))) {
-          skillTargets[key] = Math.max(0, Number(targetValue));
-        } else if (Number.isFinite(next.skillTargets?.[key])) {
-          skillTargets[key] = Number(next.skillTargets?.[key]);
-        }
-
-        const stepRaw = data.skillDcSteps?.[key];
-        if (typeof stepRaw === "string") {
-          const steps = parseNumberList(stepRaw);
-          if (steps.length) {
-            skillDcSteps[key] = steps;
-          }
-        }
-        if (!skillDcSteps[key] && Array.isArray(next.skillDcSteps?.[key])) {
-          skillDcSteps[key] = next.skillDcSteps[key];
-        }
-
-        const narrativeRaw = data.skillNarratives?.[key];
-        if (typeof narrativeRaw === "string") {
-          const parsed = parseNarrativeLines(narrativeRaw);
-          if (Object.keys(parsed).length) {
-            skillNarratives[key] = parsed;
-          }
-        }
-        if (!skillNarratives[key] && next.skillNarratives?.[key]) {
-          skillNarratives[key] = next.skillNarratives[key];
-        }
-      }
-      next.skillTargets = skillTargets;
-      next.skillDcSteps = skillDcSteps;
-      next.skillNarratives = skillNarratives;
-    } else {
-      const skillDcs = {};
-      for (const key of getPhaseSkillList(next)) {
-        const dcValue = data.skillDcs?.[key];
-        if (Number.isFinite(Number(dcValue))) {
-          skillDcs[key] = Math.max(0, Number(dcValue));
-        } else if (Number.isFinite(next.skillDcs?.[key])) {
-          skillDcs[key] = Number(next.skillDcs?.[key]);
-        }
-      }
-      next.skillDcs = skillDcs;
-      if (typeof data.progressNarrative === "string") {
-        const parsed = parseNarrativeLines(data.progressNarrative);
-        if (Object.keys(parsed).length) {
-          next.progressNarrative = parsed;
-        }
-      }
-    }
-
-    const penaltySkill =
-      typeof data.dcPenaltySkill === "string"
-        ? data.dcPenaltySkill.trim()
-        : "";
-    next.dcPenaltySkill = next.skills.includes(penaltySkill)
-      ? penaltySkill
-      : next.skills.includes("insight")
-        ? "insight"
-        : next.skills[0] ?? "";
-    const penaltyValue = Number(data.dcPenaltyPerMissing);
-    next.dcPenaltyPerMissing = Number.isFinite(penaltyValue)
-      ? Math.max(0, penaltyValue)
-      : Number(next.dcPenaltyPerMissing ?? 0);
-
-    if (typeof data.failureLines === "string") {
-      const lines = data.failureLines
-        .split(/\r?\n/)
-        .map((line) => line.trim())
-        .filter((line) => line.length);
-      if (lines.length) {
-        next.failureLines = lines;
-      }
-    }
-
     if (typeof data.failureEventTable === "string") {
       next.failureEventTable = data.failureEventTable.trim();
     }
-
-        if (typeof data.image === "string") {
+    if (typeof data.image === "string") {
       next.image = data.image.trim();
     }
 
-    next.enforceCheckOrder = Boolean(data.enforceCheckOrder);
-    if (typeof data.checkOrder === "string") {
-      next.checkOrder = parseCheckOrder(data.checkOrder);
+    const groups = [];
+    for (const [groupId, groupData] of Object.entries(data.groups ?? {})) {
+      const groupName = typeof groupData?.name === "string" ? groupData.name.trim() : "";
+      const checks = [];
+      for (const [checkId, checkData] of Object.entries(groupData?.checks ?? {})) {
+        const name = typeof checkData?.name === "string" ? checkData.name.trim() : "";
+        const skill = typeof checkData?.skill === "string" ? checkData.skill.trim() : "";
+        const dc = Number(checkData?.dc);
+        const description =
+          typeof checkData?.description === "string" ? checkData.description.trim() : "";
+        const dependsOn = parseList(checkData?.dependsOn ?? "");
+        checks.push({
+          id: checkId,
+          name,
+          skill,
+          description,
+          dc: Number.isFinite(dc) ? dc : 0,
+          value: 1,
+          dependsOn,
+        });
+      }
+      groups.push({ id: groupId, name: groupName, checks });
     }
+    next.groups = groups;
+
+    next.successLines = parseLineData(data.successLines);
+    next.failureLines = parseLineData(data.failureLines);
 
     return next;
   });
@@ -288,6 +356,21 @@ function applyPhaseConfigFormData(phaseConfig, formData) {
   return normalizePhaseConfig(updated);
 }
 
+function parseLineData(linesData) {
+  const lines = [];
+  for (const [lineId, lineData] of Object.entries(linesData ?? {})) {
+    const text = typeof lineData?.text === "string" ? lineData.text.trim() : "";
+    const dependsOnChecks = parseList(lineData?.dependsOnChecks ?? "");
+    const dependsOnGroups = parseList(lineData?.dependsOnGroups ?? "");
+    lines.push({
+      id: lineId,
+      text,
+      dependsOnChecks,
+      dependsOnGroups,
+    });
+  }
+  return lines;
+}
 
 function updatePhaseImagesFromForm(phaseConfig, formData) {
   if (!Array.isArray(phaseConfig) || !formData) return;
@@ -300,51 +383,8 @@ function updatePhaseImagesFromForm(phaseConfig, formData) {
   }
 }
 
-function getCheckOrderListPhase (list) {
-      let a = list
-        .find("li")
-        .map((_, item) => $(item).attr("data-order") ?? $(item).data("order"))
-        .get();
-      return a;
-}
-
-function isCheckOrderValid (order) {
-      const lastBySkill = new Map();
-      for (const entry of order) {
-        const [skill, stepRaw] = String(entry).split(":");
-        const step = Number(stepRaw);
-        if (!skill || !Number.isFinite(step)) continue;
-        const last = lastBySkill.get(skill);
-        if (last !== undefined && step < last) {
-          return false;
-        }
-        lastBySkill.set(skill, step);
-      }
-      return true;
-    };
-
-
-
-        function rebuildCheckOrderList(list, order) {
-          const items = new Map();
-          list.find("li").each((_, item) => {
-            const key = $(item).attr("data-order") ?? $(item).data("order");
-            if (!key) return;
-            items.set(key, item);
-          });
-          list.empty();
-          for (const entry of order) {
-            const item = items.get(entry);
-            if (item) list.append(item);
-          }
-        };
-
 export {
-  refreshPhaseSkillSections,
-  extractPhaseSkillValues,
+  initDependencyDragDrop,
   applyPhaseConfigFormData,
   updatePhaseImagesFromForm,
-  getCheckOrderListPhase,
-  isCheckOrderValid,
-  rebuildCheckOrderList
 };

@@ -10,40 +10,42 @@ import {
   getTrackerTabId,
 } from "./constants.js";
 import {
-  buildPhase1SkillData,
   debugLog,
   getActivePhase,
   getCurrentTrackerId,
-  getForcedSkillChoice,
   getHeaderLabel,
   getIntervalLabel,
   getLastActorId,
   getLastSkillChoice,
-  getNextOrderedSkillChoice,
-  getNextSkillTitle,
   getPhaseConfig,
-  getPhase1SkillProgress,
+  getPhaseGroups,
   getPhaseNumber,
-  getPhasePenaltyInfo,
-  getPhaseSkillChoices,
-  getPhaseSkillTarget,
+  getPhaseCheckChoices,
+  getPhaseCheckTarget,
   getRestrictedActorUuids,
   getSkillAliases,
-  getSkillLabel,
   getTrackers,
   getTrackerById,
   getWorldState,
-  resolveSkillKey,
   runIntervalRoll,
   setLastActorId,
   setLastSkillChoice,
   setWorldState,
   shouldHideDc,
-  getPhaseDc
 } from "./core-utils.js";
 
 let tidyApi = null;
 let registeredTidyTrackerIds = new Set();
+
+function formatCheckOptionLabel(choice, showDc) {
+  const name = choice.label || choice.skillLabel || "Check";
+  const skill = choice.skillLabel && choice.skillLabel !== name ? choice.skillLabel : "";
+  const dcText = showDc ? `DC ${choice.dc}` : "";
+  if (skill) {
+    return dcText ? `${name} - ${skill} (${dcText})` : `${name} - ${skill}`;
+  }
+  return dcText ? `${name} (${dcText})` : name;
+}
 
 
 
@@ -93,48 +95,69 @@ function buildTrackerData({
         .sort((a, b) => a.name.localeCompare(b.name))
     : [];
 
-  let skillChoices = getPhaseSkillChoices(activePhase, skillAliases).map((choice) => ({
-    ...choice,
-    dc: getPhaseDc(activePhase, choice.key),
-  }));
-  if (activePhase.id === "phase1") {
-    const progress = getPhase1SkillProgress(activePhase);
-    skillChoices = skillChoices.filter((choice) => {
-      const target = getPhaseSkillTarget(activePhase, choice.key);
-      return (progress[choice.key] ?? 0) < target;
-    });
-  }
-  const skillLabels = skillChoices.reduce((acc, choice) => {
-    acc[choice.key] = choice.label;
-    return acc;
-  }, {});
-  const skillTitles = skillChoices.reduce((acc, choice) => {
-    acc[choice.key] = getNextSkillTitle(activePhase, choice.key, skillLabels);
-    return acc;
-  }, {});
-  const orderedSkillChoice = getNextOrderedSkillChoice(activePhase);
-  const forcedSkillChoice =
-    getForcedSkillChoice(activePhase) || orderedSkillChoice;
-  const lastSkillChoice = getLastSkillChoice(resolvedTrackerId);
-  const preferredSkillChoice = skillChoices.some(
-    (choice) => choice.key === lastSkillChoice
-  )
-    ? lastSkillChoice
-    : skillChoices[0]?.key || "";
-  const availableSkillKeys = skillChoices.map((choice) => choice.key);
-  const selectedSkillKey =
-    forcedSkillChoice && availableSkillKeys.includes(forcedSkillChoice)
-      ? forcedSkillChoice
-      : preferredSkillChoice;
-  const enforceOrder = Boolean(activePhase.enforceCheckOrder);
-  const selectedSkillTitle = getNextSkillTitle(
-    activePhase,
-    selectedSkillKey,
-    skillLabels
-  );
-  const phase1Penalty = getPhasePenaltyInfo(activePhase, skillLabels);
-
   const showDc = game.user?.isGM || !shouldHideDc(resolvedTrackerId);
+
+  const checkChoices = getPhaseCheckChoices(
+    activePhase,
+    activePhase.checkProgress,
+    skillAliases
+  ).map((choice) => ({
+    ...choice,
+    label: choice.label || "Unnamed Check",
+  }));
+
+  const dropdownChoices = checkChoices
+    .filter((choice) => !choice.complete)
+    .map((choice) => ({
+      ...choice,
+      optionLabel: formatCheckOptionLabel(choice, showDc),
+    }));
+  const availableChoices = dropdownChoices.filter((choice) => !choice.locked);
+  const lastCheckChoice = getLastSkillChoice(resolvedTrackerId);
+  const preferredChoice = availableChoices.some(
+    (choice) => choice.key === lastCheckChoice
+  )
+    ? lastCheckChoice
+    : availableChoices[0]?.key || dropdownChoices[0]?.key || "";
+
+  const selectedChoice = checkChoices.find(
+    (choice) => choice.key === preferredChoice
+  );
+  const selectedCheckLabel = selectedChoice?.label ?? "";
+  const selectedCheckDescription = selectedChoice?.description ?? "";
+
+  const checkTitles = {};
+  const checkDescriptions = {};
+  for (const choice of checkChoices) {
+    checkTitles[choice.key] = choice.label;
+    checkDescriptions[choice.key] = choice.description || "";
+  }
+
+  const checkGroups = getPhaseGroups(activePhase).map((group) => {
+    const checks = group.checks ?? [];
+    let value = 0;
+    let target = 0;
+    for (const check of checks) {
+      const checkTarget = getPhaseCheckTarget(check);
+      target += checkTarget;
+      const current = Math.min(
+        Number(activePhase.checkProgress?.[check.id] ?? 0),
+        checkTarget
+      );
+      value += current;
+    }
+    const percent = target > 0
+      ? Math.min(100, Math.round((value / target) * 100))
+      : 0;
+    return {
+      id: group.id,
+      name: group.name || "Group",
+      value,
+      target,
+      percent,
+    };
+  });
+
   const progressPercent =
     activePhase.target > 0
       ? Math.min(
@@ -142,14 +165,7 @@ function buildTrackerData({
           Math.round((activePhase.progress / activePhase.target) * 100)
         )
       : 0;
-  const forcedSkillLabel = forcedSkillChoice
-    ? getSkillLabel(resolveSkillKey(forcedSkillChoice, skillAliases))
-    : "";
-  const canRoll = !activePhase.completed && skillChoices.length > 0;
-  const phase1Skills =
-    activePhase.id === "phase1"
-      ? buildPhase1SkillData(activePhase, skillLabels)
-      : [];
+  const canRoll = !activePhase.completed && availableChoices.length > 0;
 
   return {
     trackerId: resolvedTrackerId,
@@ -157,25 +173,23 @@ function buildTrackerData({
     activePhase,
     activePhaseNumber,
     showPhaseNumber: phaseConfig.length > 1,
-    skillLabels,
-    skillTitles,
-    skillChoices,
+    checkChoices,
+    dropdownChoices,
+    checkTitles,
+    checkDescriptions,
+    checkGroups,
     actors,
     lastActorId,
-    lastSkillChoice: preferredSkillChoice,
+    lastCheckChoice: preferredChoice,
     progressPercent,
-    forcedSkillChoice,
-    enforceOrder,
-    forcedSkillLabel,
     canRoll,
     showActorSelect,
     embedded,
-    phase1Skills,
     headerLabel,
     showDc,
     intervalLabel: getIntervalLabel(resolvedTrackerId),
-    selectedSkillTitle,
-    phase1Penalty,
+    selectedCheckLabel,
+    selectedCheckDescription,
     sheetActor: actor ? { id: actor.id, name: actor.name } : null,
   };
 }
@@ -202,22 +216,34 @@ function attachTrackerListeners(html, { render, actor } = {}) {
     handleRoll(scope, { render, actorOverride: actor, trackerId });
   });
 
-  scope.find("[data-drep-name='skillChoice']").on("change", (event) => {
+  scope.find("[data-drep-name='checkChoice']").on("change", (event) => {
     const selected = $(event.currentTarget).val();
     if (selected) {
       setLastSkillChoice(trackerId, selected);
     }
-    const title = scope.find(`[data-drep-skill-title='${selected}']`).data("title") || "";
-    if (!title) return;
-    scope.find(".drep-skill-title").text(`Current Focus: ${title}`);
+    const title = scope
+      .find(`[data-drep-check-title='${selected}']`)
+      .data("title") || "";
+    if (title) {
+      scope.find(".drep-check-title").text(`Current Focus: ${title}`);
+    }
+    const description = scope
+      .find(`[data-drep-check-description='${selected}']`)
+      .data("description") || "";
+    const descEl = scope.find(".drep-check-description");
+    if (description) {
+      descEl.text(description).show();
+    } else {
+      descEl.text("").hide();
+    }
   });
 }
 
 async function handleRoll(root, { render, actorOverride, trackerId } = {}) {
   const resolvedTrackerId = trackerId ?? getCurrentTrackerId();
-  const phaseConfig = getPhaseConfig(resolvedTrackerId);
   const state = getWorldState(resolvedTrackerId);
   const activePhase = getActivePhase(state, resolvedTrackerId);
+
   if (activePhase.completed) {
     ui.notifications.warn("Indy Downtime Tracker: this phase is already complete.");
     return;
@@ -228,18 +254,18 @@ async function handleRoll(root, { render, actorOverride, trackerId } = {}) {
 
   setLastActorId(resolvedTrackerId, actor.id);
 
-  const skillChoice = root.find("[data-drep-name='skillChoice']").val();
-  if (skillChoice) {
-    setLastSkillChoice(resolvedTrackerId, skillChoice);
+  const checkChoice = root.find("[data-drep-name='checkChoice']").val();
+  if (checkChoice) {
+    setLastSkillChoice(resolvedTrackerId, checkChoice);
   }
-  if (!skillChoice) {
-    ui.notifications.warn("Indy Downtime Tracker: configure skills before rolling.");
+  if (!checkChoice) {
+    ui.notifications.warn("Indy Downtime Tracker: configure checks before rolling.");
     return;
   }
 
   await runIntervalRoll({
     actor,
-    skillChoice,
+    checkChoice,
     trackerId: resolvedTrackerId,
   });
 
