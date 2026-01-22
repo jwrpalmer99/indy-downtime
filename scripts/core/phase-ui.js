@@ -144,18 +144,7 @@ function initDependencyDragDrop(html, logger = () => {}) {
     const y = Number.isFinite(event.clientY) ? event.clientY : event.originalEvent?.clientY;
     const isNearTop = y < rect.top + threshold;
     const isNearBottom = y > rect.bottom - threshold;
-    console.log("[indy-downtime] Drag scroll", {
-      y,
-      top: rect.top,
-      bottom: rect.bottom,
-      threshold,
-      isNearTop,
-      isNearBottom,
-      scrollTop: scrollContainer.scrollTop,
-      scrollHeight: scrollContainer.scrollHeight,
-      clientHeight: scrollContainer.clientHeight,
-    });
-
+   
     if (isNearTop) {
       const distance = rect.top + threshold - y;
       scrollDirection = -Math.min(1, Math.max(0.15, distance / threshold));
