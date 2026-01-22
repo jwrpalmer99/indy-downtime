@@ -463,6 +463,8 @@
 
 .drep-phase-actions {
   margin: 8px 0 0;
+  display: flex;
+  justify-content: space-between;
 }
 
 .drep-alias-row {
@@ -488,6 +490,21 @@
   display: flex;
   gap: 8px;
   align-items: center;
+}
+
+
+.phase-checkbox {
+  width: fit-content;
+  flex-direction: row !important;
+  display: inline-flex !important;
+  align-items: center !important;  
+  width: unset !important;  
+}
+
+.drep-flow-line-chip {
+  display : inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .drep-chat h3 {
@@ -569,7 +586,7 @@
 }
 
 .drep-group-card {
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: 8px;
   padding: 10px;
   margin-bottom: 10px;
@@ -595,13 +612,13 @@
   padding: 2px 8px;
   border-radius: 999px;
   background: rgba(0, 0, 0, 0.35);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.3);
   font-size: 11px;
   cursor: grab;
 }
 
 .drep-check-card {
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: 8px;
   padding: 8px;
   background: rgba(0, 0, 0, 0.18);
@@ -629,7 +646,7 @@
   padding: 6px;
   border-radius: 6px;
   background: rgba(0, 0, 0, 0.3);
-  border: 1px dashed rgba(255, 255, 255, 0.16);
+  border: 1px dashed rgba(255, 255, 255, 0.34);
   min-height: 32px;
 }
 
@@ -653,7 +670,7 @@
   padding: 2px 6px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.4);
   font-size: 11px;
 }
 
@@ -666,7 +683,7 @@
 }
 
 .drep-line-card {
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: 8px;
   padding: 8px;
   background: rgba(0, 0, 0, 0.18);
@@ -674,6 +691,14 @@
   flex-direction: column;
   gap: 8px;
   margin-bottom: 10px;
+}
+
+.card-success {
+  background: rgba(0, 40, 0, 0.35);
+}
+
+.card-failure {
+  background: rgba(40, 0, 0, 0.35);
 }
 
 .drep-line-actions {
@@ -757,7 +782,7 @@
   padding: 2px 6px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.4);
   font-size: 11px;
   white-space: nowrap;
   overflow: hidden;
@@ -823,7 +848,7 @@
 
 
 .drep-group-card {
-  border-color: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.4);
   background: rgba(0, 0, 0, 0.32);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
 }
@@ -837,7 +862,7 @@
 }
 
 .drep-check-card {
-  border-color: rgba(255, 255, 255, 0.22);
+  border-color: rgba(255, 255, 255, 0.42);
   background: rgba(0, 0, 0, 0.26);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03);
 }
@@ -861,4 +886,148 @@
 
 .drep-collapsible[open] > summary .drep-collapse {
   display: inline-block;
+}
+
+
+.drep-flow {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.drep-flow-header h2 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.drep-flow-lanes {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(220px, 1fr);
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+}
+
+.drep-flow-lane {
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 10px;
+  padding: 10px;
+  min-height: 120px;
+}
+
+.drep-flow-lane-header {
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.drep-flow-check {
+  background: rgba(0, 0, 0, 0.32);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  padding: 8px;
+  margin-bottom: 8px;
+}
+
+.drep-flow-check.is-drop-target {
+  border-color: rgba(255, 209, 102, 0.9);
+  box-shadow: 0 0 0 1px rgba(255, 209, 102, 0.6);
+}
+
+.drep-flow-check:last-child {
+  margin-bottom: 0;
+}
+
+.drep-flow-check-name {
+  font-weight: 600;
+}
+
+.drep-flow-check-meta {
+  font-size: 12px;
+  color: var(--color-text-dark-secondary);
+  margin-top: 2px;
+}
+
+.drep-flow-deps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  margin-top: 6px;
+}
+
+.drep-flow-deps-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-text-dark-secondary);
+}
+
+.drep-flow-dep {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  font-size: 11px;
+}
+
+
+.drep-flow-dep-remove {
+  background: transparent;
+  border: none;
+  color: inherit;
+  margin-left: 6px;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.drep-flow-dep-remove:hover {
+  color: #f0c674;
+}
+
+.drep-flow-lines {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.18);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.drep-flow-lines.success {
+  border-top-color: rgba(120, 200, 140, 0.29);
+}
+
+.drep-flow-lines.failure {
+  border-top-color: rgba(220, 120, 120, 0.29);
+}
+
+.drep-flow-lines-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-text-dark-secondary);
+}
+
+.drep-flow-line {
+  font-size: 12px;
+  color: var(--color-text-light-0);
+  display: inline-flex;
+  align-items: center;
+}
+
+.drep-flow-line-remove {
+  background: transparent;
+  border: none;
+  color: inherit;
+  margin-left: 6px;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.drep-flow-line-remove:hover {
+  color: #f0c674;
 }

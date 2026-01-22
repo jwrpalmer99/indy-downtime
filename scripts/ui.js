@@ -18,6 +18,7 @@ import {
   getLastActorId,
   getLastSkillChoice,
   getPhaseConfig,
+  getPhaseDefinition,
   getPhaseGroups,
   getPhaseNumber,
   getPhaseCheckChoices,
@@ -28,10 +29,12 @@ import {
   getTrackerById,
   getWorldState,
   runIntervalRoll,
+  runPhaseCompleteMacro,
   setLastActorId,
   setLastSkillChoice,
   setWorldState,
   shouldHideDc,
+  shouldShowLockedChecks,
 } from "./core-utils.js";
 
 let tidyApi = null;
@@ -96,6 +99,7 @@ function buildTrackerData({
     : [];
 
   const showDc = game.user?.isGM || !shouldHideDc(resolvedTrackerId);
+  const showLockedChecks = game.user?.isGM || shouldShowLockedChecks(resolvedTrackerId);
 
   const checkChoices = getPhaseCheckChoices(
     activePhase,
@@ -107,7 +111,7 @@ function buildTrackerData({
   }));
 
   const dropdownChoices = checkChoices
-    .filter((choice) => !choice.complete)
+    .filter((choice) => !choice.complete && (showLockedChecks || !choice.locked))
     .map((choice) => ({
       ...choice,
       optionLabel: formatCheckOptionLabel(choice, showDc),
@@ -372,14 +376,51 @@ function registerSheetTab() {
 async function applyRequestedState(state, trackerId) {
   if (!state) return;
   const trackerKey = trackerId ?? getCurrentTrackerId();
+  const prev = getWorldState(trackerKey);
+  const prevCompletionKeys = new Set(
+    (prev.log ?? [])
+      .filter((entry) => entry?.type === "phase-complete" && entry?.timestamp)
+      .map((entry) => `${entry.phaseId}-${entry.timestamp}`)
+  );
   const merged = foundry.utils.mergeObject(DEFAULT_STATE, state, {
     inplace: false,
     overwrite: true,
   });
   await setWorldState(merged, trackerKey);
+  if (game.user?.isGM) {
+    const completions = (merged.log ?? []).filter(
+      (entry) => entry?.type === "phase-complete" && entry?.timestamp
+    );
+    for (const entry of completions) {
+      const key = `${entry.phaseId}-${entry.timestamp}`;
+      if (prevCompletionKeys.has(key)) continue;
+      const phase = getPhaseDefinition(entry.phaseId, trackerKey);
+      let actor = null;
+      if (entry.actorUuid) {
+        try {
+          const doc = await fromUuid(entry.actorUuid);
+          actor = doc?.document ?? doc ?? actor;
+        } catch (error) {
+          // ignore
+        }
+      }
+      if (!actor && entry.actorId) {
+        actor = game.actors.get(entry.actorId) ?? null;
+      }
+      await runPhaseCompleteMacro({
+        phase,
+        actor,
+        actorId: entry.actorId,
+        actorName: entry.actorName,
+        actorUuid: entry.actorUuid,
+        trackerId: trackerKey,
+      });
+    }
+  }
   rerenderCharacterSheets();
   rerenderSettingsApps();
 }
+
 
 function handleSocketMessage(payload) {
   if (!payload) return;

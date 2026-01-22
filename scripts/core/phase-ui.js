@@ -310,6 +310,12 @@ function applyPhaseConfigFormData(phaseConfig, formData) {
     if (typeof data.image === "string") {
       next.image = data.image.trim();
     }
+    if (typeof data.phaseCompleteMessage === "string") {
+      next.phaseCompleteMessage = data.phaseCompleteMessage.trim();
+    }
+    if (typeof data.phaseCompleteMacro === "string") {
+      next.phaseCompleteMacro = data.phaseCompleteMacro.trim();
+    }
 
     const groups = [];
     for (const [groupId, groupData] of Object.entries(data.groups ?? {})) {

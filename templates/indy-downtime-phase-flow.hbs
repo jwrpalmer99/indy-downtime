@@ -1,0 +1,85 @@
+<section class="drep-flow">
+  <header class="drep-flow-header">
+    <h2>Phase {{phaseNumber}}: {{phaseName}}</h2>
+  </header>
+
+  {{#if unassignedSuccess.length}}
+    <div class="drep-flow-unassigned">
+      <div class="drep-flow-lines success">
+        <span class="drep-flow-lines-label">Unassigned Success Lines</span>
+        {{#each unassignedSuccess}}
+          <div class="drep-flow-line drep-flow-line-chip" draggable="true" data-drep-line-id="{{this.id}}" data-drep-line-type="success">{{this.text}}<button type="button" class="drep-flow-line-remove" title="Remove">x</button></div>
+        {{/each}}
+      </div>
+    </div>
+  {{/if}}
+  {{#if unassignedFailure.length}}
+    <div class="drep-flow-unassigned">
+      <div class="drep-flow-lines failure">
+        <span class="drep-flow-lines-label">Unassigned Failure Lines</span>
+        {{#each unassignedFailure}}
+          <div class="drep-flow-line drep-flow-line-chip" draggable="true" data-drep-line-id="{{this.id}}" data-drep-line-type="failure">{{this.text}}<button type="button" class="drep-flow-line-remove" title="Remove">x</button></div>
+        {{/each}}
+      </div>
+    </div>
+  {{/if}}
+
+  <div class="drep-flow-lanes">
+    {{#each groups}}
+      <div class="drep-flow-lane">
+        <div class="drep-flow-lane-header">{{this.name}}</div>
+        {{#if this.successLines.length}}
+          <div class="drep-flow-lines success">
+            <span class="drep-flow-lines-label">Group Success Lines</span>
+            {{#each this.successLines}}
+              <div class="drep-flow-line drep-flow-line-chip" draggable="true" data-drep-line-id="{{this.id}}" data-drep-line-type="success">{{this.text}}<button type="button" class="drep-flow-line-remove" title="Remove">x</button></div>
+            {{/each}}
+          </div>
+        {{/if}}
+        {{#if this.failureLines.length}}
+          <div class="drep-flow-lines failure">
+            <span class="drep-flow-lines-label">Group Failure Lines</span>
+            {{#each this.failureLines}}
+              <div class="drep-flow-line drep-flow-line-chip" draggable="true" data-drep-line-id="{{this.id}}" data-drep-line-type="failure">{{this.text}}<button type="button" class="drep-flow-line-remove" title="Remove">x</button></div>
+            {{/each}}
+          </div>
+        {{/if}}
+        <div class="drep-flow-checks">
+          {{#each this.checks}}
+            <div class="drep-flow-check" data-drep-check-id="{{this.id}}">
+              <div class="drep-flow-check-name">{{this.name}}</div>
+              <div class="drep-flow-check-meta">{{this.skillLabel}}{{#if this.dc}} - DC {{this.dc}}{{/if}}</div>
+              {{#if this.dependsOnEntries.length}}
+                <div class="drep-flow-deps">
+                  <span class="drep-flow-deps-label">Depends on</span>
+                  {{#each this.dependsOnEntries}}
+                    <span class="drep-flow-dep" data-dep-id="{{this.id}}" data-target-check-id="{{../id}}">{{this.label}}<button type="button" class="drep-flow-dep-remove" title="Remove">x</button></span>
+                  {{/each}}
+                </div>
+              {{/if}}
+              {{#if this.successLines.length}}
+                <div class="drep-flow-lines success">
+                  <span class="drep-flow-lines-label">Success Lines</span>
+                  {{#each this.successLines}}
+                    <div class="drep-flow-line drep-flow-line-chip" draggable="true" data-drep-line-id="{{this.id}}" data-drep-line-type="success">{{this.text}}<button type="button" class="drep-flow-line-remove" title="Remove">x</button></div>
+                  {{/each}}
+                </div>
+              {{/if}}
+              {{#if this.failureLines.length}}
+                <div class="drep-flow-lines failure">
+                  <span class="drep-flow-lines-label">Failure Lines</span>
+                  {{#each this.failureLines}}
+                    <div class="drep-flow-line drep-flow-line-chip" draggable="true" data-drep-line-id="{{this.id}}" data-drep-line-type="failure">{{this.text}}<button type="button" class="drep-flow-line-remove" title="Remove">x</button></div>
+                  {{/each}}
+                </div>
+              {{/if}}
+            </div>
+          {{/each}}
+          {{#unless this.checks.length}}
+            <div class="drep-muted">No checks in this group.</div>
+          {{/unless}}
+        </div>
+      </div>
+    {{/each}}
+  </div>
+</section>

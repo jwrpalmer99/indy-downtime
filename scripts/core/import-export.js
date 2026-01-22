@@ -34,6 +34,7 @@ function getSettingsExportPayload() {
     intervalLabel: tracker.intervalLabel,
     tabIcon: tracker.tabIcon,
     hideDcFromPlayers: tracker.hideDcFromPlayers,
+    showLockedChecksToPlayers: tracker.showLockedChecksToPlayers,
     restrictedActorUuids: tracker.restrictedActorUuids ?? [],
     phaseConfig: tracker.phaseConfig ?? [],
   }));
@@ -101,6 +102,7 @@ async function applySettingsImportPayload(payload) {
         ),
         tabIcon: sanitizeLabel(tracker?.tabIcon, DEFAULT_TAB_ICON),
         hideDcFromPlayers: Boolean(tracker?.hideDcFromPlayers),
+        showLockedChecksToPlayers: tracker?.showLockedChecksToPlayers !== false,
         restrictedActorUuids: parseRestrictedActorUuids(
           tracker?.restrictedActorUuids
         ),
@@ -132,6 +134,9 @@ async function applySettingsImportPayload(payload) {
     }
     if (typeof settings.hideDcFromPlayers !== "undefined") {
       updates.hideDcFromPlayers = Boolean(settings.hideDcFromPlayers);
+    }
+    if (typeof settings.showLockedChecksToPlayers !== "undefined") {
+      updates.showLockedChecksToPlayers = Boolean(settings.showLockedChecksToPlayers);
     }
     if (Array.isArray(settings.restrictedActorUuids)) {
       updates.restrictedActorUuids = parseRestrictedActorUuids(

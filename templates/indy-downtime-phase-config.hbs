@@ -20,40 +20,35 @@
     <section class="drep-phase-tab" data-tab="{{this.id}}">
       <fieldset class="drep-phase-block">
         <legend>Phase {{this.number}}: {{this.name}}</legend>
-        {{#unless this.isPhase1}}
-          <div class="drep-phase-actions">
+        <div class="drep-phase-actions">
+          <button type="button" class="dialog-button" data-drep-action="view-flow" data-phase-id="{{this.id}}">
+            View Flow
+          </button>
+          {{#unless this.isPhase1}}
             <button type="button" class="dialog-button" data-drep-action="remove-phase" data-phase-id="{{this.id}}">
               Remove Phase
             </button>
-          </div>
-        {{/unless}}
+          {{/unless}}
+        </div>
 
         <div class="drep-grid">
           <label>
             Phase Name
-            <input type="text" name="phases.{{this.id}}.name" value="{{this.name}}" />
-          </label>
-          <label>
-            Narrative Duration
-            <input type="text" name="phases.{{this.id}}.narrativeDuration" value="{{this.narrativeDuration}}" />
-          </label>
-          <label>
-            Expected Gain
-            <input type="text" name="phases.{{this.id}}.expectedGain" value="{{this.expectedGain}}" />
+            <input type="text" style="width: 100%" name="phases.{{this.id}}.name" value="{{this.name}}" />
           </label>
           <label>
             Phase Target
-            <input type="number" name="phases.{{this.id}}.target" value="{{this.target}}" min="0" />
+            <input type="number" style="width: 80px" name="phases.{{this.id}}.target" value="{{this.target}}" min="0" />
           </label>
         </div>
 
         <div class="drep-grid drep-phase-flags">
-          <label class="checkbox">
-            <input type="checkbox" name="phases.{{this.id}}.allowCriticalBonus" {{#if this.allowCriticalBonus}}checked{{/if}} />
+          <label class="phase-checkbox">
+            <input type="checkbox" class="phase-checkbox" name="phases.{{this.id}}.allowCriticalBonus" {{#if this.allowCriticalBonus}}checked{{/if}} />
             Allow critical bonus
           </label>
-          <label class="checkbox">
-            <input type="checkbox" name="phases.{{this.id}}.failureEvents" {{#if this.failureEvents}}checked{{/if}} />
+          <label class="phase-checkbox">
+            <input type="checkbox" class="phase-checkbox" name="phases.{{this.id}}.failureEvents" {{#if this.failureEvents}}checked{{/if}} />
             Failures trigger events
           </label>
         </div>
@@ -61,16 +56,27 @@
         <div class="drep-grid">
           <label>
             Failure Event Table (UUID)
-            <input type="text" name="phases.{{this.id}}.failureEventTable" value="{{this.failureEventTable}}" data-drep-drop="rolltable" />
+            <input type="text" style="width: 100%"name="phases.{{this.id}}.failureEventTable" value="{{this.failureEventTable}}" data-drep-drop="rolltable" />
           </label>
           <label>
             Phase Image
-            <div class="drep-image-input">
+            <div class="drep-image-input" style="width: 100%">
               <input type="text" name="phases.{{this.id}}.image" value="{{this.image}}" />
               <button type="button" class="file-picker" data-type="image" data-target="phases.{{this.id}}.image">
                 <i class="fas fa-file-import"></i>
               </button>
             </div>
+          </label>
+        </div>
+
+        <div class="drep-grid">
+          <label>
+            Phase Complete Message
+            <textarea name="phases.{{this.id}}.phaseCompleteMessage" rows="2">{{this.phaseCompleteMessage}}</textarea>
+          </label>
+          <label>
+            Phase Complete Macro (UUID)
+            <input type="text" style="width: 100%" name="phases.{{this.id}}.phaseCompleteMacro" value="{{this.phaseCompleteMacro}}" data-drep-drop="macro" />
           </label>
         </div>
 
@@ -166,7 +172,7 @@
           </div>
           <p class="notes">Drag checks or groups into Depends On to constrain a line.</p>
           {{#each this.successLines}}
-            <div class="drep-line-card">
+            <div class="drep-line-card card-success">
               <textarea name="phases.{{../id}}.successLines.{{this.id}}.text" rows="2">{{this.text}}</textarea>
               <div class="drep-deps" data-deps-type="mixed">
                 <div class="drep-deps-label">Depends On</div>
@@ -196,7 +202,7 @@
           </div>
           <p class="notes">Drag checks or groups into Depends On to constrain a line.</p>
           {{#each this.failureLines}}
-            <div class="drep-line-card">
+            <div class="drep-line-card card-failure">
               <textarea name="phases.{{../id}}.failureLines.{{this.id}}.text" rows="2">{{this.text}}</textarea>
               <div class="drep-deps" data-deps-type="mixed">
                 <div class="drep-deps-label">Depends On</div>

@@ -256,6 +256,55 @@ async function postSummaryMessage({
   });
 }
 
+
+async function runPhaseCompleteMacro({ phase, actor, actorId, actorName, actorUuid, trackerId }) {
+  if (!phase) return;
+  const macroUuid = String(phase.phaseCompleteMacro ?? "").trim();
+  if (!macroUuid || !game.user?.isGM) return;
+
+  let resolvedActor = actor ?? null;
+  if (!resolvedActor || typeof resolvedActor.createEmbeddedDocuments !== "function") {
+    if (actorUuid) {
+      try {
+        const doc = await fromUuid(actorUuid);
+        resolvedActor = doc?.document ?? doc ?? resolvedActor;
+      } catch (error) {
+        // ignore
+      }
+    }
+  }
+  if ((!resolvedActor || typeof resolvedActor.createEmbeddedDocuments !== "function") && actorId && game.actors) {
+    resolvedActor = game.actors.get(actorId) ?? resolvedActor;
+  }
+
+  let macro = null;
+  try {
+    macro = await fromUuid(macroUuid);
+  } catch (error) {
+    macro = null;
+  }
+  if (!macro && game.macros) {
+    macro = game.macros.get(macroUuid) ?? game.macros.getName?.(macroUuid) ?? null;
+  }
+  if (macro?.execute) {
+    const payload = {
+      actor: resolvedActor ?? actor ?? null,
+      actorId: actorId ?? "",
+      actorName: actorName ?? "",
+      actorUuid: actorUuid ?? "",
+      phase,
+      trackerId,
+    };
+    const previousArgs = globalThis.args;
+    globalThis.args = [payload];
+    try {
+      await macro.execute(payload);
+    } finally {
+      globalThis.args = previousArgs;
+    }
+  }
+}
+
 async function handleCompletion(state, activePhase, actor, trackerId) {
   const nextPhaseId = getNextIncompletePhaseId(state, trackerId);
   const nextPhase = nextPhaseId
@@ -269,6 +318,9 @@ async function handleCompletion(state, activePhase, actor, trackerId) {
     phaseName: activePhase.name,
     nextPhaseId: nextPhaseId || "",
     nextPhaseName,
+    actorId: actor?.id ?? "",
+    actorName: actor?.name ?? "",
+    actorUuid: actor?.uuid ?? "",
     timestamp: Date.now(),
   });
   state.log = state.log.slice(0, 50);
@@ -280,13 +332,28 @@ async function handleCompletion(state, activePhase, actor, trackerId) {
 
   await setWorldState(state, trackerId);
 
-  const completionNote = nextPhaseName
+  const baseNote = nextPhaseName
     ? `Next phase activated: ${nextPhaseName}.`
     : "All phases completed.";
+  const message = String(activePhase.phaseCompleteMessage ?? "").trim();
+  const completionNote = message || baseNote;
+  const extraNote = message && nextPhaseName ? baseNote : "";
+
   await ChatMessage.create({
     speaker: ChatMessage.getSpeaker({ actor }),
-    content: `<div class="drep-chat"><h3>Phase Complete</h3><p>${completionNote}</p></div>`,
+    content: `<div class="drep-chat"><h3>Phase Complete</h3><p>${completionNote}</p>${
+      extraNote ? `<p class="drep-muted">${extraNote}</p>` : ""
+    }</div>`,
   });
+  await runPhaseCompleteMacro({
+    phase: activePhase,
+    actor,
+    actorId: actor?.id ?? "",
+    actorName: actor?.name ?? "",
+    actorUuid: actor?.uuid ?? "",
+    trackerId,
+  });
+
 }
 
 function isCriticalSuccess(roll) {
@@ -328,6 +395,7 @@ export {
   rollSkill,
   rollSkillDirect,
   runIntervalRoll,
+  runPhaseCompleteMacro,
   postSummaryMessage,
   handleCompletion,
   isCriticalSuccess,

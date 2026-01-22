@@ -28,6 +28,8 @@ export const DEFAULT_PHASE_CONFIG = [
     failureEvents: false,
     failureEventTable: "",
     image: "",
+    phaseCompleteMessage: "",
+    phaseCompleteMacro: "",
     groups: [
       {
         id: "group1",
@@ -116,6 +118,8 @@ export const DEFAULT_PHASE_CONFIG = [
     failureEvents: false,
     failureEventTable: "",
     image: "",
+    phaseCompleteMessage: "",
+    phaseCompleteMacro: "",
     groups: [
       {
         id: "group1",
@@ -180,6 +184,8 @@ export const DEFAULT_PHASE_CONFIG = [
     failureEvents: true,
     failureEventTable: "",
     image: "",
+    phaseCompleteMessage: "",
+    phaseCompleteMacro: "",
     groups: [
       {
         id: "group1",

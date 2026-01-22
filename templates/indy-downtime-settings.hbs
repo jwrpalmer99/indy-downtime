@@ -38,6 +38,14 @@
   </div>
 
   <div class="form-group">
+    <label class="checkbox">
+      <input type="checkbox" name="showLockedChecksToPlayers" {{#if showLockedChecksToPlayers}}checked{{/if}} />
+      Show locked checks to players
+    </label>
+    <p class="notes">When disabled, players only see unlocked checks in the dropdown.</p>
+  </div>
+
+  <div class="form-group">
     <label>Header Label</label>
     <input type="text" name="headerLabel" value="{{headerLabel}}" />
     <p class="notes">Shown at the top of the downtime tracker panel.</p>

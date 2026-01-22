@@ -11,7 +11,7 @@ import {
   RESTRICTED_ACTORS_SETTING,
 } from "../constants.js";
 import { parseList } from "./parse.js";
-import { getTrackerById } from "./tracker.js";
+import { getCurrentTracker, getTrackerById } from "./tracker.js";
 
 function debugLog(message, data = {}) {
   try {
@@ -86,6 +86,12 @@ function getTabIcon(trackerId) {
 
 function shouldHideDc(trackerId) {
   return Boolean(getTrackerById(trackerId)?.hideDcFromPlayers);
+}
+
+
+function shouldShowLockedChecks(trackerId) {
+  const tracker = trackerId ? getTrackerById(trackerId) : getCurrentTracker();
+  return tracker?.showLockedChecksToPlayers !== false;
 }
 
 
@@ -234,6 +240,7 @@ export {
   getIntervalLabel,
   getTabIcon,
   shouldHideDc,
+  shouldShowLockedChecks,
   getRestrictedActorUuids,
   parseRestrictedActorUuids,
   getLastSkillChoice,

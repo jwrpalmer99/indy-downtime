@@ -82,6 +82,7 @@ function normalizeTrackers(trackers) {
       ),
       tabIcon: sanitizeLabel(tracker?.tabIcon, DEFAULT_TAB_ICON),
       hideDcFromPlayers: Boolean(tracker?.hideDcFromPlayers),
+      showLockedChecksToPlayers: tracker?.showLockedChecksToPlayers !== false,
       restrictedActorUuids: parseRestrictedActorUuids(
         tracker?.restrictedActorUuids
       ),
@@ -133,6 +134,7 @@ function addTracker() {
     intervalLabel: DEFAULT_INTERVAL_LABEL,
     tabIcon: DEFAULT_TAB_ICON,
     hideDcFromPlayers: false,
+    showLockedChecksToPlayers: true,
     restrictedActorUuids: [],
     phaseConfig: [blankPhase],
     state: normalizeProjectState(DEFAULT_STATE, [blankPhase]),
@@ -176,6 +178,7 @@ function buildDefaultTrackerFromLegacy() {
     intervalLabel: game.settings.get(MODULE_ID, "intervalLabel") || DEFAULT_INTERVAL_LABEL,
     tabIcon: DEFAULT_TAB_ICON,
     hideDcFromPlayers: false,
+    showLockedChecksToPlayers: true,
     restrictedActorUuids:
       game.settings.get(MODULE_ID, RESTRICTED_ACTORS_SETTING) ?? [],
     phaseConfig,

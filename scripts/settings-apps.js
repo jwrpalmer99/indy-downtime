@@ -23,16 +23,19 @@ import {
   getIntervalLabel,
   getPhaseConfig,
   getPhaseGroups,
+  getPhaseNumber,
   getPhaseChecks,
   getPhaseCheckLabel,
   getPhaseCheckTarget,
   getRestrictedActorUuids,
   getSkillAliases,
+  getSkillLabel,
   getSkillOptions,
   getTabIcon,
   getTabLabel,
   getTrackerById,
   getTrackers,
+  resolveSkillKey,
   getWorldState,
   initDependencyDragDrop,
   isPhaseUnlocked,
@@ -121,6 +124,7 @@ class DowntimeRepSettings extends HandlebarsApplicationMixin(ApplicationV2) {
       trackerName: tracker?.name ?? DEFAULT_TRACKER_NAME,
       trackerTabIcon: getTabIcon(trackerId),
       hideDcFromPlayers: Boolean(tracker?.hideDcFromPlayers),
+      showLockedChecksToPlayers: tracker?.showLockedChecksToPlayers !== false,
       isSingleTracker: trackerOptions.length <= 1,
       state,
       phaseOptions,
@@ -258,6 +262,7 @@ class DowntimeRepSettings extends HandlebarsApplicationMixin(ApplicationV2) {
       intervalLabel: sanitizeLabel(formData.intervalLabel, DEFAULT_INTERVAL_LABEL),
       tabIcon: sanitizeLabel(formData.tabIcon, DEFAULT_TAB_ICON),
       hideDcFromPlayers: Boolean(formData.hideDcFromPlayers),
+      showLockedChecksToPlayers: Boolean(formData.showLockedChecksToPlayers),
       restrictedActorUuids: parseRestrictedActorUuids(
         formData.restrictedActorUuids
       ),
@@ -616,6 +621,137 @@ class DowntimeRepPhaseConfig extends HandlebarsApplicationMixin(ApplicationV2) {
       html.find(`.drep-phase-tab[data-tab='${tab}']`).addClass("active");
     });
 
+    const applyFlowUpdate = (payload) => {
+      if (!payload) return;
+      const phaseId = payload.phaseId;
+      if (!phaseId) return;
+      const phase = this._phaseConfig.find((entry) => entry.id === phaseId);
+      if (!phase) return;
+
+      const formElement = html[0] instanceof HTMLFormElement
+        ? html[0]
+        : html.closest("form")[0] ?? this.element;
+      if (!formElement) return;
+
+      const getCheckLabel = (checkId) => {
+        const input = html.find(`input[name*="checks.${checkId}.name"]`).first();
+        const value = String(input.val() ?? "").trim();
+        if (value) return value;
+        const card = html.find(`.drep-check-card[data-check-id='${checkId}']`).first();
+        return card.data("checkName") || checkId;
+      };
+
+      const getGroupLabel = (groupId) => {
+        const input = html.find(`input[name*="groups.${groupId}.name"]`).first();
+        const value = String(input.val() ?? "").trim();
+        return value || groupId;
+      };
+
+      const renderCheckDeps = (input) => {
+        const container = input ? $(input).closest(".drep-deps") : null;
+        if (!container || !container.length) return;
+        const chips = container.find(".drep-deps-chips");
+        chips.empty();
+        const checkIds = parseList(input.value ?? "");
+        for (const id of checkIds) {
+          chips.append(
+            `<span class="drep-dep-chip" data-dep-type="check" data-dep-id="${id}">${getCheckLabel(id)}<button type="button" class="drep-dep-remove" title="Remove">x</button></span>`
+          );
+        }
+      };
+
+      const renderLineDeps = (checkInput, groupInput) => {
+        const depsContainer = checkInput
+          ? $(checkInput).closest(".drep-deps")
+          : groupInput
+            ? $(groupInput).closest(".drep-deps")
+            : null;
+        if (!depsContainer || !depsContainer.length) return;
+
+        const chips = depsContainer.find(".drep-deps-chips");
+        chips.empty();
+        const checkIds = parseList(checkInput?.value ?? "");
+        const groupIds = parseList(groupInput?.value ?? "");
+        for (const id of checkIds) {
+          chips.append(
+            `<span class="drep-dep-chip" data-dep-type="check" data-dep-id="${id}">${getCheckLabel(id)}<button type="button" class="drep-dep-remove" title="Remove">x</button></span>`
+          );
+        }
+        for (const id of groupIds) {
+          chips.append(
+            `<span class="drep-dep-chip" data-dep-type="group" data-dep-id="${id}">${getGroupLabel(id)}<button type="button" class="drep-dep-remove" title="Remove">x</button></span>`
+          );
+        }
+      };
+
+      if (payload.kind === "check") {
+        const checkId = payload.checkId;
+        if (!checkId) return;
+        const dependsOn = Array.isArray(payload.dependsOn) ? payload.dependsOn : [];
+        let updated = false;
+        for (const group of phase.groups ?? []) {
+          const check = (group.checks ?? []).find((entry) => entry.id === checkId);
+          if (check) {
+            check.dependsOn = dependsOn;
+            updated = true;
+            break;
+          }
+        }
+        if (!updated) return;
+        const input = formElement.querySelector(
+          `[name*='checks.${checkId}.dependsOn']`
+        );
+        if (input) {
+          input.value = dependsOn.join(", ");
+          renderCheckDeps(input);
+        }
+        return;
+      }
+
+      const lineId = payload.lineId;
+      const lineType = payload.lineType;
+      if (!lineId || !lineType) return;
+      const listKey = lineType === "success" ? "successLines" : "failureLines";
+      const line = (phase[listKey] ?? []).find((entry) => entry.id === lineId);
+      if (!line) return;
+      line.dependsOnChecks = Array.isArray(payload.dependsOnChecks)
+        ? payload.dependsOnChecks
+        : [];
+      line.dependsOnGroups = Array.isArray(payload.dependsOnGroups)
+        ? payload.dependsOnGroups
+        : [];
+
+      const checkInput = formElement.querySelector(
+        `[name='phases.${phaseId}.${listKey}.${lineId}.dependsOnChecks']`
+      );
+      const groupInput = formElement.querySelector(
+        `[name='phases.${phaseId}.${listKey}.${lineId}.dependsOnGroups']`
+      );
+      if (checkInput) {
+        checkInput.value = line.dependsOnChecks.join(", ");
+      }
+      if (groupInput) {
+        groupInput.value = line.dependsOnGroups.join(", ");
+      }
+      renderLineDeps(checkInput, groupInput);
+    };
+
+    html.find("[data-drep-action='view-flow']").on("click", (event) => {
+      event.preventDefault();
+      syncFormState();
+      const phaseId = event.currentTarget?.dataset?.phaseId;
+      const phase = this._phaseConfig.find((entry) => entry.id === phaseId);
+      if (!phase) return;
+      const app = new DowntimeRepPhaseFlow({
+        trackerId: this._trackerId,
+        phaseId,
+        phase,
+        onUpdate: applyFlowUpdate,
+      });
+      app.render(true);
+    });
+
+
     html.find("[data-drep-action='add-phase']").on("click", (event) => {
       event.preventDefault();
       syncFormState();
@@ -807,6 +943,19 @@ class DowntimeRepPhaseConfig extends HandlebarsApplicationMixin(ApplicationV2) {
       const input = $(event.currentTarget);
       input.val(uuid);
     });
+
+    html.find("[data-drep-drop='macro']").on("dragover", (event) => {
+      event.preventDefault();
+    });
+    html.find("[data-drep-drop='macro']").on("drop", (event) => {
+      event.preventDefault();
+      const data = TextEditor.getDragEventData(event.originalEvent ?? event);
+      const uuid =
+        data?.uuid ?? (data?.type === "Macro" ? `Macro.${data.id}` : "");
+      if (!uuid) return;
+      const input = $(event.currentTarget);
+      input.val(uuid);
+    });
   }
 
   static async _onSubmit(event, form, formData) {
@@ -820,6 +969,355 @@ class DowntimeRepPhaseConfig extends HandlebarsApplicationMixin(ApplicationV2) {
     rerenderSettingsApps();
     ui.notifications.info("Indy Downtime Tracker: phase configuration saved.");
   }
+}
+
+
+class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
+  constructor(options = {}) {
+    if (options.phaseId && !options.id) {
+      options.id = `indy-downtime-phase-flow-${options.phaseId}`;
+    }
+    super(options);
+    this._trackerId = options.trackerId ?? getCurrentTrackerId();
+    this._phaseId = options.phaseId ?? null;
+    this._phase = options.phase ?? null;
+    this._onUpdate = typeof options.onUpdate === "function" ? options.onUpdate : null;
+  }
+
+  static DEFAULT_OPTIONS = {
+    id: "indy-downtime-phase-flow",
+    tag: "div",
+    classes: ["indy-downtime", "drep-settings", "drep-flow-app"],
+    window: {
+      title: "Phase Flow",
+      resizable: true,
+    },
+    position: {
+      width: 900,
+      height: 600,
+    },
+  };
+
+  static PARTS = {
+    form: {
+      template: "modules/indy-downtime/templates/indy-downtime-phase-flow.hbs",
+    },
+  };
+
+  async _prepareContext(options) {
+    const context = await super._prepareContext(options);
+    const phaseConfig = getPhaseConfig(this._trackerId);
+    const phase = this._phase ?? phaseConfig.find((entry) => entry.id === this._phaseId) ?? phaseConfig[0];
+    const skillAliases = getSkillAliases();
+    const phaseNumber = phase ? getPhaseNumber(phase.id, this._trackerId) : 1;
+    const phaseName = phase?.name ?? "Phase";
+
+    const checkLabels = {};
+    const successByCheck = {};
+    const failureByCheck = {};
+    const successByGroup = {};
+    const failureByGroup = {};
+    const unassignedSuccess = [];
+    const unassignedFailure = [];
+
+    for (const line of phase?.successLines ?? []) {
+      if (!line?.text) continue;
+      const hasChecks = Array.isArray(line.dependsOnChecks) && line.dependsOnChecks.length;
+      const hasGroups = Array.isArray(line.dependsOnGroups) && line.dependsOnGroups.length;
+      if (hasChecks) {
+        for (const checkId of line.dependsOnChecks) {
+          successByCheck[checkId] = successByCheck[checkId] ?? [];
+          successByCheck[checkId].push({ id: line.id, text: line.text });
+        }
+      } else if (hasGroups) {
+        for (const groupId of line.dependsOnGroups) {
+          successByGroup[groupId] = successByGroup[groupId] ?? [];
+          successByGroup[groupId].push({ id: line.id, text: line.text });
+        }
+      } else {
+        unassignedSuccess.push({ id: line.id, text: line.text });
+      }
+    }
+
+    for (const line of phase?.failureLines ?? []) {
+      if (!line?.text) continue;
+      const hasChecks = Array.isArray(line.dependsOnChecks) && line.dependsOnChecks.length;
+      const hasGroups = Array.isArray(line.dependsOnGroups) && line.dependsOnGroups.length;
+      if (hasChecks) {
+        for (const checkId of line.dependsOnChecks) {
+          failureByCheck[checkId] = failureByCheck[checkId] ?? [];
+          failureByCheck[checkId].push({ id: line.id, text: line.text });
+        }
+      } else if (hasGroups) {
+        for (const groupId of line.dependsOnGroups) {
+          failureByGroup[groupId] = failureByGroup[groupId] ?? [];
+          failureByGroup[groupId].push({ id: line.id, text: line.text });
+        }
+      } else {
+        unassignedFailure.push({ id: line.id, text: line.text });
+      }
+    }
+
+    const groups = getPhaseGroups(phase).map((group) => {
+      const checks = (group.checks ?? []).map((check) => {
+        const skillKey = check.skill ? resolveSkillKey(check.skill, skillAliases) : "";
+        const skillLabel = skillKey ? getSkillLabel(skillKey) : (check.skill ?? "");
+        const name = check.name || skillLabel || "Check";
+        checkLabels[check.id] = name;
+        return {
+          id: check.id,
+          name,
+          skillLabel,
+          dc: Number(check.dc ?? 0),
+          dependsOn: check.dependsOn ?? [],
+          successLines: successByCheck[check.id] ?? [],
+          failureLines: failureByCheck[check.id] ?? [],
+        };
+      });
+      return {
+        id: group.id,
+        name: group.name || "Group",
+        checks,
+        successLines: successByGroup[group.id] ?? [],
+        failureLines: failureByGroup[group.id] ?? [],
+      };
+    });
+
+    for (const group of groups) {
+      for (const check of group.checks) {
+        check.dependsOnEntries = (check.dependsOn ?? []).map((id) => ({ id, label: checkLabels[id] || id }));
+      }
+    }
+
+    return {
+      ...context,
+      phaseNumber,
+      phaseName,
+      groups,
+      unassignedSuccess,
+      unassignedFailure,
+    };
+  }
+
+  _onRender(context, options) {
+    super._onRender(context, options);
+    const html = $(this.element);
+    html.find(".drep-flow-line-chip").attr("draggable", true);
+    html.find(".drep-flow-check").attr("draggable", true);
+
+    const promptLineAssignment = (targetLabel) => new Promise((resolve) => {
+      const content = `<p>Copy or move this line to <strong>${targetLabel}</strong>?</p>`;
+      new Dialog({
+        title: "Assign Line",
+        content,
+        buttons: {
+          copy: {
+            label: "Copy",
+            callback: () => resolve("copy"),
+          },
+          move: {
+            label: "Move",
+            callback: () => resolve("move"),
+          },
+          cancel: {
+            label: "Cancel",
+            callback: () => resolve(null),
+          },
+        },
+        default: "move",
+        close: () => resolve(null),
+      }).render(true);
+    });
+
+    html.on("click", ".drep-flow-line-remove", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const lineId = event.currentTarget?.parentElement?.dataset?.drepLineId;
+      const lineType = event.currentTarget?.parentElement?.dataset?.drepLineType;
+      if (!lineId || !lineType) return;
+
+      const phaseConfig = getPhaseConfig(this._trackerId);
+      const phase = this._phase ?? phaseConfig.find((entry) => entry.id === this._phaseId) ?? phaseConfig[0];
+      if (!phase) return;
+      const listKey = lineType === "success" ? "successLines" : "failureLines";
+      const line = (phase[listKey] ?? []).find((entry) => entry.id === lineId);
+      if (!line) return;
+      line.dependsOnChecks = [];
+      line.dependsOnGroups = [];
+      if (this._onUpdate) {
+        this._onUpdate({
+          kind: "line",
+          phaseId: phase.id,
+          lineId,
+          lineType,
+          dependsOnChecks: [],
+          dependsOnGroups: [],
+        });
+      }
+      this._phase = phase;
+      this.render(true);
+    });
+
+    html.on("dragstart", ".drep-flow-line-chip", (event) => {
+      event.stopPropagation();
+      const lineId = event.currentTarget?.dataset?.drepLineId;
+      const lineType = event.currentTarget?.dataset?.drepLineType;
+      if (!lineId || !lineType) return;
+      const payload = JSON.stringify({ type: "line", lineId, lineType });
+      if (event.originalEvent?.dataTransfer) {
+        event.originalEvent.dataTransfer.setData("text/plain", payload);
+        event.originalEvent.dataTransfer.effectAllowed = "move";
+      }
+    });
+
+    html.on("dragstart", ".drep-flow-check", (event) => {
+      if (event.target?.closest(".drep-flow-line-chip")) return;
+      const checkId = event.currentTarget?.dataset?.drepCheckId;
+      if (!checkId) return;
+      const payload = JSON.stringify({ type: "check", checkId });
+      if (event.originalEvent?.dataTransfer) {
+        event.originalEvent.dataTransfer.setData("text/plain", payload);
+        event.originalEvent.dataTransfer.effectAllowed = "move";
+      }
+    });
+
+    html.on("click", ".drep-flow-dep-remove", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const chip = event.currentTarget?.closest(".drep-flow-dep");
+      const depId = chip?.dataset?.depId;
+      const targetCheckId = chip?.dataset?.targetCheckId;
+      if (!depId || !targetCheckId) return;
+
+      const phaseConfig = getPhaseConfig(this._trackerId);
+      const phase = this._phase ?? phaseConfig.find((entry) => entry.id === this._phaseId) ?? phaseConfig[0];
+      if (!phase) return;
+      let targetCheck = null;
+      for (const group of phase.groups ?? []) {
+        targetCheck = (group.checks ?? []).find((entry) => entry.id === targetCheckId) ?? null;
+        if (targetCheck) break;
+      }
+      if (!targetCheck) return;
+      const current = Array.isArray(targetCheck.dependsOn) ? targetCheck.dependsOn : [];
+      const nextDepends = current.filter((id) => id !== depId);
+      if (nextDepends.length === current.length) return;
+      targetCheck.dependsOn = nextDepends;
+      if (this._onUpdate) {
+        this._onUpdate({
+          kind: "check",
+          phaseId: phase.id,
+          checkId: targetCheckId,
+          dependsOn: nextDepends,
+        });
+      }
+      this._phase = phase;
+      this.render(true);
+    });
+
+    html.on("dragover", ".drep-flow-check", (event) => {
+      event.preventDefault();
+      event.currentTarget?.classList?.add("is-drop-target");
+      if (event.originalEvent?.dataTransfer) {
+        event.originalEvent.dataTransfer.dropEffect = "move";
+      }
+    });
+
+    html.on("dragleave", ".drep-flow-check", (event) => {
+      event.currentTarget?.classList?.remove("is-drop-target");
+    });
+
+    html.on("drop", ".drep-flow-check", async (event) => {
+      event.preventDefault();
+      event.currentTarget?.classList?.remove("is-drop-target");
+      const targetCheckId = event.currentTarget?.dataset?.drepCheckId;
+      if (!targetCheckId) return;
+      const raw = event.originalEvent?.dataTransfer?.getData("text/plain") ?? "";
+      if (!raw) return;
+      let payload = null;
+      try {
+        payload = JSON.parse(raw);
+      } catch (error) {
+        return;
+      }
+      const payloadType = payload?.type;
+
+      const phaseConfig = getPhaseConfig(this._trackerId);
+      const phase = this._phase ?? phaseConfig.find((entry) => entry.id === this._phaseId) ?? phaseConfig[0];
+      if (!phase) return;
+
+      if (payloadType === "check") {
+        const sourceCheckId = payload?.checkId;
+        if (!sourceCheckId || sourceCheckId === targetCheckId) return;
+        let targetCheck = null;
+        for (const group of phase.groups ?? []) {
+          targetCheck = (group.checks ?? []).find((entry) => entry.id === targetCheckId) ?? null;
+          if (targetCheck) break;
+        }
+        if (!targetCheck) return;
+        const current = Array.isArray(targetCheck.dependsOn) ? targetCheck.dependsOn : [];
+        if (current.includes(sourceCheckId)) return;
+        const nextDepends = [...current, sourceCheckId];
+        targetCheck.dependsOn = nextDepends;
+        if (this._onUpdate) {
+          this._onUpdate({
+            kind: "check",
+            phaseId: phase.id,
+            checkId: targetCheckId,
+            dependsOn: nextDepends,
+          });
+        }
+        this._phase = phase;
+        this.render(true);
+        return;
+      }
+
+      if (payloadType !== "line") return;
+      const lineId = payload?.lineId;
+      const lineType = payload?.lineType;
+      if (!lineId || (lineType !== "success" && lineType !== "failure")) return;
+      const listKey = lineType === "success" ? "successLines" : "failureLines";
+      const line = (phase[listKey] ?? []).find((entry) => entry.id === lineId);
+      if (!line) return;
+      const hasChecks = Array.isArray(line.dependsOnChecks) && line.dependsOnChecks.length;
+      const hasGroups = Array.isArray(line.dependsOnGroups) && line.dependsOnGroups.length;
+      const isOnlyTarget = hasChecks
+        && line.dependsOnChecks.length === 1
+        && line.dependsOnChecks[0] === targetCheckId
+        && !hasGroups;
+      if (isOnlyTarget) return;
+
+      let mode = "move";
+      if (hasChecks || hasGroups) {
+        const targetLabel = event.currentTarget?.querySelector(".drep-flow-check-name")?.textContent?.trim() || "this check";
+        mode = await promptLineAssignment(targetLabel);
+        if (!mode) return;
+      }
+
+      let nextChecks = [];
+      if (mode === "copy") {
+        const existing = Array.isArray(line.dependsOnChecks) ? line.dependsOnChecks : [];
+        nextChecks = Array.from(new Set([...existing, targetCheckId]));
+      } else {
+        nextChecks = [targetCheckId];
+      }
+      const nextGroups = [];
+      line.dependsOnChecks = nextChecks;
+      line.dependsOnGroups = nextGroups;
+      if (this._onUpdate) {
+        this._onUpdate({
+          kind: "line",
+          phaseId: phase.id,
+          lineId,
+          lineType,
+          dependsOnChecks: nextChecks,
+          dependsOnGroups: nextGroups,
+        });
+      }
+      this._phase = phase;
+      this.render(true);
+    });
+  }
+
 }
 
 class DowntimeRepProgressState extends HandlebarsApplicationMixin(ApplicationV2) {
