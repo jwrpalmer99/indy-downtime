@@ -463,10 +463,24 @@ class DowntimeRepPhaseConfig extends HandlebarsApplicationMixin(ApplicationV2) {
 
     const getScrollContainer = () => {
       const root = this.element ? $(this.element) : html;
-      const container = root.find(".window-content").first();
-      if (container.length) return container;
-      const fallback = root.closest(".window-content");
-      return fallback.length ? fallback : html;
+      const dialog = root.find(".drep-settings.drep-dialog").first();
+      if (dialog.length) return dialog;
+
+      const rootEl = root[0];
+      let current = rootEl instanceof HTMLElement ? rootEl : null;
+      while (current) {
+        const style = getComputedStyle(current);
+        const scrollable = /(auto|scroll)/.test(style.overflowY || "");
+        if (scrollable && current.scrollHeight > current.clientHeight) {
+          return $(current);
+        }
+        current = current.parentElement;
+      }
+
+      const windowContent = root.closest(".window-content");
+      if (windowContent.length) return windowContent;
+      const fallback = root.find(".window-content").first();
+      return fallback.length ? fallback : root;
     };
 
     const captureScrollPosition = () => {
@@ -904,6 +918,8 @@ class DowntimeRepPhaseConfig extends HandlebarsApplicationMixin(ApplicationV2) {
       const input = $(event.currentTarget);
       input.val(uuid);
     });
+
+    restoreScrollPosition();
   }
 
   static async _onSubmit(event, form, formData) {
