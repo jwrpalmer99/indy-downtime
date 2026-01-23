@@ -1,6 +1,12 @@
 import { parseList } from "./parse.js";
 import { normalizeCheckDependencies, normalizePhaseConfig } from "./phase.js";
 
+function mergeDependencyDetails(depIds, existingDeps) {
+  const normalized = normalizeCheckDependencies(existingDeps ?? []);
+  const existingMap = new Map(normalized.map((dep) => [dep.id, dep]));
+  return depIds.map((id) => existingMap.get(id) ?? { id });
+}
+
 function initDependencyDragDrop(html, logger = () => {}) {
   const getCheckLabel = (checkId) => {
     const input = html.find(`input[name*="checks.${checkId}.name"]`).first();
@@ -329,9 +335,12 @@ function applyPhaseConfigFormData(phaseConfig, formData) {
           typeof checkData?.description === "string" ? checkData.description.trim() : "";
         const existingGroup = (phase.groups ?? []).find((entry) => entry.id === groupId);
         const existingCheck = (existingGroup?.checks ?? []).find((entry) => entry.id === checkId);
-        const dependsOn = Object.prototype.hasOwnProperty.call(checkData ?? {}, "dependsOn")
-          ? normalizeCheckDependencies(checkData?.dependsOn ?? "")
-          : normalizeCheckDependencies(existingCheck?.dependsOn ?? []);
+        const hasDependsOn = Object.prototype.hasOwnProperty.call(checkData ?? {}, "dependsOn");
+        let dependsOn = normalizeCheckDependencies(existingCheck?.dependsOn ?? []);
+        if (hasDependsOn) {
+          const depIds = parseList(checkData?.dependsOn ?? "");
+          dependsOn = mergeDependencyDetails(depIds, existingCheck?.dependsOn ?? []);
+        }
         checks.push({
           id: checkId,
           name,

@@ -171,38 +171,39 @@ async function rollSkill(actor, skillKey, advantage, disadvantage) {
 
     }
 
-    const config = { skill: skillKey };
+    // Detect Midi-QOL (works in v13)
+    const hasMidi = !!game.modules.get("midi-qol")?.active;
 
-    if (advantage) {
+    // Base config works for both
+    const rollConfig = { skill: skillKey };
 
-      config.advantage = true;
-
+    // Put adv/dis in the right place depending on Midi-QOL
+    if (hasMidi) {
+      rollConfig.midiOptions = {
+        advantage: !!advantage,
+        disadvantage: !!disadvantage
+      };
+    } else {
+      // dnd5e native path
+      if (advantage && !disadvantage) rollConfig.advantage = true;
+      if (disadvantage && !advantage) rollConfig.disadvantage = true;
     }
 
-    if (disadvantage) {
+    // Fast-forward + modifier-keys (safe for both; mostly matters for Midi)
+    const event =
+      advantage && !disadvantage ? { altKey: true } :
+      disadvantage && !advantage ? { ctrlKey: true } :
+      {};
 
-      config.disadvantage = true;
-
-    }
-
-    const rolls = await actor.rollSkill(
-
-      config,
-
-      { fastForward: true },
-
-      {}
-
-    );
+    const rolls = await actor.rollSkill(rollConfig, {
+      fastForward: true,
+      event
+    });
 
     if (Array.isArray(rolls)) {
-
       return rolls[0] ?? null;
-
     }
-
     return rolls ?? null;
-
   } catch (error) {
 
     console.error(error);
@@ -415,6 +416,12 @@ async function runIntervalRoll({ actor, checkChoice, trackerId }) {
   }
 
   if (!selectedCheck) return;
+  debugLog("Rolling check", {
+    trackerId: resolvedTrackerId,
+    checkId: selectedCheck.id,
+    checkName: getPhaseCheckLabel(selectedCheck),
+    checkProgress: { ...activePhase.checkProgress },
+  });
   const checkLabel = getPhaseCheckLabel(selectedCheck);
   const rollData = getCheckRollData(
     activePhase,
@@ -553,6 +560,12 @@ async function runIntervalRoll({ actor, checkChoice, trackerId }) {
     failureEventResult = await rollFailureEventTable(activePhase, actor);
 
   }
+
+  debugLog("Updated progress", {
+    trackerId: resolvedTrackerId,
+    checkId: selectedCheck.id,
+    checkProgress: { ...activePhase.checkProgress },
+  });
 
   state.phases[activePhase.id] = {
 

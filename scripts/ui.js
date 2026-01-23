@@ -422,6 +422,19 @@ function buildTrackerData({
 
   }));
 
+  debugLog("Check choices", {
+    trackerId: resolvedTrackerId,
+    checkProgress: { ...activePhase.checkProgress },
+    choices: checkChoices.map((choice) => ({
+      id: choice.key,
+      label: choice.label,
+      complete: choice.complete,
+      locked: choice.locked,
+      dependsOn: choice.dependsOn,
+    })),
+  });
+
+
 
 
   const dropdownChoices = checkChoices

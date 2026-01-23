@@ -16,7 +16,7 @@
 
   <section class="drep-status-row">
     <div class="drep-status-grid">
-      <div class="drep-progress-block style="--progress: {{progressPercent}}">
+      <div class="drep-progress-block" style="--progress: {{progressPercent}}">
         <label>Phase Progress</label>
         <div class="drep-value">{{activePhase.progress}} / {{activePhase.target}}</div>
         <div class="drep-progress-bar main">
@@ -24,7 +24,7 @@
         </div>
       </div>
       {{#each checkGroups}}
-        <div class="drep-progress-block style="--progress: {{this.progressPercent}}">
+        <div class="drep-progress-block" style="--progress: {{this.progressPercent}}">
           <label>{{this.name}}</label>
           <div class="drep-value">{{this.value}} / {{this.target}}</div>
           <div class="drep-progress-bar">

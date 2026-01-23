@@ -161,8 +161,8 @@
   margin-top: 8px;
 }
 
-.drep-progress-bar main {
-  margin-bottom: 20px;
+.drep-progress-bar.main {
+  margin-bottom: 30px;
 }
 
 .drep-progress-fill {
@@ -535,7 +535,7 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
-  background-color: hsl(calc(var(--progress) * 1.2), 70%, 40%);
+  background-color: hsl(calc(var(--progress) * 0.3333), 70%, 40%);
 }
 
 .drep-check-group {

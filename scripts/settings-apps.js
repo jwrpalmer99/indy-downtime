@@ -451,7 +451,10 @@ class DowntimeRepPhaseConfig extends HandlebarsApplicationMixin(ApplicationV2) {
         }
         const data = foundry.utils.expandObject(raw);
         const order = parseList(data.phaseOrder);
-        const base = order.length ? order.map((id) => ({ id })) : this._phaseConfig;
+        const existingConfig = this._phaseConfig;
+        const base = order.length
+          ? order.map((id) => existingConfig.find((phase) => phase.id === id) ?? { id })
+          : existingConfig;
         this._phaseConfig = applyPhaseConfigFormData(base, data);
       } catch (error) {
         debugLog("Phase config sync failed", { error: error?.message });
@@ -501,6 +504,10 @@ class DowntimeRepPhaseConfig extends HandlebarsApplicationMixin(ApplicationV2) {
     });
 
     const applyFlowUpdate = (payload) => {
+      const persistFlowUpdate = () => {
+        setTrackerPhaseConfig(this._trackerId, normalizePhaseConfig(this._phaseConfig));
+      };
+
       if (!payload) return;
       const phaseId = payload.phaseId;
       if (!phaseId) return;
@@ -585,6 +592,7 @@ class DowntimeRepPhaseConfig extends HandlebarsApplicationMixin(ApplicationV2) {
           input.value = dependsOnIds.join(", ");
           renderCheckDeps(input);
         }
+        persistFlowUpdate();
         return;
       }
 
@@ -614,6 +622,7 @@ class DowntimeRepPhaseConfig extends HandlebarsApplicationMixin(ApplicationV2) {
         groupInput.value = line.dependsOnGroups.join(", ");
       }
       renderLineDeps(checkInput, groupInput);
+      persistFlowUpdate();
     };
 
     html.find("[data-drep-action='view-flow']").on("click", (event) => {
@@ -842,7 +851,10 @@ class DowntimeRepPhaseConfig extends HandlebarsApplicationMixin(ApplicationV2) {
     const data = foundry.utils.expandObject(formData.object ?? {});
     const trackerId = data.trackerId ?? getCurrentTrackerId();
     const order = parseList(data.phaseOrder);
-    const phaseConfig = order.length ? order.map((id) => ({ id })) : getPhaseConfig(trackerId);
+    const existingConfig = getPhaseConfig(trackerId);
+    const phaseConfig = order.length
+      ? order.map((id) => existingConfig.find((phase) => phase.id === id) ?? { id })
+      : existingConfig;
     const updated = applyPhaseConfigFormData(phaseConfig, data);
     setTrackerPhaseConfig(trackerId, updated);
     rerenderCharacterSheets();
@@ -923,7 +935,7 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
       if (type === "block") return base;
       if (type === "harder") {
         const penalty = Number.isFinite(dep?.dcPenalty) && dep.dcPenalty > 0 ? dep.dcPenalty : 1;
-        return `${base} (Harder +${penalty})`;
+        return `${base} (DC +${penalty})`;
       }
       if (type === "advantage") return `${base} (Advantage)`;
       if (type === "disadvantage") return `${base} (Disadvantage)`;
