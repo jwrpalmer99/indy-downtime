@@ -461,6 +461,32 @@ class DowntimeRepPhaseConfig extends HandlebarsApplicationMixin(ApplicationV2) {
       }
     };
 
+    const getScrollContainer = () => {
+      const root = this.element ? $(this.element) : html;
+      const container = root.find(".window-content").first();
+      if (container.length) return container;
+      const fallback = root.closest(".window-content");
+      return fallback.length ? fallback : html;
+    };
+
+    const captureScrollPosition = () => {
+      const container = getScrollContainer();
+      this._scrollTop = container.scrollTop();
+    };
+
+    const restoreScrollPosition = () => {
+      const container = getScrollContainer();
+      if (!Number.isFinite(this._scrollTop)) return;
+      const applyScroll = () => {
+        container.scrollTop(this._scrollTop);
+      };
+      if (typeof requestAnimationFrame === "function") {
+        requestAnimationFrame(() => requestAnimationFrame(applyScroll));
+      } else {
+        setTimeout(applyScroll, 0);
+      }
+    };
+
     const captureCollapseState = () => {
       const state = {};
       html.find("details[data-collapse-id]").each((_, element) => {
@@ -469,6 +495,13 @@ class DowntimeRepPhaseConfig extends HandlebarsApplicationMixin(ApplicationV2) {
         state[id] = Boolean(element.open);
       });
       this._collapseState = { ...(this._collapseState ?? {}), ...state };
+    };
+
+    const forceCollapseOpen = (...ids) => {
+      this._collapseState = this._collapseState ?? {};
+      ids.filter(Boolean).forEach((id) => {
+        this._collapseState[id] = true;
+      });
     };
 
     html.find("details[data-collapse-id]").each((_, element) => {
@@ -485,6 +518,7 @@ class DowntimeRepPhaseConfig extends HandlebarsApplicationMixin(ApplicationV2) {
       this._collapseState = this._collapseState ?? {};
       this._collapseState[id] = event.currentTarget.open;
     });
+
 
 
     const initialTab = this._activeTab ?? this._phaseConfig[0]?.id ?? "phase1";
@@ -655,7 +689,9 @@ class DowntimeRepPhaseConfig extends HandlebarsApplicationMixin(ApplicationV2) {
       nextPhase.id = id;
       this._phaseConfig = normalizePhaseConfig([...this._phaseConfig, nextPhase]);
       this._activeTab = id;
+      captureScrollPosition();
       captureCollapseState();
+      forceCollapseOpen(`phase-${id}-groups`);
       this.render(true);
     });
 
@@ -672,6 +708,7 @@ class DowntimeRepPhaseConfig extends HandlebarsApplicationMixin(ApplicationV2) {
       );
       this._phaseConfig = normalizePhaseConfig(nextConfig);
       this._activeTab = this._phaseConfig[0]?.id ?? "phase1";
+      captureScrollPosition();
       captureCollapseState();
       this.render(true);
     });
@@ -689,7 +726,9 @@ class DowntimeRepPhaseConfig extends HandlebarsApplicationMixin(ApplicationV2) {
         checks: [],
       });
       this._activeTab = phaseId;
+      captureScrollPosition();
       captureCollapseState();
+      forceCollapseOpen(`phase-${phaseId}-groups`);
       this.render(true);
     });
 
@@ -702,7 +741,9 @@ class DowntimeRepPhaseConfig extends HandlebarsApplicationMixin(ApplicationV2) {
       if (!phase || !groupId) return;
       phase.groups = (phase.groups ?? []).filter((group) => group.id !== groupId);
       this._activeTab = phaseId;
+      captureScrollPosition();
       captureCollapseState();
+      forceCollapseOpen(`phase-${phaseId}-groups`);
       this.render(true);
     });
 
@@ -728,7 +769,13 @@ class DowntimeRepPhaseConfig extends HandlebarsApplicationMixin(ApplicationV2) {
         dependsOn: [],
       });
       this._activeTab = phaseId;
+      captureScrollPosition();
       captureCollapseState();
+      forceCollapseOpen(
+        `phase-${phaseId}-groups`,
+        `phase-${phaseId}-group-${groupId}`,
+        `phase-${phaseId}-group-${groupId}-checks`
+      );
       this.render(true);
     });
 
@@ -744,7 +791,13 @@ class DowntimeRepPhaseConfig extends HandlebarsApplicationMixin(ApplicationV2) {
       if (!group) return;
       group.checks = (group.checks ?? []).filter((check) => check.id !== checkId);
       this._activeTab = phaseId;
+      captureScrollPosition();
       captureCollapseState();
+      forceCollapseOpen(
+        `phase-${phaseId}-groups`,
+        `phase-${phaseId}-group-${groupId}`,
+        `phase-${phaseId}-group-${groupId}-checks`
+      );
       this.render(true);
     });
 
@@ -762,7 +815,9 @@ class DowntimeRepPhaseConfig extends HandlebarsApplicationMixin(ApplicationV2) {
         dependsOnGroups: [],
       });
       this._activeTab = phaseId;
+      captureScrollPosition();
       captureCollapseState();
+      forceCollapseOpen(`phase-${phaseId}-success`);
       this.render(true);
     });
 
@@ -780,7 +835,9 @@ class DowntimeRepPhaseConfig extends HandlebarsApplicationMixin(ApplicationV2) {
         dependsOnGroups: [],
       });
       this._activeTab = phaseId;
+      captureScrollPosition();
       captureCollapseState();
+      forceCollapseOpen(`phase-${phaseId}-failure`);
       this.render(true);
     });
 
@@ -798,7 +855,9 @@ class DowntimeRepPhaseConfig extends HandlebarsApplicationMixin(ApplicationV2) {
         phase.failureLines = (phase.failureLines ?? []).filter((line) => line.id !== lineId);
       }
       this._activeTab = phaseId;
+      captureScrollPosition();
       captureCollapseState();
+      forceCollapseOpen(`phase-${phaseId}-${lineType}`);
       this.render(true);
     });
 
