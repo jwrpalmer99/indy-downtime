@@ -4,6 +4,7 @@ Foundry VTT v13 module for DnD5e 5.2.4 that tracks downtime projects.
 
 ### Features
 - Phase-based tracking with sequential unlocks and auto-advance on completion.
+- Trackers can be resricted to certain actors - those actors share progress/checks.
 - Multiple trackers, each with its own tab, phases, and progress state.
 - Configurable skills, DCs, targets, narratives, and per-phase penalties.
 - Per-phase settings for critical bonus, failure events, event roll tables, and images.

@@ -23,6 +23,8 @@ We will create the following structure:
 
 > some of these skill checks will depend on previous ones being carried out (for example you can't [Prepare ingredients] until you have completed [Gather ingredients]) and some can be done independtly (You can [Set the table] before or after you [Convince everyone to come])
 
+> the instructions mention skills from D&D5e, if you are using another system pick appropriate replacements
+
 ## **Let's get started!**
 
 ### Create a New Tracker

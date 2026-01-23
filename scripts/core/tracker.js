@@ -180,11 +180,15 @@ async function removeCurrentTracker() {
 
 
 function buildDefaultTrackerFromLegacy() {
+  const legacyPhaseConfig = getLegacySetting("phaseConfig");
   const phaseConfig = normalizePhaseConfig(
-    game.settings.get(MODULE_ID, "phaseConfig") ?? DEFAULT_PHASE_CONFIG
+    Array.isArray(legacyPhaseConfig) && legacyPhaseConfig.length
+      ? legacyPhaseConfig
+      : DEFAULT_PHASE_CONFIG
   );
+  const legacyState = getLegacySetting("projectState");
   const state = normalizeProjectState(
-    game.settings.get(MODULE_ID, "projectState") ?? DEFAULT_STATE,
+    legacyState ?? DEFAULT_STATE,
     phaseConfig
   );
   return {
@@ -196,8 +200,9 @@ function buildDefaultTrackerFromLegacy() {
     tabIcon: DEFAULT_TAB_ICON,
     hideDcFromPlayers: false,
     showLockedChecksToPlayers: true,
-    restrictedActorUuids:
-      getLegacySetting(RESTRICTED_ACTORS_SETTING) ?? [],
+    restrictedActorUuids: parseRestrictedActorUuids(
+      getLegacySetting(RESTRICTED_ACTORS_SETTING)
+    ),
     phaseConfig,
     state,
   };
