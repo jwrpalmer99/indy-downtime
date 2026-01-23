@@ -17,12 +17,11 @@ Foundry VTT v13 module for DnD5e 5.2.4 that tracks downtime projects.
 1. Enable the module.
 2. Configure phases in `Game Settings` -> `Module Settings` -> `Indy Downtime Tracker Settings` (GM only).
 3. Use the Tracker selector to add/remove trackers and rename their tabs.
-4. Use the configuration buttons to edit phase config, skill aliases, and progress state.
+4. Use the configuration buttons to edit phase config and progress state.
 5. Use the export/import menus in module settings for backups or transfers.
 6. Open any character sheet and use the tracker tab(s) to roll checks and track progress.
 
 ### Settings Dialogs
-- Skill Aliases: map custom skill IDs to system skills.
 - Phase Configuration: edit phase rules, skills, DCs, narratives, penalties, roll tables, and images.
 - Progress State: adjust progress, completion, failures, and check count.
 

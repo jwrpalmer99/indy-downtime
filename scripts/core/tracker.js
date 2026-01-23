@@ -8,18 +8,26 @@ import {
   DEFAULT_TAB_LABEL,
   DEFAULT_TRACKER_NAME,
   MODULE_ID,
+  RESTRICTED_ACTORS_SETTING,
   TRACKERS_SETTING,
 } from "../constants.js";
 import { debugLog, parseRestrictedActorUuids, sanitizeLabel } from "./labels.js";
 import { buildEmptyPhase1, normalizePhaseConfig } from "./phase.js";
 import { normalizeProjectState } from "./state.js";
 
+
+function canWriteSettings() {
+  return Boolean(game?.ready);
+}
+
 function getTrackers() {
   let stored = game.settings.get(MODULE_ID, TRACKERS_SETTING);
   if (!Array.isArray(stored) || !stored.length) {
     const legacy = buildDefaultTrackerFromLegacy();
     stored = [legacy];
-    game.settings.set(MODULE_ID, TRACKERS_SETTING, stored);
+    if (canWriteSettings()) {
+      game.settings.set(MODULE_ID, TRACKERS_SETTING, stored);
+    }
   }
   return normalizeTrackers(stored);
 }
@@ -32,13 +40,16 @@ function getCurrentTrackerId() {
     return stored;
   }
   const first = trackers[0]?.id ?? "tracker-1";
-  game.settings.set(MODULE_ID, ACTIVE_TRACKER_SETTING, first);
+  if (canWriteSettings()) {
+    game.settings.set(MODULE_ID, ACTIVE_TRACKER_SETTING, first);
+  }
   return first;
 }
 
 
 function setCurrentTrackerId(trackerId) {
   if (!trackerId) return;
+  if (!canWriteSettings()) return;
   game.settings.set(MODULE_ID, ACTIVE_TRACKER_SETTING, trackerId);
 }
 

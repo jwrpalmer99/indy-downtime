@@ -143,11 +143,7 @@
                           <input type="text" name="phases.{{../../id}}.groups.{{../id}}.checks.{{this.id}}.description" value="{{this.description}}" />
                         </label>
                       </div>
-                      <div class="drep-deps" data-deps-type="check" data-check-id="{{this.id}}">
-                        <div class="drep-deps-label">Depends On</div>
-                        <input type="hidden" class="drep-deps-input-checks" name="phases.{{../../id}}.groups.{{../id}}.checks.{{this.id}}.dependsOn" value="{{this.dependsOnValue}}" />
-                        <div class="drep-deps-chips"></div>
-                      </div>
+                      <input type="hidden" class="drep-deps-input-checks" name="phases.{{../../id}}.groups.{{../id}}.checks.{{this.id}}.dependsOn" value="{{this.dependsOnValue}}" />
                     </div>
                   {{/each}}
                   {{#unless this.checks.length}}
@@ -170,16 +166,11 @@
               Add Line
             </button>
           </div>
-          <p class="notes">Drag checks or groups into Depends On to constrain a line.</p>
           {{#each this.successLines}}
             <div class="drep-line-card card-success">
               <textarea name="phases.{{../id}}.successLines.{{this.id}}.text" rows="2">{{this.text}}</textarea>
-              <div class="drep-deps" data-deps-type="mixed">
-                <div class="drep-deps-label">Depends On</div>
-                <input type="hidden" class="drep-deps-input-checks" name="phases.{{../id}}.successLines.{{this.id}}.dependsOnChecks" value="{{this.dependsOnChecksValue}}" />
-                <input type="hidden" class="drep-deps-input-groups" name="phases.{{../id}}.successLines.{{this.id}}.dependsOnGroups" value="{{this.dependsOnGroupsValue}}" />
-                <div class="drep-deps-chips"></div>
-              </div>
+              <input type="hidden" class="drep-deps-input-checks" name="phases.{{../id}}.successLines.{{this.id}}.dependsOnChecks" value="{{this.dependsOnChecksValue}}" />
+              <input type="hidden" class="drep-deps-input-groups" name="phases.{{../id}}.successLines.{{this.id}}.dependsOnGroups" value="{{this.dependsOnGroupsValue}}" />
               <div class="drep-line-actions">
                 <button type="button" class="dialog-button" data-drep-action="remove-line" data-phase-id="{{../id}}" data-line-type="success" data-line-id="{{this.id}}">
                   Remove
@@ -200,16 +191,11 @@
               Add Line
             </button>
           </div>
-          <p class="notes">Drag checks or groups into Depends On to constrain a line.</p>
           {{#each this.failureLines}}
             <div class="drep-line-card card-failure">
               <textarea name="phases.{{../id}}.failureLines.{{this.id}}.text" rows="2">{{this.text}}</textarea>
-              <div class="drep-deps" data-deps-type="mixed">
-                <div class="drep-deps-label">Depends On</div>
-                <input type="hidden" class="drep-deps-input-checks" name="phases.{{../id}}.failureLines.{{this.id}}.dependsOnChecks" value="{{this.dependsOnChecksValue}}" />
-                <input type="hidden" class="drep-deps-input-groups" name="phases.{{../id}}.failureLines.{{this.id}}.dependsOnGroups" value="{{this.dependsOnGroupsValue}}" />
-                <div class="drep-deps-chips"></div>
-              </div>
+              <input type="hidden" class="drep-deps-input-checks" name="phases.{{../id}}.failureLines.{{this.id}}.dependsOnChecks" value="{{this.dependsOnChecksValue}}" />
+              <input type="hidden" class="drep-deps-input-groups" name="phases.{{../id}}.failureLines.{{this.id}}.dependsOnGroups" value="{{this.dependsOnGroupsValue}}" />
               <div class="drep-line-actions">
                 <button type="button" class="dialog-button" data-drep-action="remove-line" data-phase-id="{{../id}}" data-line-type="failure" data-line-id="{{this.id}}">
                   Remove

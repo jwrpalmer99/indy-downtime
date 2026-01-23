@@ -156,6 +156,10 @@
   margin-top: 8px;
 }
 
+.drep-progress-bar main {
+  margin-bottom: 20px;
+}
+
 .drep-progress-fill {
   height: 100%;
   background: linear-gradient(90deg, #f39c12, #e67e22);
@@ -467,13 +471,6 @@
   justify-content: space-between;
 }
 
-.drep-alias-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr auto;
-  gap: 8px;
-  align-items: center;
-  margin-bottom: 8px;
-}
 
 .drep-settings .drep-json {
   width: 100%;
@@ -519,6 +516,7 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
+  background-color: hsl(calc(var(--progress) * 1.2), 70%, 40%);
 }
 
 .drep-check-group {
@@ -544,6 +542,14 @@
   padding: 6px 8px;
   border-radius: 6px;
   background: rgba(0, 0, 0, 0.04);
+}
+
+.drep-check-list > .drep-check-card:nth-child(odd) {
+  background-color: rgba(0, 85, 55, 0.20);
+}
+
+.drep-check-list > .drep-check-card:nth-child(even) {
+  background-color: rgba(4, 27, 81, 0.20);
 }
 
 .drep-app.embedded .drep-check-row {
@@ -915,6 +921,11 @@
   border-radius: 10px;
   padding: 10px;
   min-height: 120px;
+}
+
+.drep-flow-lane.is-drop-target {
+  border-color: rgba(255, 209, 102, 0.9);
+  box-shadow: 0 0 0 1px rgba(255, 209, 102, 0.6);
 }
 
 .drep-flow-lane-header {

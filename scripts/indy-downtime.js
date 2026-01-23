@@ -4,7 +4,6 @@ import {
   DEFAULT_HEADER_LABEL,
   DEFAULT_INTERVAL_LABEL,
   DEFAULT_PHASE_CONFIG,
-  DEFAULT_SKILL_ALIASES,
   DEFAULT_STATE,
   DEFAULT_TAB_ICON,
   DEFAULT_TAB_LABEL,
@@ -44,7 +43,38 @@ Hooks.once("init", () => {
   if (!Handlebars.helpers.eq) {
     Handlebars.registerHelper("eq", (left, right) => left === right);
   }
+  game.settings.registerMenu(MODULE_ID, "settings", {
+    name: "Indy Downtime Tracker",
+    label: "Configure Tracker",
+    icon: "fas fa-cog",
+    type: DowntimeRepSettings,
+    restricted: true,
+  });
 
+  game.settings.registerMenu(MODULE_ID, SETTINGS_EXPORT_MENU, {
+    name: "Export/Import Settings",
+    label: "Export/Import Settings",
+    icon: "fas fa-file-export",
+    type: DowntimeRepSettingsExport,
+    restricted: true,
+  });
+
+  game.settings.registerMenu(MODULE_ID, STATE_EXPORT_MENU, {
+    name: "Export/Import State",
+    label: "Export/Import State",
+    icon: "fas fa-file-import",
+    type: DowntimeRepStateExport,
+    restricted: true,
+  });
+
+  game.settings.register(MODULE_ID, DEBUG_SETTING, {
+    name: "Debug Logging",
+    hint: "Enable additional console logging for Indy Downtime Tracker.",
+    scope: "client",
+    config: true,
+    type: Boolean,
+    default: false,
+  });
   game.settings.register(MODULE_ID, TRACKERS_SETTING, {
     scope: "world",
     config: false,
@@ -91,134 +121,9 @@ Hooks.once("init", () => {
       rerenderSettingsApps();
     },
   });
-
-  game.settings.register(MODULE_ID, "skillAliases", {
-    scope: "world",
-    config: false,
-    type: Object,
-    default: DEFAULT_SKILL_ALIASES,
-  });
-
-  game.settings.register(MODULE_ID, "phaseConfig", {
-    scope: "world",
-    config: false,
-    type: Object,
-    default: DEFAULT_PHASE_CONFIG,
-  });
-
-  game.settings.register(MODULE_ID, "headerLabel", {
-    scope: "world",
-    config: false,
-    type: String,
-    default: DEFAULT_HEADER_LABEL,
-  });
-
-  game.settings.register(MODULE_ID, "tabLabel", {
-    scope: "world",
-    config: false,
-    type: String,
-    default: DEFAULT_TAB_LABEL,
-  });
-
-  game.settings.register(MODULE_ID, "intervalLabel", {
-    scope: "world",
-    config: false,
-    type: String,
-    default: DEFAULT_INTERVAL_LABEL,
-  });
-
-  game.settings.register(MODULE_ID, RESTRICTED_ACTORS_SETTING, {
-    scope: "world",
-    config: false,
-    type: Object,
-    default: [],
-    onChange: () => {
-      rerenderCharacterSheets();
-    },
-  });
-
-  game.settings.register(MODULE_ID, "lastActorId", {
-    scope: "client",
-    config: false,
-    type: String,
-    default: "",
-  });
-
-  game.settings.register(MODULE_ID, "lastSkillChoice", {
-    scope: "client",
-    config: false,
-    type: String,
-    default: "",
-  });
-
-  game.settings.register(MODULE_ID, DEBUG_SETTING, {
-    name: "Indy Downtime Tracker: Debug Logging",
-    hint: "Enable verbose console logging for the downtime tracker.",
-    scope: "client",
-    config: true,
-    type: Boolean,
-    default: true,
-    restricted: true,
-  });
-
-  game.settings.registerMenu(MODULE_ID, "settings", {
-    name: "Indy Downtime Tracker Settings",
-    label: "Configure",
-    hint: "Configure downtime phases, window, and skill mapping.",
-    icon: "fas fa-fire",
-    type: DowntimeRepSettings,
-    restricted: true,
-  });
-
-  game.settings.registerMenu(MODULE_ID, SETTINGS_EXPORT_MENU, {
-    name: "Export/Import Settings",
-    label: "Export/Import Settings",
-    hint: "Export or import Indy Downtime Tracker settings as JSON.",
-    icon: "fas fa-file-export",
-    type: DowntimeRepSettingsExport,
-    restricted: true,
-  });
-
-  game.settings.registerMenu(MODULE_ID, STATE_EXPORT_MENU, {
-    name: "Export/Import State",
-    label: "Export/Import State",
-    hint: "Export or import Indy Downtime Tracker state as JSON.",
-    icon: "fas fa-file-export",
-    type: DowntimeRepStateExport,
-    restricted: true,
-  });
-
-  if (!registerSheetTab()) {
-    Hooks.once("ready", () => {
-      registerSheetTab();
-    });
-  }
-
-  registerTidyTab();
 });
 
-Hooks.on("dnd5e.prepareSheetContext", (sheet, partId, context) => {
-  if (!partId || !partId.startsWith(`${SHEET_TAB_ID}-`)) return;
-  const trackerId = partId.slice(`${SHEET_TAB_ID}-`.length);
-  if (!trackerId) return;
-  if (sheet.actor?.type !== "character") return;
-  if (!isActorAllowed(sheet.actor, trackerId)) return;
-  debugLog("Preparing sheet context", {
-    partId,
-    actorName: sheet.actor?.name,
-  });
-  Object.assign(
-    context,
-    buildTrackerData({
-      actor: sheet.actor,
-      showActorSelect: false,
-      embedded: true,
-      trackerId,
-    })
-  );
-});
-
-Hooks.on("renderCharacterActorSheet", (app, html) => {
+Hooks.on("renderCharacterActorSheet", async (app, html) => {
   debugLog("Render hook fired", {
     appClass: app?.constructor?.name,
     actorType: app?.actor?.type,
@@ -252,6 +157,29 @@ Hooks.on("renderCharacterActorSheet", (app, html) => {
       debugLog("Downtime tab content not found", { trackerId: tracker.id });
       continue;
     }
+
+    try {
+      const trackerData = buildTrackerData({
+        actor: app.actor,
+        showActorSelect: false,
+        embedded: true,
+        trackerId: tracker.id,
+      });
+      const rendered = await renderTemplate(
+        "modules/indy-downtime/templates/indy-downtime.hbs",
+        trackerData
+      );
+      root.html(rendered);
+    } catch (error) {
+      console.error(error);
+      debugLog("Failed to render downtime tab", { trackerId: tracker.id });
+    }
+
+    root = root.find("[data-drep-root]").first();
+    if (!root.length) {
+      debugLog("Downtime tab root not found", { trackerId: tracker.id });
+      continue;
+    }
     debugLog("Downtime tab ready", {
       rollButtons: root.find("[data-drep-action='roll-interval']").length,
       trackerId: tracker.id,
@@ -269,4 +197,12 @@ Hooks.once("ready", () => {
   if (game.socket) {
     game.socket.on(`module.${MODULE_ID}`, handleSocketMessage);
   }
+  registerSheetTab();
+  registerTidyTab();
+  updateTidyTabLabel();
+  rerenderCharacterSheets();
 });
+
+
+
+

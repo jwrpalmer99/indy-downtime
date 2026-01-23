@@ -1,4 +1,4 @@
-import { debugLog, getIntervalLabel, getSkillAliases, getSkillLabel, resolveSkillKey } from "./labels.js";
+import { debugLog, getIntervalLabel, getSkillLabel } from "./labels.js";
 import {
   getActivePhase,
   getPhaseCheckById,
@@ -11,6 +11,8 @@ import {
   initializePhaseState,
   isPhaseComplete,
   pickLineForCheck,
+  pickLineForGroup,
+  isGroupComplete,
 } from "./phase.js";
 import {
   getNextIncompletePhaseId,
@@ -19,7 +21,19 @@ import {
 } from "./state.js";
 import { getCurrentTrackerId } from "./tracker.js";
 
+function isAbilityKey(skillKey) {
+  return typeof skillKey === "string" && skillKey.startsWith("ability:");
+}
+
+function getAbilityKey(skillKey) {
+  if (typeof skillKey !== "string") return "";
+  return skillKey.split(":")[1] ?? "";
+}
+
 async function rollSkill(actor, skillKey, advantage) {
+  if (isAbilityKey(skillKey)) {
+    return rollAbility(actor, getAbilityKey(skillKey), advantage);
+  }
   if (!actor?.rollSkill) {
     ui.notifications.error("Indy Downtime Tracker: actor cannot roll skills.");
     return null;
@@ -63,8 +77,55 @@ async function rollSkillDirect(actor, skillKey, advantage) {
   return roll;
 }
 
+async function rollAbility(actor, abilityKey, advantage) {
+  if (!abilityKey) {
+    ui.notifications.error("Indy Downtime Tracker: ability key missing.");
+    return null;
+  }
+  try {
+    if (game.user?.isGM && actor?.hasPlayerOwner) {
+      return await rollAbilityDirect(actor, abilityKey, advantage);
+    }
+    const options = { fastForward: true };
+    if (advantage) {
+      options.advantage = true;
+    }
+    if (typeof actor?.rollAbilityTest === "function") {
+      return await actor.rollAbilityTest(abilityKey, options);
+    }
+    if (typeof actor?.rollAbilityCheck === "function") {
+      return await actor.rollAbilityCheck(abilityKey, options);
+    }
+    if (typeof actor?.rollAbility === "function") {
+      return await actor.rollAbility(abilityKey, options);
+    }
+    return await rollAbilityDirect(actor, abilityKey, advantage);
+  } catch (error) {
+    console.error(error);
+    if (game.user?.isGM && actor?.hasPlayerOwner) {
+      return rollAbilityDirect(actor, abilityKey, advantage);
+    }
+    ui.notifications.error("Indy Downtime Tracker: ability roll failed.");
+    return null;
+  }
+}
+
+async function rollAbilityDirect(actor, abilityKey, advantage) {
+  if (!actor) return null;
+  const abilityData = actor.system?.abilities?.[abilityKey] ?? {};
+  const mod = Number(abilityData?.mod ?? abilityData?.value ?? 0);
+  const formula = advantage ? "2d20kh + @mod" : "1d20 + @mod";
+  const roll = await new Roll(formula, { mod }).evaluate({ async: true });
+  const label = getSkillLabel("ability:" + abilityKey);
+  await roll.toMessage({
+    speaker: ChatMessage.getSpeaker({ actor }),
+    flavor: `${label} Check`,
+  });
+  return roll;
+}
+
+
 async function runIntervalRoll({ actor, checkChoice, trackerId }) {
-  const skillAliases = getSkillAliases();
   const resolvedTrackerId = trackerId ?? getCurrentTrackerId();
   const state = getWorldState(resolvedTrackerId);
   const activePhase = getActivePhase(state, resolvedTrackerId);
@@ -86,9 +147,9 @@ async function runIntervalRoll({ actor, checkChoice, trackerId }) {
   }
   if (!selectedCheck) return;
 
-  const skillKey = resolveSkillKey(selectedCheck.skill, skillAliases);
+  const skillKey = selectedCheck.skill;
   const skillLabel = skillKey ? getSkillLabel(skillKey) : selectedCheck.skill;
-  const checkLabel = getPhaseCheckLabel(selectedCheck, skillAliases);
+  const checkLabel = getPhaseCheckLabel(selectedCheck);
 
   const dc = getPhaseDc(activePhase, selectedCheck);
   const roll = await rollSkill(actor, skillKey, false);
@@ -103,6 +164,11 @@ async function runIntervalRoll({ actor, checkChoice, trackerId }) {
   let criticalBonusApplied = false;
   let successLine = "";
   let failureLine = "";
+  const beforeGroupComplete = isGroupComplete(
+    activePhase,
+    selectedCheck.groupId,
+    activePhase.checkProgress
+  );
 
   if (success) {
     const currentValue = Number(activePhase.checkProgress?.[selectedCheck.id] ?? 0);
@@ -123,11 +189,22 @@ async function runIntervalRoll({ actor, checkChoice, trackerId }) {
     activePhase.progress = getPhaseProgress(activePhase, activePhase.checkProgress);
     activePhase.completed = isPhaseComplete({ ...activePhase, progress: activePhase.progress });
     activePhase.failuresInRow = 0;
-    successLine = pickLineForCheck(
-      activePhase.successLines,
-      selectedCheck.id,
-      selectedCheck.groupId
+    const afterGroupComplete = isGroupComplete(
+      activePhase,
+      selectedCheck.groupId,
+      activePhase.checkProgress
     );
+    if (!beforeGroupComplete && afterGroupComplete) {
+      successLine = pickLineForGroup(activePhase.successLines, selectedCheck.groupId);
+    }
+    if (!successLine) {
+      successLine = pickLineForCheck(
+        activePhase.successLines,
+        selectedCheck.id,
+        selectedCheck.groupId,
+        { allowGroup: false }
+      );
+    }
   } else {
     activePhase.failuresInRow = Number(activePhase.failuresInRow ?? 0) + 1;
     failureLine = pickLineForCheck(

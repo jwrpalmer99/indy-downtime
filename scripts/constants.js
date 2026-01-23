@@ -261,8 +261,3 @@ export function getTrackerTabId(trackerId) {
   return `${SHEET_TAB_ID}-${trackerId}`;
 }
 
-export const DEFAULT_SKILL_ALIASES = {
-  persuasion: "per",
-  insight: "ins",
-  religion: "rel",
-};

@@ -8,7 +8,7 @@
       <div class="drep-flow-lines success">
         <span class="drep-flow-lines-label">Unassigned Success Lines</span>
         {{#each unassignedSuccess}}
-          <div class="drep-flow-line drep-flow-line-chip" draggable="true" data-drep-line-id="{{this.id}}" data-drep-line-type="success">{{this.text}}<button type="button" class="drep-flow-line-remove" title="Remove">x</button></div>
+          <div class="drep-flow-line drep-flow-line-chip" draggable="true" data-drep-line-id="{{this.id}}" data-drep-line-type="success">{{this.text}}</div>
         {{/each}}
       </div>
     </div>
@@ -18,7 +18,7 @@
       <div class="drep-flow-lines failure">
         <span class="drep-flow-lines-label">Unassigned Failure Lines</span>
         {{#each unassignedFailure}}
-          <div class="drep-flow-line drep-flow-line-chip" draggable="true" data-drep-line-id="{{this.id}}" data-drep-line-type="failure">{{this.text}}<button type="button" class="drep-flow-line-remove" title="Remove">x</button></div>
+          <div class="drep-flow-line drep-flow-line-chip" draggable="true" data-drep-line-id="{{this.id}}" data-drep-line-type="failure">{{this.text}}</div>
         {{/each}}
       </div>
     </div>
@@ -26,7 +26,7 @@
 
   <div class="drep-flow-lanes">
     {{#each groups}}
-      <div class="drep-flow-lane">
+      <div class="drep-flow-lane" data-drep-group-id="{{this.id}}">
         <div class="drep-flow-lane-header">{{this.name}}</div>
         {{#if this.successLines.length}}
           <div class="drep-flow-lines success">

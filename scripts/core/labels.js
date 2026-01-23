@@ -2,7 +2,6 @@ import {
   DEBUG_SETTING,
   DEFAULT_HEADER_LABEL,
   DEFAULT_INTERVAL_LABEL,
-  DEFAULT_SKILL_ALIASES,
   DEFAULT_TAB_ICON,
   DEFAULT_TAB_LABEL,
   LAST_ACTOR_IDS_SETTING,
@@ -145,56 +144,42 @@ function setLastActorId(trackerId, value) {
 }
 
 
-function getSkillAliases() {
-  let stored = game.settings.get(MODULE_ID, "skillAliases");
-  if (!stored) {
-    try {
-      stored = game.settings.get(MODULE_ID, "skillKeys");
-    } catch (error) {
-      stored = null;
-    }
-  }
-  return foundry.utils.mergeObject(DEFAULT_SKILL_ALIASES, stored ?? {}, {
-    inplace: false,
-    overwrite: true,
-  });
-}
-
-
-function parseSkillAliases(raw) {
-  if (!raw) return getSkillAliases();
-  try {
-    const parsed = JSON.parse(raw);
-    if (typeof parsed !== "object" || Array.isArray(parsed) || parsed === null) {
-      ui.notifications.error(
-        "Indy Downtime Tracker: skill aliases must be a JSON object."
-      );
-      return null;
-    }
-    return parsed;
-  } catch (error) {
-    console.error(error);
-    ui.notifications.error(
-      "Indy Downtime Tracker: skill aliases JSON is invalid."
-    );
-    return null;
-  }
-}
-
-
 function getSkillOptions() {
-  const skills = CONFIG.DND5E?.skills ?? {};
-  return Object.entries(skills)
-    .map(([key, labelKey]) => ({
-      key,
-      label: localizeSkillLabel(labelKey, key),
-    }))
-    .sort((a, b) => a.label.localeCompare(b.label));
+  const skills = CONFIG.PF2E?.skills ?? CONFIG.DND5E?.skills ?? {};
+  const abilities =
+    CONFIG.PF2E?.abilities ??
+    CONFIG.PF2E?.abilityAbbreviations ??
+    CONFIG.DND5E?.abilities ??
+    {};
+
+  const skillOptions = Object.entries(skills).map(([key, labelKey]) => ({
+    key,
+    label: localizeSkillLabel(labelKey, key),
+  }));
+
+  const abilityOptions = Object.entries(abilities).map(([key, labelKey]) => ({
+    key: `ability:${key}`,
+    label: `${localizeSkillLabel(labelKey, key)} (Ability)`,
+  }));
+
+  return [...skillOptions, ...abilityOptions].sort((a, b) =>
+    a.label.localeCompare(b.label)
+  );
 }
 
 
 function getSkillLabel(skillKey) {
-  const skills = CONFIG.DND5E?.skills ?? {};
+  if (typeof skillKey === "string" && skillKey.startsWith("ability:")) {
+    const abilityKey = skillKey.split(":")[1] ?? "";
+    const abilities =
+      CONFIG.PF2E?.abilities ??
+      CONFIG.PF2E?.abilityAbbreviations ??
+      CONFIG.DND5E?.abilities ??
+      {};
+    const labelKey = abilities[abilityKey];
+    return localizeSkillLabel(labelKey, abilityKey);
+  }
+  const skills = CONFIG.PF2E?.skills ?? CONFIG.DND5E?.skills ?? {};
   const labelKey = skills[skillKey];
   return localizeSkillLabel(labelKey, skillKey);
 }
@@ -215,12 +200,6 @@ function localizeSkillLabel(labelKey, fallback) {
 }
 
 
-function resolveSkillKey(skillChoice, skillAliases) {
-  if (skillAliases && typeof skillAliases[skillChoice] === "string") {
-    return skillAliases[skillChoice];
-  }
-  return skillChoice;
-}
 
 
 
@@ -247,10 +226,7 @@ export {
   setLastSkillChoice,
   getLastActorId,
   setLastActorId,
-  getSkillAliases,
-  parseSkillAliases,
   getSkillOptions,
   getSkillLabel,
   localizeSkillLabel,
-  resolveSkillKey,
 };

@@ -1,6 +1,6 @@
 import { DEFAULT_PHASE_CONFIG } from "../constants.js";
 import { parseList } from "./parse.js";
-import { getSkillAliases, getSkillLabel, resolveSkillKey, clampNumber } from "./labels.js";
+import { getSkillLabel, clampNumber } from "./labels.js";
 import { getCurrentTracker, getTrackerById } from "./tracker.js";
 
 const DEFAULT_CHECK_TARGET = 1;
@@ -182,11 +182,10 @@ function buildGroupsFromLegacyPhase(phase, fallback) {
     : Array.isArray(fallback?.skills) && fallback.skills.length
       ? fallback.skills
       : getDefaultSkills();
-  const skillAliases = getSkillAliases();
   const checks = [];
   const successLines = [];
   for (const skill of skills) {
-    const label = getSkillLabel(resolveSkillKey(skill, skillAliases));
+    const label = getSkillLabel(skill);
     const steps = phase?.skillDcSteps?.[skill] ?? fallback?.skillDcSteps?.[skill];
     const targetValue = Number(phase?.skillTargets?.[skill] ?? fallback?.skillTargets?.[skill] ?? 1);
     const stepCount = Array.isArray(steps) && steps.length ? steps.length : 0;
@@ -366,12 +365,12 @@ function getPhaseCheckById(phase, checkId) {
   return getPhaseChecks(phase).find((check) => check.id === checkId) ?? null;
 }
 
-function getPhaseCheckLabel(check, skillAliases) {
+function getPhaseCheckLabel(check) {
   if (!check) return "";
   if (check.name) return check.name;
   const key = check.skill;
   if (!key) return "";
-  return getSkillLabel(resolveSkillKey(key, skillAliases));
+  return getSkillLabel(key);
 }
 
 function getPhaseCheckTarget() {
@@ -410,6 +409,13 @@ function isCheckComplete(check, checkProgress) {
   return current >= target;
 }
 
+function isGroupComplete(phase, groupId, checkProgress) {
+  if (!phase || !groupId) return false;
+  const group = getPhaseGroups(phase).find((entry) => entry.id === groupId);
+  if (!group) return false;
+  return (group.checks ?? []).every((check) => isCheckComplete(check, checkProgress));
+}
+
 function isCheckUnlocked(phase, check, checkProgress) {
   const deps = Array.isArray(check?.dependsOn) ? check.dependsOn : [];
   if (!deps.length) return true;
@@ -429,16 +435,14 @@ function getPhaseDc(phase, checkId) {
   return Number.isFinite(dc) ? dc : DEFAULT_CHECK_DC;
 }
 
-function getPhaseCheckChoices(phase, checkProgress, skillAliases) {
+function getPhaseCheckChoices(phase, checkProgress) {
   return getPhaseChecks(phase).map((check) => {
     const complete = isCheckComplete(check, checkProgress);
     const unlocked = isCheckUnlocked(phase, check, checkProgress);
-    const skillLabel = check.skill
-      ? getSkillLabel(resolveSkillKey(check.skill, skillAliases))
-      : "";
+    const skillLabel = check.skill ? getSkillLabel(check.skill) : "";
     return {
       key: check.id,
-      label: getPhaseCheckLabel(check, skillAliases),
+      label: getPhaseCheckLabel(check),
       description: check.description ?? "",
       skill: check.skill,
       skillLabel,
@@ -459,28 +463,42 @@ function getPhaseAvailableChecks(phase, checkProgress) {
   });
 }
 
-function pickLineForCheck(lines, checkId, groupId) {
+function pickLineForCheck(lines, checkId, groupId, options = {}) {
   if (!Array.isArray(lines) || !lines.length) return "";
+  const allowGroup = options?.allowGroup !== false;
   const checkMatches = lines.filter((line) =>
     line?.text && Array.isArray(line.dependsOnChecks) && line.dependsOnChecks.includes(checkId)
   );
   if (checkMatches.length) {
     return checkMatches[Math.floor(Math.random() * checkMatches.length)].text;
   }
-  const groupMatches = lines.filter((line) =>
-    line?.text &&
-    (!line.dependsOnChecks?.length) &&
-    Array.isArray(line.dependsOnGroups) &&
-    line.dependsOnGroups.includes(groupId)
-  );
-  if (groupMatches.length) {
-    return groupMatches[Math.floor(Math.random() * groupMatches.length)].text;
+  if (allowGroup) {
+    const groupMatches = lines.filter((line) =>
+      line?.text &&
+      (!line.dependsOnChecks?.length) &&
+      Array.isArray(line.dependsOnGroups) &&
+      line.dependsOnGroups.includes(groupId)
+    );
+    if (groupMatches.length) {
+      return groupMatches[Math.floor(Math.random() * groupMatches.length)].text;
+    }
   }
   const unconstrained = lines.filter((line) =>
     line?.text && (!line.dependsOnChecks?.length && !line.dependsOnGroups?.length)
   );
   if (!unconstrained.length) return "";
   return unconstrained[Math.floor(Math.random() * unconstrained.length)].text;
+}
+
+function pickLineForGroup(lines, groupId) {
+  if (!Array.isArray(lines) || !lines.length) return "";
+  const groupMatches = lines.filter((line) =>
+    line?.text &&
+    Array.isArray(line.dependsOnGroups) &&
+    line.dependsOnGroups.includes(groupId)
+  );
+  if (!groupMatches.length) return "";
+  return groupMatches[Math.floor(Math.random() * groupMatches.length)].text;
 }
 
 function isPhaseComplete(phase) {
@@ -509,11 +527,13 @@ export {
   buildCheckProgressMap,
   getPhaseProgress,
   isCheckComplete,
+  isGroupComplete,
   isCheckUnlocked,
   getPhaseDc,
   getPhaseCheckChoices,
   getPhaseAvailableChecks,
   pickLineForCheck,
+  pickLineForGroup,
   isPhaseComplete,
 };
 

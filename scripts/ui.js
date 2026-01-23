@@ -24,7 +24,6 @@ import {
   getPhaseCheckChoices,
   getPhaseCheckTarget,
   getRestrictedActorUuids,
-  getSkillAliases,
   getTrackers,
   getTrackerById,
   getWorldState,
@@ -86,7 +85,6 @@ function buildTrackerData({
   const state = getWorldState(resolvedTrackerId);
   const activePhase = getActivePhase(state, resolvedTrackerId);
   const activePhaseNumber = getPhaseNumber(activePhase.id, resolvedTrackerId);
-  const skillAliases = getSkillAliases();
   const headerLabel = getHeaderLabel(resolvedTrackerId);
   const lastActorId = showActorSelect
     ? getLastActorId(resolvedTrackerId)
@@ -103,8 +101,7 @@ function buildTrackerData({
 
   const checkChoices = getPhaseCheckChoices(
     activePhase,
-    activePhase.checkProgress,
-    skillAliases
+    activePhase.checkProgress
   ).map((choice) => ({
     ...choice,
     label: choice.label || "Unnamed Check",

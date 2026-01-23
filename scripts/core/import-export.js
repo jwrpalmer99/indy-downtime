@@ -7,10 +7,10 @@ import {
   DEFAULT_TRACKER_NAME,
   MODULE_ID,
   TRACKERS_SETTING,
+  DEFAULT_TAB_ICON
 } from "../constants.js";
 import { parseJsonPayload } from "./parse.js";
 import {
-  getSkillAliases,
   parseRestrictedActorUuids,
   sanitizeLabel,
   saveJsonToFile,
@@ -43,7 +43,6 @@ function getSettingsExportPayload() {
     version: game.modules.get(MODULE_ID)?.version ?? "",
     exportedAt: new Date().toISOString(),
     settings: {
-      skillAliases: getSkillAliases(),
       trackers,
     },
   };
@@ -70,9 +69,6 @@ function getStateExportPayload() {
 async function applySettingsImportPayload(payload) {
   const settings = payload?.settings ?? payload;
   if (!settings || typeof settings !== "object") return;
-  if (settings.skillAliases && typeof settings.skillAliases === "object") {
-    await game.settings.set(MODULE_ID, "skillAliases", settings.skillAliases);
-  }
   if (Array.isArray(settings.trackers)) {
     const existingStates = new Map(
       getTrackers().map((tracker) => [tracker.id, tracker.state])

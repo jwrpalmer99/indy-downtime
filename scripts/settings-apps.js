@@ -28,17 +28,13 @@ import {
   getPhaseCheckLabel,
   getPhaseCheckTarget,
   getRestrictedActorUuids,
-  getSkillAliases,
   getSkillLabel,
   getSkillOptions,
   getTabIcon,
   getTabLabel,
   getTrackerById,
   getTrackers,
-  resolveSkillKey,
   getWorldState,
-  initDependencyDragDrop,
-  isPhaseUnlocked,
   normalizePhaseConfig,
   parseJsonPayload,
   parseRestrictedActorUuids,
@@ -100,18 +96,6 @@ class DowntimeRepSettings extends HandlebarsApplicationMixin(ApplicationV2) {
     const tabLabel = getTabLabel(trackerId);
     const intervalLabel = getIntervalLabel(trackerId);
     const restrictedActorUuids = getRestrictedActorUuids(trackerId);
-    const phaseConfig = getPhaseConfig(trackerId);
-    const phaseOptions = phaseConfig.map((phase) => {
-      const unlocked = isPhaseUnlocked(phase.id, state, trackerId, phaseConfig);
-      const completed = state.phases[phase.id]?.completed ?? false;
-      const status = completed ? "Complete" : unlocked ? "Available" : "Locked";
-      return {
-        id: phase.id,
-        label: `${phase.name} (${status})`,
-        unlocked,
-        completed,
-      };
-    });
     const trackerOptions = getTrackers().map((entry, index) => ({
       id: entry.id,
       label: entry.name ? `${entry.name}` : `Tracker ${index + 1}`,
@@ -127,8 +111,6 @@ class DowntimeRepSettings extends HandlebarsApplicationMixin(ApplicationV2) {
       showLockedChecksToPlayers: tracker?.showLockedChecksToPlayers !== false,
       isSingleTracker: trackerOptions.length <= 1,
       state,
-      phaseOptions,
-      activePhaseId: state.activePhaseId,
       criticalBonusEnabled: state.criticalBonusEnabled,
       headerLabel,
       tabLabel,
@@ -188,11 +170,7 @@ class DowntimeRepSettings extends HandlebarsApplicationMixin(ApplicationV2) {
         });
         return;
       }
-      if (action === "open-skill-aliases") {
-        new DowntimeRepSkillAliases().render(true);
-        return;
-      }
-      if (action === "open-phase-config") {
+        if (action === "open-phase-config") {
         new DowntimeRepPhaseConfig({
           trackerId: getCurrentTrackerId(),
         }).render(true);
@@ -236,20 +214,6 @@ class DowntimeRepSettings extends HandlebarsApplicationMixin(ApplicationV2) {
       state.criticalBonusEnabled = Boolean(formData.criticalBonusEnabled);
     }
 
-    const requestedPhaseId = formData.activePhaseId;
-    if (requestedPhaseId) {
-      if (!isPhaseUnlocked(requestedPhaseId, state, trackerId, phaseConfig)) {
-        ui.notifications.warn(
-          "Indy Downtime Tracker: selected phase is still locked."
-        );
-      } else if (state.phases[requestedPhaseId]?.completed) {
-        ui.notifications.warn(
-          "Indy Downtime Tracker: selected phase is already complete."
-        );
-      } else {
-        state.activePhaseId = requestedPhaseId;
-      }
-    }
 
     applyStateOverridesFromForm(state, formData, phaseConfig);
     setTrackerPhaseConfig(trackerId, phaseConfig);
@@ -382,90 +346,6 @@ class DowntimeRepSettings extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 }
 
-class DowntimeRepSkillAliases extends HandlebarsApplicationMixin(ApplicationV2) {
-  constructor(...args) {
-    super(...args);
-    const aliases = getSkillAliases();
-    this._rows = Object.entries(aliases).map(([key, value]) => ({
-      key,
-      value,
-    }));
-    if (!this._rows.length) {
-      this._rows.push({ key: "", value: "" });
-    }
-  }
-
-  static DEFAULT_OPTIONS = {
-    id: "indy-downtime-skill-aliases",
-    tag: "form",
-    classes: ["indy-downtime", "drep-settings", "drep-dialog"],
-    window: {
-      title: "Skill Alias Mapping",
-      icon: "fas fa-link",
-      contentClasses: ["standard-form"],
-      resizable: true,
-    },
-    position: {
-      width: 520,
-      height: "auto",
-    },
-    form: {
-      handler: DowntimeRepSkillAliases._onSubmit,
-      closeOnSubmit: true,
-      submitOnChange: false,
-    },
-  };
-
-  static PARTS = {
-    form: {
-      template: "modules/indy-downtime/templates/indy-downtime-skill-aliases.hbs",
-    },
-  };
-
-  async _prepareContext(options) {
-    const context = await super._prepareContext(options);
-    return {
-      ...context,
-      aliasRows: this._rows,
-    };
-  }
-
-  _onRender(context, options) {
-    super._onRender(context, options);
-    const html = $(this.element);
-    html.find("[data-drep-action='add-alias']").on("click", (event) => {
-      event.preventDefault();
-      this._rows.push({ key: "", value: "" });
-      this.render(true);
-    });
-    html.find("[data-drep-action='remove-alias']").on("click", (event) => {
-      event.preventDefault();
-      const index = Number(event.currentTarget?.dataset?.index);
-      if (!Number.isFinite(index)) return;
-      this._rows.splice(index, 1);
-      if (!this._rows.length) {
-        this._rows.push({ key: "", value: "" });
-      }
-      this.render(true);
-    });
-  }
-
-  static async _onSubmit(event, form, formData) {
-    const data = foundry.utils.expandObject(formData.object ?? {});
-    const rows = Object.values(data.aliases ?? {});
-    const mapped = {};
-    for (const row of rows) {
-      const key = String(row?.key ?? "").trim();
-      const value = String(row?.value ?? "").trim();
-      if (!key || !value) continue;
-      mapped[key] = value;
-    }
-    await game.settings.set(MODULE_ID, "skillAliases", mapped);
-    rerenderCharacterSheets();
-    rerenderSettingsApps();
-    ui.notifications.info("Indy Downtime Tracker: skill aliases saved.");
-  }
-}
 
 class DowntimeRepPhaseConfig extends HandlebarsApplicationMixin(ApplicationV2) {
   constructor(...args) {
@@ -504,7 +384,6 @@ class DowntimeRepPhaseConfig extends HandlebarsApplicationMixin(ApplicationV2) {
 
   async _prepareContext(options) {
     const context = await super._prepareContext(options);
-    const skillAliases = getSkillAliases();
     const skillOptions = getSkillOptions();
     const phases = this._phaseConfig.map((phase, index) => {
       const groups = getPhaseGroups(phase).map((group) => {
@@ -559,7 +438,6 @@ class DowntimeRepPhaseConfig extends HandlebarsApplicationMixin(ApplicationV2) {
   _onRender(context, options) {
     super._onRender(context, options);
     const html = $(this.element);
-    initDependencyDragDrop(html, debugLog);
     const syncFormState = () => {
       try {
         const formElement = html[0] instanceof HTMLFormElement
@@ -1008,7 +886,6 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
     const context = await super._prepareContext(options);
     const phaseConfig = getPhaseConfig(this._trackerId);
     const phase = this._phase ?? phaseConfig.find((entry) => entry.id === this._phaseId) ?? phaseConfig[0];
-    const skillAliases = getSkillAliases();
     const phaseNumber = phase ? getPhaseNumber(phase.id, this._trackerId) : 1;
     const phaseName = phase?.name ?? "Phase";
 
@@ -1029,12 +906,14 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
           successByCheck[checkId] = successByCheck[checkId] ?? [];
           successByCheck[checkId].push({ id: line.id, text: line.text });
         }
-      } else if (hasGroups) {
+      }
+      if (hasGroups) {
         for (const groupId of line.dependsOnGroups) {
           successByGroup[groupId] = successByGroup[groupId] ?? [];
           successByGroup[groupId].push({ id: line.id, text: line.text });
         }
-      } else {
+      }
+      if (!hasChecks && !hasGroups) {
         unassignedSuccess.push({ id: line.id, text: line.text });
       }
     }
@@ -1048,20 +927,21 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
           failureByCheck[checkId] = failureByCheck[checkId] ?? [];
           failureByCheck[checkId].push({ id: line.id, text: line.text });
         }
-      } else if (hasGroups) {
+      }
+      if (hasGroups) {
         for (const groupId of line.dependsOnGroups) {
           failureByGroup[groupId] = failureByGroup[groupId] ?? [];
           failureByGroup[groupId].push({ id: line.id, text: line.text });
         }
-      } else {
+      }
+      if (!hasChecks && !hasGroups) {
         unassignedFailure.push({ id: line.id, text: line.text });
       }
     }
 
     const groups = getPhaseGroups(phase).map((group) => {
       const checks = (group.checks ?? []).map((check) => {
-        const skillKey = check.skill ? resolveSkillKey(check.skill, skillAliases) : "";
-        const skillLabel = skillKey ? getSkillLabel(skillKey) : (check.skill ?? "");
+        const skillLabel = check.skill ? getSkillLabel(check.skill) : "";
         const name = check.name || skillLabel || "Check";
         checkLabels[check.id] = name;
         return {
@@ -1102,10 +982,17 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
   _onRender(context, options) {
     super._onRender(context, options);
     const html = $(this.element);
+    html.off(".drepFlow");
     html.find(".drep-flow-line-chip").attr("draggable", true);
     html.find(".drep-flow-check").attr("draggable", true);
 
     const promptLineAssignment = (targetLabel) => new Promise((resolve) => {
+      let resolved = false;
+      const finish = (value) => {
+        if (resolved) return;
+        resolved = true;
+        resolve(value);
+      };
       const content = `<p>Copy or move this line to <strong>${targetLabel}</strong>?</p>`;
       new Dialog({
         title: "Assign Line",
@@ -1113,27 +1000,28 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
         buttons: {
           copy: {
             label: "Copy",
-            callback: () => resolve("copy"),
+            callback: () => finish("copy"),
           },
           move: {
             label: "Move",
-            callback: () => resolve("move"),
+            callback: () => finish("move"),
           },
           cancel: {
             label: "Cancel",
-            callback: () => resolve(null),
+            callback: () => finish(null),
           },
         },
         default: "move",
-        close: () => resolve(null),
+        close: () => finish(null),
       }).render(true);
     });
 
-    html.on("click", ".drep-flow-line-remove", (event) => {
+    html.on("click.drepFlow", ".drep-flow-line-remove", (event) => {
       event.preventDefault();
       event.stopPropagation();
-      const lineId = event.currentTarget?.parentElement?.dataset?.drepLineId;
-      const lineType = event.currentTarget?.parentElement?.dataset?.drepLineType;
+      const lineCard = event.currentTarget?.closest(".drep-flow-line-chip");
+      const lineId = lineCard?.dataset?.drepLineId;
+      const lineType = lineCard?.dataset?.drepLineType;
       if (!lineId || !lineType) return;
 
       const phaseConfig = getPhaseConfig(this._trackerId);
@@ -1142,23 +1030,36 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
       const listKey = lineType === "success" ? "successLines" : "failureLines";
       const line = (phase[listKey] ?? []).find((entry) => entry.id === lineId);
       if (!line) return;
-      line.dependsOnChecks = [];
-      line.dependsOnGroups = [];
+
+      const checkId = lineCard?.closest(".drep-flow-check")?.dataset?.drepCheckId ?? "";
+      const groupId = !checkId
+        ? lineCard?.closest(".drep-flow-lane")?.dataset?.drepGroupId ?? ""
+        : "";
+
+      const nextChecks = checkId
+        ? (Array.isArray(line.dependsOnChecks) ? line.dependsOnChecks.filter((id) => id !== checkId) : [])
+        : (Array.isArray(line.dependsOnChecks) ? line.dependsOnChecks : []);
+      const nextGroups = groupId
+        ? (Array.isArray(line.dependsOnGroups) ? line.dependsOnGroups.filter((id) => id !== groupId) : [])
+        : (Array.isArray(line.dependsOnGroups) ? line.dependsOnGroups : []);
+
+      line.dependsOnChecks = nextChecks;
+      line.dependsOnGroups = nextGroups;
       if (this._onUpdate) {
         this._onUpdate({
           kind: "line",
           phaseId: phase.id,
           lineId,
           lineType,
-          dependsOnChecks: [],
-          dependsOnGroups: [],
+          dependsOnChecks: nextChecks,
+          dependsOnGroups: nextGroups,
         });
       }
       this._phase = phase;
       this.render(true);
     });
 
-    html.on("dragstart", ".drep-flow-line-chip", (event) => {
+    html.on("dragstart.drepFlow", ".drep-flow-line-chip", (event) => {
       event.stopPropagation();
       const lineId = event.currentTarget?.dataset?.drepLineId;
       const lineType = event.currentTarget?.dataset?.drepLineType;
@@ -1170,7 +1071,7 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
       }
     });
 
-    html.on("dragstart", ".drep-flow-check", (event) => {
+    html.on("dragstart.drepFlow", ".drep-flow-check", (event) => {
       if (event.target?.closest(".drep-flow-line-chip")) return;
       const checkId = event.currentTarget?.dataset?.drepCheckId;
       if (!checkId) return;
@@ -1181,7 +1082,7 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
       }
     });
 
-    html.on("click", ".drep-flow-dep-remove", (event) => {
+    html.on("click.drepFlow", ".drep-flow-dep-remove", (event) => {
       event.preventDefault();
       event.stopPropagation();
       const chip = event.currentTarget?.closest(".drep-flow-dep");
@@ -1214,7 +1115,9 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
       this.render(true);
     });
 
-    html.on("dragover", ".drep-flow-check", (event) => {
+    html.on("dragover.drepFlow", ".drep-flow-lane", (event) => {
+      event.stopPropagation();
+      if (event.target?.closest(".drep-flow-check")) return;
       event.preventDefault();
       event.currentTarget?.classList?.add("is-drop-target");
       if (event.originalEvent?.dataTransfer) {
@@ -1222,11 +1125,95 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
       }
     });
 
-    html.on("dragleave", ".drep-flow-check", (event) => {
+    html.on("dragleave.drepFlow", ".drep-flow-lane", (event) => {
+      event.stopPropagation();
       event.currentTarget?.classList?.remove("is-drop-target");
     });
 
-    html.on("drop", ".drep-flow-check", async (event) => {
+    html.on("drop.drepFlow", ".drep-flow-lane", async (event) => {
+      event.stopPropagation();
+      if (event.target?.closest(".drep-flow-check")) return;
+      event.preventDefault();
+      event.currentTarget?.classList?.remove("is-drop-target");
+      const groupId = event.currentTarget?.dataset?.drepGroupId;
+      if (!groupId) return;
+      const raw = event.originalEvent?.dataTransfer?.getData("text/plain") ?? "";
+      if (!raw) return;
+      let payload = null;
+      try {
+        payload = JSON.parse(raw);
+      } catch (error) {
+        return;
+      }
+      if (payload?.type !== "line") return;
+      const lineId = payload?.lineId;
+      const lineType = payload?.lineType;
+      if (!lineId || (lineType !== "success" && lineType !== "failure")) return;
+
+      const phaseConfig = getPhaseConfig(this._trackerId);
+      const phase = this._phase ?? phaseConfig.find((entry) => entry.id === this._phaseId) ?? phaseConfig[0];
+      if (!phase) return;
+      const listKey = lineType === "success" ? "successLines" : "failureLines";
+      const line = (phase[listKey] ?? []).find((entry) => entry.id === lineId);
+      if (!line) return;
+
+      const hasChecks = Array.isArray(line.dependsOnChecks) && line.dependsOnChecks.length;
+      const hasGroups = Array.isArray(line.dependsOnGroups) && line.dependsOnGroups.length;
+      const isOnlyTarget = hasGroups
+        && line.dependsOnGroups.length === 1
+        && line.dependsOnGroups[0] === groupId
+        && !hasChecks;
+      if (isOnlyTarget) return;
+
+      let mode = "move";
+      if (hasChecks || hasGroups) {
+        const targetLabel = event.currentTarget?.querySelector(".drep-flow-lane-header")?.textContent?.trim() || "this group";
+        mode = await promptLineAssignment(targetLabel);
+        if (!mode) return;
+      }
+
+      let nextGroups = [];
+      if (mode === "copy") {
+        const existing = Array.isArray(line.dependsOnGroups) ? line.dependsOnGroups : [];
+        nextGroups = Array.from(new Set([...existing, groupId]));
+      } else {
+        nextGroups = [groupId];
+      }
+      const nextChecks = mode === "copy"
+        ? (Array.isArray(line.dependsOnChecks) ? line.dependsOnChecks : [])
+        : [];
+      line.dependsOnGroups = nextGroups;
+      line.dependsOnChecks = nextChecks;
+      if (this._onUpdate) {
+        this._onUpdate({
+          kind: "line",
+          phaseId: phase.id,
+          lineId,
+          lineType,
+          dependsOnChecks: nextChecks,
+          dependsOnGroups: nextGroups,
+        });
+      }
+      this._phase = phase;
+      this.render(true);
+    });
+
+    html.on("dragover.drepFlow", ".drep-flow-check", (event) => {
+      event.stopPropagation();
+      event.preventDefault();
+      event.currentTarget?.classList?.add("is-drop-target");
+      if (event.originalEvent?.dataTransfer) {
+        event.originalEvent.dataTransfer.dropEffect = "move";
+      }
+    });
+
+    html.on("dragleave.drepFlow", ".drep-flow-check", (event) => {
+      event.stopPropagation();
+      event.currentTarget?.classList?.remove("is-drop-target");
+    });
+
+    html.on("drop.drepFlow", ".drep-flow-check", async (event) => {
+      event.stopPropagation();
       event.preventDefault();
       event.currentTarget?.classList?.remove("is-drop-target");
       const targetCheckId = event.currentTarget?.dataset?.drepCheckId;
@@ -1357,12 +1344,11 @@ class DowntimeRepProgressState extends HandlebarsApplicationMixin(ApplicationV2)
     const context = await super._prepareContext(options);
     const state = getWorldState(this._trackerId);
     const phaseConfig = getPhaseConfig(this._trackerId);
-    const skillAliases = getSkillAliases();
     const phases = phaseConfig.map((phase, index) => {
       const phaseState = state.phases[phase.id] ?? {};
       const checkRows = getPhaseChecks(phase).map((check) => ({
         id: check.id,
-        name: getPhaseCheckLabel(check, skillAliases),
+        name: getPhaseCheckLabel(check),
         value: Number(phaseState.checkProgress?.[check.id] ?? 0),
         target: getPhaseCheckTarget(check),
       }));
@@ -1516,7 +1502,6 @@ class DowntimeRepStateExport extends HandlebarsApplicationMixin(ApplicationV2) {
 
 export {
   DowntimeRepSettings,
-  DowntimeRepSkillAliases,
   DowntimeRepPhaseConfig,
   DowntimeRepProgressState,
   DowntimeRepSettingsExport,

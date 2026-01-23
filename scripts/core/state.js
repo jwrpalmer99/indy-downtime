@@ -5,7 +5,7 @@ import {
   SOCKET_EVENT_REQUEST,
   SOCKET_EVENT_STATE,
 } from "../constants.js";
-import { clampNumber, debugLog, getSkillAliases, getSkillLabel } from "./labels.js";
+import { clampNumber, debugLog, getSkillLabel } from "./labels.js";
 import {
   buildCheckProgressMap,
   getFirstPhaseId,
@@ -16,10 +16,11 @@ import {
   getPhaseDc,
   getPhaseProgress,
   getPhaseChecks,
+  isGroupComplete,
   isPhaseComplete,
   pickLineForCheck,
+  pickLineForGroup,
 } from "./phase.js";
-import { resolveSkillKey } from "./labels.js";
 import {
   getCurrentTracker,
   getCurrentTrackerId,
@@ -160,7 +161,6 @@ function applyStateOverridesFromForm(state, formData, phaseConfig) {
 
 function recalculateStateFromLog(state, trackerId) {
   const phaseConfig = getPhaseConfig(trackerId);
-  const skillAliases = getSkillAliases();
   const rebuilt = {
     ...state,
     phases: {},
@@ -183,7 +183,7 @@ function recalculateStateFromLog(state, trackerId) {
   const rebuiltLog = [];
   for (const entry of sorted) {
     rebuiltLog.push(
-      applyLogEntryToState(entry, rebuilt, phaseConfig, skillAliases)
+      applyLogEntryToState(entry, rebuilt, phaseConfig)
     );
   }
 
@@ -211,7 +211,7 @@ function recalculateStateFromLog(state, trackerId) {
   return rebuilt;
 }
 
-function applyLogEntryToState(entry, state, phaseConfig, skillAliases) {
+function applyLogEntryToState(entry, state, phaseConfig) {
   if (entry?.type === "phase-complete") {
     return entry;
   }
@@ -219,13 +219,11 @@ function applyLogEntryToState(entry, state, phaseConfig, skillAliases) {
     phaseConfig.find((candidate) => candidate.id === entry.phaseId) ??
     phaseConfig[0];
   const phaseState = state.phases[phase.id];
-  const resolved = resolveCheckFromEntry(entry, phase, skillAliases);
+  const resolved = resolveCheckFromEntry(entry, phase);
   const check = resolved.check;
   const checkId = check?.id ?? entry.checkId ?? "";
   const groupId = check?.groupId ?? entry.groupId ?? "";
-  const skillKey = check?.skill
-    ? resolveSkillKey(check.skill, skillAliases)
-    : entry.skillKey ?? resolveSkillKey(entry.skillChoice ?? "", skillAliases);
+  const skillKey = check?.skill ?? entry.skillKey ?? entry.skillChoice ?? "";
   const skillLabel = skillKey ? getSkillLabel(skillKey) : "";
   const success = Boolean(entry.success);
   const dc = getPhaseDc(phase, check);
@@ -235,6 +233,7 @@ function applyLogEntryToState(entry, state, phaseConfig, skillAliases) {
   let successLine = entry.successLine ?? "";
   let failureLine = entry.failureLine ?? "";
   let failureEvent = Boolean(entry.failureEvent);
+  const beforeGroupComplete = isGroupComplete(phase, groupId, phaseState.checkProgress);
 
   if (check) {
     const currentValue = phaseState.checkProgress?.[check.id] ?? 0;
@@ -251,8 +250,12 @@ function applyLogEntryToState(entry, state, phaseConfig, skillAliases) {
         criticalBonusApplied = false;
       }
       phaseState.failuresInRow = 0;
+      const afterGroupComplete = isGroupComplete(phase, groupId, phaseState.checkProgress);
+      if (!successLine && !beforeGroupComplete && afterGroupComplete) {
+        successLine = pickLineForGroup(phase.successLines, groupId);
+      }
       if (!successLine) {
-        successLine = pickLineForCheck(phase.successLines, checkId, groupId);
+        successLine = pickLineForCheck(phase.successLines, checkId, groupId, { allowGroup: false });
       }
       failureLine = "";
       failureEvent = false;
@@ -271,7 +274,7 @@ function applyLogEntryToState(entry, state, phaseConfig, skillAliases) {
     phaseId: phase.id,
     phaseName: phase.name,
     checkId,
-    checkName: check ? getPhaseCheckLabel(check, skillAliases) : entry.checkName ?? "",
+    checkName: check ? getPhaseCheckLabel(check) : entry.checkName ?? "",
     groupId,
     groupName: check?.groupName ?? entry.groupName ?? "",
     skillKey,
@@ -286,7 +289,7 @@ function applyLogEntryToState(entry, state, phaseConfig, skillAliases) {
   };
 }
 
-function resolveCheckFromEntry(entry, phase, skillAliases) {
+function resolveCheckFromEntry(entry, phase) {
   if (entry?.checkId) {
     const check = getPhaseCheckById(phase, entry.checkId);
     if (check) return { check };
@@ -298,7 +301,7 @@ function resolveCheckFromEntry(entry, phase, skillAliases) {
   }
   const skillKey = entry?.skillKey;
   if (skillKey) {
-    const check = getPhaseChecks(phase).find((candidate) => resolveSkillKey(candidate.skill, skillAliases) === skillKey);
+    const check = getPhaseChecks(phase).find((candidate) => candidate.skill === skillKey);
     if (check) return { check };
   }
   return { check: getPhaseChecks(phase)[0] ?? null };
