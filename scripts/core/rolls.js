@@ -82,26 +82,43 @@ async function rollAbility(actor, abilityKey, advantage) {
     ui.notifications.error("Indy Downtime Tracker: ability key missing.");
     return null;
   }
+  const options = { fastForward: true };
+  if (advantage) {
+    options.advantage = true;
+  }
+  const abilityOptions = {
+    ...options,
+    ability: abilityKey,
+  };
+  let lastError = null;
+  const tryRoll = async (fn, ...args) => {
+    if (typeof fn !== "function") return null;
+    try {
+      const result = await fn.call(actor, ...args);
+      if (Array.isArray(result)) {
+        return result[0] ?? null;
+      }
+      return result ?? null;
+    } catch (error) {
+      lastError = error;
+      return null;
+    }
+  };
   try {
     if (game.user?.isGM && actor?.hasPlayerOwner) {
       return await rollAbilityDirect(actor, abilityKey, advantage);
     }
-    const options = { fastForward: true };
-    if (advantage) {
-      options.advantage = true;
-    }
-    if (typeof actor?.rollAbilityTest === "function") {
-      return await actor.rollAbilityTest(abilityKey, options);
-    }
-    if (typeof actor?.rollAbilityCheck === "function") {
-      return await actor.rollAbilityCheck(abilityKey, options);
-    }
-    if (typeof actor?.rollAbility === "function") {
-      return await actor.rollAbility(abilityKey, options);
-    }
+    let roll = null;
+    roll = await tryRoll(actor?.rollAbilityTest, abilityKey, options);
+    if (!roll) roll = await tryRoll(actor?.rollAbilityTest, abilityOptions);
+    if (!roll) roll = await tryRoll(actor?.rollAbilityCheck, abilityKey, options);
+    if (!roll) roll = await tryRoll(actor?.rollAbilityCheck, abilityOptions);
+    if (!roll) roll = await tryRoll(actor?.rollAbility, abilityKey, options);
+    if (!roll) roll = await tryRoll(actor?.rollAbility, abilityOptions);
+    if (roll) return roll;
     return await rollAbilityDirect(actor, abilityKey, advantage);
   } catch (error) {
-    console.error(error);
+    console.error(error ?? lastError);
     if (game.user?.isGM && actor?.hasPlayerOwner) {
       return rollAbilityDirect(actor, abilityKey, advantage);
     }
@@ -274,6 +291,7 @@ async function runIntervalRoll({ actor, checkChoice, trackerId }) {
     failureLine,
     failureEvent,
     failureEventResult,
+    trackerId: resolvedTrackerId,
   });
 }
 
@@ -292,6 +310,7 @@ async function postSummaryMessage({
   failureLine,
   failureEvent,
   failureEventResult,
+  trackerId,
 }) {
   const outcome = success ? "Success" : "Failure";
   const progressLine = success
@@ -316,7 +335,7 @@ async function postSummaryMessage({
 
   const content = `
       <div class="drep-chat">
-        <h3>${getIntervalLabel()} Check: ${checkLabel}</h3>
+        <h3>${getIntervalLabel(trackerId)} Check: ${checkLabel}</h3>
         <p><strong>Actor:</strong> ${actor.name}</p>
         <p><strong>Skill:</strong> ${skillLabel}</p>
         <p><strong>DC:</strong> ${dc}</p>
@@ -478,3 +497,9 @@ export {
   isCriticalSuccess,
   rollFailureEventTable,
 };
+
+
+
+
+
+

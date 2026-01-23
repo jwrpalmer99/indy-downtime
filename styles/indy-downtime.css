@@ -270,6 +270,12 @@
   letter-spacing: normal;
 }
 
+
+
+
+
+
+
 .drep-grid input,
 .drep-grid select {
   font-size: 13px;
@@ -341,6 +347,10 @@
   gap: 8px;
   text-transform: none;
   letter-spacing: normal;
+}
+
+.checkbox.flex {
+  display: inline-flex !important;
 }
 
 .drep-log {
@@ -542,7 +552,7 @@
   gap: 8px;
 }
 
-.dialog-button .flow {
+.dialog-button.flow {
   background-color: rgba(0,80,50,0.4);
 }
 
@@ -942,7 +952,7 @@
 }
 
 .drep-flow-check {
-  background: rgba(0, 0, 0, 0.32);
+  background-color: rgba(40, 40, 40, 0.3);
   border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: 8px;
   padding: 8px;
@@ -1050,3 +1060,10 @@
 .drep-flow-line-remove:hover {
   color: #f0c674;
 }
+
+
+
+
+
+
+
