@@ -1195,54 +1195,6 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
       if (!targetCheck) return;
 
       const current = normalizeCheckDependencies(targetCheck.dependsOn ?? []);
-      const depEntry = current.find((entry) => entry.id === depId) ?? { id: depId, type: "block" };
-      const depType = depEntry.type ?? "block";
-      const penaltyValue = Number.isFinite(depEntry.dcPenalty) && depEntry.dcPenalty > 0 ? depEntry.dcPenalty : 1;
-      const overrideSkill = depEntry.overrideSkill ?? "";
-      const overrideDc = Number.isFinite(depEntry.overrideDc) ? depEntry.overrideDc : "";
-      const skillOptions = getSkillOptions();
-      const skillOptionsHtml = [
-        `<option value="">(no override)</option>`,
-        ...skillOptions.map((option) => `
-          <option value="${option.key}" ${option.key === overrideSkill ? "selected" : ""}>${option.label}</option>
-        `),
-      ].join("");
-
-      const content = `
-        <form class="drep-dep-editor">
-          <div class="form-group">
-            <label>Link Type</label>
-            <div class="form-fields">
-              <select name="depType">
-                <option value="block" ${depType === "block" ? "selected" : ""}>Block until completed</option>
-                <option value="harder" ${depType === "harder" ? "selected" : ""}>Harder until completed (+DC)</option>
-                <option value="advantage" ${depType === "advantage" ? "selected" : ""}>Advantage when completed</option>
-                <option value="disadvantage" ${depType === "disadvantage" ? "selected" : ""}>Disadvantage until completed</option>
-                <option value="override" ${depType === "override" ? "selected" : ""}>Change skill/DC when completed</option>
-              </select>
-            </div>
-          </div>
-          <div class="form-group drep-dep-penalty">
-            <label>DC penalty</label>
-            <div class="form-fields">
-              <input type="number" name="dcPenalty" value="${penaltyValue}" min="1" max="10" />
-            </div>
-          </div>
-          <div class="form-group drep-dep-override">
-            <label>Override skill</label>
-            <div class="form-fields">
-              <select name="overrideSkill">${skillOptionsHtml}</select>
-            </div>
-          </div>
-          <div class="form-group drep-dep-override">
-            <label>Override DC</label>
-            <div class="form-fields">
-              <input type="number" name="overrideDc" value="${overrideDc}" min="0" />
-            </div>
-          </div>
-        </form>
-      `;
-
       const applyDependency = (newDep) => {
         const nextDepends = current.map((entry) => entry.id === depId ? newDep : entry);
         targetCheck.dependsOn = nextDepends;
@@ -1258,54 +1210,10 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
         this.render(true);
       };
 
-      new Dialog({
-        title: "Edit Dependency",
-        content,
-        buttons: {
-          save: {
-            label: "Save",
-            callback: (dialogHtml) => {
-              const root = dialogHtml instanceof jQuery ? dialogHtml : $(dialogHtml);
-              const form = root.find("form.drep-dep-editor")[0];
-              if (!form) return;
-              const formData = new FormData(form);
-              const type = String(formData.get("depType") ?? "block");
-              const nextDep = { id: depId, type };
-              if (type === "harder") {
-                const penaltyRaw = Number(formData.get("dcPenalty"));
-                nextDep.dcPenalty = Number.isFinite(penaltyRaw) && penaltyRaw > 0 ? penaltyRaw : 1;
-              }
-              if (type === "override") {
-                const skillValue = String(formData.get("overrideSkill") ?? "").trim();
-                if (skillValue) nextDep.overrideSkill = skillValue;
-                const dcValue = Number(formData.get("overrideDc"));
-                if (Number.isFinite(dcValue)) nextDep.overrideDc = dcValue;
-              }
-              applyDependency(nextDep);
-            },
-          },
-          reset: {
-            label: "Revert",
-            callback: () => {
-              applyDependency({ id: depId, type: "block" });
-            },
-          },
-          cancel: {
-            label: "Cancel",
-          },
-        },
-        default: "save",
-        render: (dialogHtml) => {
-          const root = dialogHtml instanceof jQuery ? dialogHtml : $(dialogHtml);
-          const typeSelect = root.find("[name='depType']");
-          const toggleFields = () => {
-            const selected = String(typeSelect.val() ?? "block");
-            root.find(".drep-dep-penalty").toggle(selected === "harder");
-            root.find(".drep-dep-override").toggle(selected === "override");
-          };
-          typeSelect.on("change", toggleFields);
-          toggleFields();
-        },
+      const depEntry = current.find((entry) => entry.id === depId) ?? { id: depId, type: "block" };
+      new DowntimeRepDepEditor({
+        dep: depEntry,
+        onSave: applyDependency,
       }).render(true);
     });
 
@@ -1499,6 +1407,104 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
     });
   }
 
+}
+
+class DowntimeRepDepEditor extends HandlebarsApplicationMixin(ApplicationV2) {
+  constructor(options = {}) {
+    super(options);
+    this._dep = options.dep ?? { id: "", type: "block" };
+    this._onSave = typeof options.onSave === "function" ? options.onSave : null;
+    this._forceType = null;
+  }
+
+  static DEFAULT_OPTIONS = {
+    id: "indy-downtime-dep-editor",
+    tag: "form",
+    classes: ["indy-downtime", "drep-settings", "drep-dialog", "drep-dep-editor"],
+    window: {
+      title: "Edit Dependency",
+      icon: "fas fa-link",
+      contentClasses: ["standard-form"],
+      resizable: false,
+    },
+    position: {
+      width: 420,
+      height: "auto",
+    },
+    form: {
+      handler: DowntimeRepDepEditor._onSubmit,
+      closeOnSubmit: true,
+      submitOnChange: false,
+    },
+  };
+
+  static PARTS = {
+    form: {
+      template: "modules/indy-downtime/templates/indy-downtime-dep-editor.hbs",
+    },
+  };
+
+  async _prepareContext(options) {
+    const context = await super._prepareContext(options);
+    const dep = this._dep ?? {};
+    const type = dep.type ?? "block";
+    const dcPenalty = Number.isFinite(dep.dcPenalty) && dep.dcPenalty > 0 ? dep.dcPenalty : 1;
+    const overrideSkill = dep.overrideSkill ?? "";
+    const overrideDc = Number.isFinite(dep.overrideDc) ? dep.overrideDc : "";
+    return {
+      ...context,
+      depId: dep.id ?? "",
+      depType: type,
+      dcPenalty,
+      overrideSkill,
+      overrideDc,
+      skillOptions: getSkillOptions(),
+    };
+  }
+
+  _onRender(context, options) {
+    super._onRender(context, options);
+    const html = $(this.element);
+    const typeSelect = html.find("[name='depType']");
+    const toggleFields = () => {
+      const selected = String(typeSelect.val() ?? "block");
+      html.find(".drep-dep-penalty").toggle(selected === "harder");
+      html.find(".drep-dep-override").toggle(selected === "override");
+    };
+    typeSelect.on("change", toggleFields);
+    toggleFields();
+
+    html.find("[data-drep-action='cancel']").on("click", (event) => {
+      event.preventDefault();
+      this.close();
+    });
+    html.find("[data-drep-action='reset']").on("click", (event) => {
+      event.preventDefault();
+      this._forceType = "block";
+      html.find("[type='submit']").trigger("click");
+    });
+  }
+
+  static async _onSubmit(event, form, formData) {
+    const app = form?.owner ?? this;
+    if (!app) return;
+    const data = foundry.utils.expandObject(formData.object ?? {});
+    const type = app._forceType ?? String(data.depType ?? "block");
+    const nextDep = { id: app._dep?.id ?? "", type };
+    if (type === "harder") {
+      const penaltyRaw = Number(data.dcPenalty);
+      nextDep.dcPenalty = Number.isFinite(penaltyRaw) && penaltyRaw > 0 ? penaltyRaw : 1;
+    }
+    if (type === "override") {
+      const skillValue = String(data.overrideSkill ?? "").trim();
+      if (skillValue) nextDep.overrideSkill = skillValue;
+      const dcValue = Number(data.overrideDc);
+      if (Number.isFinite(dcValue)) nextDep.overrideDc = dcValue;
+    }
+    if (app._onSave) {
+      app._onSave(nextDep);
+    }
+  }
 }
 
 class DowntimeRepProgressState extends HandlebarsApplicationMixin(ApplicationV2) {

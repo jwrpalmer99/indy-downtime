@@ -1478,7 +1478,7 @@ function rerenderCharacterSheets() {
 
     if (!actor || actor.type !== "character") continue;
 
-    forceRenderApp(app);
+    forceRenderApp(app, { focus: false });
 
   }
 
@@ -1487,20 +1487,17 @@ function rerenderCharacterSheets() {
 
 
 function rerenderSettingsApps() {
-
   for (const app of getOpenApps()) {
-
     const appId = String(app?.id ?? app?.options?.id ?? "");
-
     if (!appId.startsWith("indy-downtime")) continue;
-
-	if (appId == "indy-downtime-phase-config") return;
-
-    forceRenderApp(app);
-
+    if (appId === "indy-downtime-phase-config") continue;
+    if (appId === "indy-downtime-settings") continue;
+    if (appId === "indy-downtime-dep-editor") continue;
+    if (appId === "indy-downtime-phase-flow") continue;
+    forceRenderApp(app, { focus: false });
   }
-
 }
+
 
 
 
@@ -1536,45 +1533,32 @@ function getOpenApps() {
 
 
 
-function forceRenderApp(app) {
-
+function forceRenderApp(app, { focus = false } = {}) {
   if (typeof app?.render !== "function") return;
 
   try {
+    if (app instanceof foundry.applications.api.ApplicationV2) {
+      app.render({ force: true, focus });
+      return;
+    }
+  } catch (error) {
+    // fall through
+  }
 
+  try {
+    app.render(true, { focus });
+    return;
+  } catch (error) {
+    // fall through
+  }
+
+  try {
     app.render({ force: true });
-
-    return;
-
   } catch (error) {
-
-    // fall through
-
+    // ignore
   }
-
-  try {
-
-    app.render(true);
-
-    return;
-
-  } catch (error) {
-
-    // fall through
-
-  }
-
-  try {
-
-    app.render();
-
-  } catch (error) {
-
-    debugLog("Failed to re-render app", { appClass: app?.constructor?.name });
-
-  }
-
 }
+
 
 
 

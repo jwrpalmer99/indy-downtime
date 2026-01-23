@@ -1,0 +1,48 @@
+<div class="drep-dep-editor">
+<div class="drep-dep-editor-body">
+  <div class="form-group">
+    <label>Link Type</label>
+    <div class="form-fields">
+      <select name="depType">
+        <option value="block" {{#if (eq depType "block")}}selected{{/if}}>Block until completed</option>
+        <option value="harder" {{#if (eq depType "harder")}}selected{{/if}}>Harder until completed (+DC)</option>
+        <option value="advantage" {{#if (eq depType "advantage")}}selected{{/if}}>Advantage when completed</option>
+        <option value="disadvantage" {{#if (eq depType "disadvantage")}}selected{{/if}}>Disadvantage until completed</option>
+        <option value="override" {{#if (eq depType "override")}}selected{{/if}}>Change skill/DC when completed</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="form-group drep-dep-penalty">
+    <label>DC penalty</label>
+    <div class="form-fields">
+      <input type="number" name="dcPenalty" value="{{dcPenalty}}" min="1" max="10" />
+    </div>
+  </div>
+
+  <div class="form-group drep-dep-override">
+    <label>Override skill</label>
+    <div class="form-fields">
+      <select name="overrideSkill">
+        <option value="">(no override)</option>
+        {{#each skillOptions}}
+          <option value="{{this.key}}" {{#if (eq ../overrideSkill this.key)}}selected{{/if}}>{{this.label}}</option>
+        {{/each}}
+      </select>
+    </div>
+  </div>
+
+  <div class="form-group drep-dep-override">
+    <label>Override DC</label>
+    <div class="form-fields">
+      <input type="number" name="overrideDc" value="{{overrideDc}}" min="0" />
+    </div>
+  </div>
+</div>
+
+<footer class="sheet-footer flexrow">
+  <button type="submit"><i class="fas fa-save"></i> Save</button>
+  <button type="button" data-drep-action="reset"><i class="fas fa-undo"></i> Revert</button>
+  <button type="button" data-drep-action="cancel"><i class="fas fa-times"></i> Cancel</button>
+</footer>
+</div>
