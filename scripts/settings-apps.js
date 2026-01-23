@@ -36,6 +36,7 @@ import {
   getTrackers,
   getWorldState,
   normalizePhaseConfig,
+  normalizeCheckDependencies,
   parseJsonPayload,
   parseRestrictedActorUuids,
   parseList,
@@ -393,7 +394,7 @@ class DowntimeRepPhaseConfig extends HandlebarsApplicationMixin(ApplicationV2) {
           skill: check.skill ?? "",
           description: check.description ?? "",
           dc: Number(check.dc ?? 0),
-          dependsOnValue: (check.dependsOn ?? []).join(", "),
+          dependsOnValue: normalizeCheckDependencies(check.dependsOn ?? []).map((dep) => dep.id).join(", "),
         }));
         return {
           id: group.id,
@@ -565,7 +566,8 @@ class DowntimeRepPhaseConfig extends HandlebarsApplicationMixin(ApplicationV2) {
       if (payload.kind === "check") {
         const checkId = payload.checkId;
         if (!checkId) return;
-        const dependsOn = Array.isArray(payload.dependsOn) ? payload.dependsOn : [];
+        const dependsOn = normalizeCheckDependencies(payload.dependsOn ?? []);
+        const dependsOnIds = dependsOn.map((dep) => dep.id);
         let updated = false;
         for (const group of phase.groups ?? []) {
           const check = (group.checks ?? []).find((entry) => entry.id === checkId);
@@ -580,7 +582,7 @@ class DowntimeRepPhaseConfig extends HandlebarsApplicationMixin(ApplicationV2) {
           `[name*='checks.${checkId}.dependsOn']`
         );
         if (input) {
-          input.value = dependsOn.join(", ");
+          input.value = dependsOnIds.join(", ");
           renderCheckDeps(input);
         }
         return;
@@ -897,6 +899,44 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
     const unassignedSuccess = [];
     const unassignedFailure = [];
 
+    const formatDependencyDetail = (dep) => {
+      const type = dep?.type ?? "block";
+      if (type === "harder") {
+        const penalty = Number.isFinite(dep?.dcPenalty) && dep.dcPenalty > 0 ? dep.dcPenalty : 1;
+        return `Harder until completed (+${penalty} DC)`;
+      }
+      if (type === "advantage") return "Advantage when completed";
+      if (type === "disadvantage") return "Disadvantage until completed";
+      if (type === "override") {
+        const parts = [];
+        if (dep?.overrideSkill) parts.push(getSkillLabel(dep.overrideSkill));
+        if (Number.isFinite(dep?.overrideDc)) parts.push(`DC ${dep.overrideDc}`);
+        const detail = parts.length ? parts.join(" ") : "Override";
+        return `Overrides when completed (${detail})`;
+      }
+      return "Blocks until completed";
+    };
+
+    const formatDependencyLabel = (dep) => {
+      const base = checkLabels[dep.id] || dep.id;
+      const type = dep?.type ?? "block";
+      if (type === "block") return base;
+      if (type === "harder") {
+        const penalty = Number.isFinite(dep?.dcPenalty) && dep.dcPenalty > 0 ? dep.dcPenalty : 1;
+        return `${base} (Harder +${penalty})`;
+      }
+      if (type === "advantage") return `${base} (Advantage)`;
+      if (type === "disadvantage") return `${base} (Disadvantage)`;
+      if (type === "override") {
+        const parts = [];
+        if (dep?.overrideSkill) parts.push(getSkillLabel(dep.overrideSkill));
+        if (Number.isFinite(dep?.overrideDc)) parts.push(`DC ${dep.overrideDc}`);
+        const detail = parts.length ? parts.join(" ") : "Override";
+        return `${base} (${detail})`;
+      }
+      return base;
+    };
+
     for (const line of phase?.successLines ?? []) {
       if (!line?.text) continue;
       const hasChecks = Array.isArray(line.dependsOnChecks) && line.dependsOnChecks.length;
@@ -949,7 +989,7 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
           name,
           skillLabel,
           dc: Number(check.dc ?? 0),
-          dependsOn: check.dependsOn ?? [],
+          dependsOn: normalizeCheckDependencies(check.dependsOn ?? []),
           successLines: successByCheck[check.id] ?? [],
           failureLines: failureByCheck[check.id] ?? [],
         };
@@ -965,7 +1005,15 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
 
     for (const group of groups) {
       for (const check of group.checks) {
-        check.dependsOnEntries = (check.dependsOn ?? []).map((id) => ({ id, label: checkLabels[id] || id }));
+        check.dependsOnEntries = (check.dependsOn ?? []).map((dep) => ({
+          id: dep.id,
+          label: formatDependencyLabel(dep),
+          detail: formatDependencyDetail(dep),
+          type: dep.type ?? "block",
+          dcPenalty: dep.dcPenalty ?? 0,
+          overrideSkill: dep.overrideSkill ?? "",
+          overrideDc: dep.overrideDc ?? null,
+        }));
       }
     }
 
@@ -1099,8 +1147,8 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
         if (targetCheck) break;
       }
       if (!targetCheck) return;
-      const current = Array.isArray(targetCheck.dependsOn) ? targetCheck.dependsOn : [];
-      const nextDepends = current.filter((id) => id !== depId);
+      const current = normalizeCheckDependencies(targetCheck.dependsOn ?? []);
+      const nextDepends = current.filter((dep) => dep.id !== depId);
       if (nextDepends.length === current.length) return;
       targetCheck.dependsOn = nextDepends;
       if (this._onUpdate) {
@@ -1113,6 +1161,140 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
       }
       this._phase = phase;
       this.render(true);
+    });
+
+
+    html.on("contextmenu.drepFlow", ".drep-flow-dep", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const chip = event.currentTarget?.closest(".drep-flow-dep");
+      const depId = chip?.dataset?.depId;
+      const targetCheckId = chip?.dataset?.targetCheckId;
+      if (!depId || !targetCheckId) return;
+
+      const phaseConfig = getPhaseConfig(this._trackerId);
+      const phase = this._phase ?? phaseConfig.find((entry) => entry.id === this._phaseId) ?? phaseConfig[0];
+      if (!phase) return;
+      let targetCheck = null;
+      for (const group of phase.groups ?? []) {
+        targetCheck = (group.checks ?? []).find((entry) => entry.id === targetCheckId) ?? null;
+        if (targetCheck) break;
+      }
+      if (!targetCheck) return;
+
+      const current = normalizeCheckDependencies(targetCheck.dependsOn ?? []);
+      const depEntry = current.find((entry) => entry.id === depId) ?? { id: depId, type: "block" };
+      const depType = depEntry.type ?? "block";
+      const penaltyValue = Number.isFinite(depEntry.dcPenalty) && depEntry.dcPenalty > 0 ? depEntry.dcPenalty : 1;
+      const overrideSkill = depEntry.overrideSkill ?? "";
+      const overrideDc = Number.isFinite(depEntry.overrideDc) ? depEntry.overrideDc : "";
+      const skillOptions = getSkillOptions();
+      const skillOptionsHtml = [
+        `<option value="">(no override)</option>`,
+        ...skillOptions.map((option) => `
+          <option value="${option.key}" ${option.key === overrideSkill ? "selected" : ""}>${option.label}</option>
+        `),
+      ].join("");
+
+      const content = `
+        <form class="drep-dep-editor">
+          <div class="form-group">
+            <label>Link Type</label>
+            <div class="form-fields">
+              <select name="depType">
+                <option value="block" ${depType === "block" ? "selected" : ""}>Block until completed</option>
+                <option value="harder" ${depType === "harder" ? "selected" : ""}>Harder until completed (+DC)</option>
+                <option value="advantage" ${depType === "advantage" ? "selected" : ""}>Advantage when completed</option>
+                <option value="disadvantage" ${depType === "disadvantage" ? "selected" : ""}>Disadvantage until completed</option>
+                <option value="override" ${depType === "override" ? "selected" : ""}>Change skill/DC when completed</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group drep-dep-penalty">
+            <label>DC penalty</label>
+            <div class="form-fields">
+              <input type="number" name="dcPenalty" value="${penaltyValue}" min="1" max="10" />
+            </div>
+          </div>
+          <div class="form-group drep-dep-override">
+            <label>Override skill</label>
+            <div class="form-fields">
+              <select name="overrideSkill">${skillOptionsHtml}</select>
+            </div>
+          </div>
+          <div class="form-group drep-dep-override">
+            <label>Override DC</label>
+            <div class="form-fields">
+              <input type="number" name="overrideDc" value="${overrideDc}" min="0" />
+            </div>
+          </div>
+        </form>
+      `;
+
+      const applyDependency = (newDep) => {
+        const nextDepends = current.map((entry) => entry.id === depId ? newDep : entry);
+        targetCheck.dependsOn = nextDepends;
+        if (this._onUpdate) {
+          this._onUpdate({
+            kind: "check",
+            phaseId: phase.id,
+            checkId: targetCheckId,
+            dependsOn: nextDepends,
+          });
+        }
+        this._phase = phase;
+        this.render(true);
+      };
+
+      new Dialog({
+        title: "Edit Dependency",
+        content,
+        buttons: {
+          save: {
+            label: "Save",
+            callback: (dialogHtml) => {
+              const root = dialogHtml instanceof jQuery ? dialogHtml : $(dialogHtml);
+              const form = root.find("form.drep-dep-editor")[0];
+              if (!form) return;
+              const formData = new FormData(form);
+              const type = String(formData.get("depType") ?? "block");
+              const nextDep = { id: depId, type };
+              if (type === "harder") {
+                const penaltyRaw = Number(formData.get("dcPenalty"));
+                nextDep.dcPenalty = Number.isFinite(penaltyRaw) && penaltyRaw > 0 ? penaltyRaw : 1;
+              }
+              if (type === "override") {
+                const skillValue = String(formData.get("overrideSkill") ?? "").trim();
+                if (skillValue) nextDep.overrideSkill = skillValue;
+                const dcValue = Number(formData.get("overrideDc"));
+                if (Number.isFinite(dcValue)) nextDep.overrideDc = dcValue;
+              }
+              applyDependency(nextDep);
+            },
+          },
+          reset: {
+            label: "Revert",
+            callback: () => {
+              applyDependency({ id: depId, type: "block" });
+            },
+          },
+          cancel: {
+            label: "Cancel",
+          },
+        },
+        default: "save",
+        render: (dialogHtml) => {
+          const root = dialogHtml instanceof jQuery ? dialogHtml : $(dialogHtml);
+          const typeSelect = root.find("[name='depType']");
+          const toggleFields = () => {
+            const selected = String(typeSelect.val() ?? "block");
+            root.find(".drep-dep-penalty").toggle(selected === "harder");
+            root.find(".drep-dep-override").toggle(selected === "override");
+          };
+          typeSelect.on("change", toggleFields);
+          toggleFields();
+        },
+      }).render(true);
     });
 
     html.on("dragover.drepFlow", ".drep-flow-lane", (event) => {
@@ -1241,9 +1423,9 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
           if (targetCheck) break;
         }
         if (!targetCheck) return;
-        const current = Array.isArray(targetCheck.dependsOn) ? targetCheck.dependsOn : [];
-        if (current.includes(sourceCheckId)) return;
-        const nextDepends = [...current, sourceCheckId];
+        const current = normalizeCheckDependencies(targetCheck.dependsOn ?? []);
+        if (current.some((dep) => dep.id === sourceCheckId)) return;
+        const nextDepends = [...current, { id: sourceCheckId, type: "block" }];
         targetCheck.dependsOn = nextDepends;
         if (this._onUpdate) {
           this._onUpdate({

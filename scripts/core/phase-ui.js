@@ -1,5 +1,5 @@
 import { parseList } from "./parse.js";
-import { normalizePhaseConfig } from "./phase.js";
+import { normalizeCheckDependencies, normalizePhaseConfig } from "./phase.js";
 
 function initDependencyDragDrop(html, logger = () => {}) {
   const getCheckLabel = (checkId) => {
@@ -327,7 +327,11 @@ function applyPhaseConfigFormData(phaseConfig, formData) {
         const dc = Number(checkData?.dc);
         const description =
           typeof checkData?.description === "string" ? checkData.description.trim() : "";
-        const dependsOn = parseList(checkData?.dependsOn ?? "");
+        const existingGroup = (phase.groups ?? []).find((entry) => entry.id === groupId);
+        const existingCheck = (existingGroup?.checks ?? []).find((entry) => entry.id === checkId);
+        const dependsOn = Object.prototype.hasOwnProperty.call(checkData ?? {}, "dependsOn")
+          ? normalizeCheckDependencies(checkData?.dependsOn ?? "")
+          : normalizeCheckDependencies(existingCheck?.dependsOn ?? []);
         checks.push({
           id: checkId,
           name,

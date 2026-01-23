@@ -5,6 +5,13 @@ import { getCurrentTracker, getTrackerById } from "./tracker.js";
 
 const DEFAULT_CHECK_TARGET = 1;
 const DEFAULT_CHECK_DC = 13;
+const DEPENDENCY_TYPES = new Set([
+  "block",
+  "harder",
+  "advantage",
+  "disadvantage",
+  "override",
+]);
 
 function getPhaseConfig(trackerId) {
   const tracker = trackerId ? getTrackerById(trackerId) : getCurrentTracker();
@@ -142,7 +149,9 @@ function normalizeChecks(checks, groupId, usedCheckIds) {
     const description =
       typeof check?.description === "string" ? check.description.trim() : "";
     const target = DEFAULT_CHECK_TARGET;
-    const dependsOn = parseList(check?.dependsOn ?? check?.dependsOnChecks ?? "");
+    const dependsOn = normalizeCheckDependencies(
+      check?.dependsOn ?? check?.dependsOnChecks ?? ""
+    );
     return {
       id,
       name,
@@ -155,6 +164,45 @@ function normalizeChecks(checks, groupId, usedCheckIds) {
       step: Number.isFinite(Number(check?.step)) ? Number(check.step) : null,
     };
   });
+}
+
+function normalizeCheckDependencies(raw) {
+  let entries = raw;
+  if (typeof raw === "string") {
+    entries = parseList(raw);
+  }
+  if (!Array.isArray(entries)) return [];
+  const output = [];
+  for (const entry of entries) {
+    if (typeof entry === "string") {
+      const id = entry.trim();
+      if (!id) continue;
+      output.push({ id, type: "block" });
+      continue;
+    }
+    if (!entry || typeof entry !== "object") continue;
+    const id = typeof entry.id === "string" ? entry.id.trim() : "";
+    if (!id) continue;
+    const type = DEPENDENCY_TYPES.has(entry.type) ? entry.type : "block";
+    const dcPenaltyRaw = Number(entry.dcPenalty ?? entry.penalty ?? entry.dcDelta ?? 0);
+    const dcPenalty = Number.isFinite(dcPenaltyRaw) ? dcPenaltyRaw : 0;
+    const overrideSkill =
+      typeof entry.overrideSkill === "string" ? entry.overrideSkill.trim() : "";
+    const overrideDcRaw = Number(entry.overrideDc);
+    const overrideDc = Number.isFinite(overrideDcRaw) ? overrideDcRaw : null;
+    output.push({
+      id,
+      type,
+      dcPenalty,
+      overrideSkill,
+      overrideDc,
+    });
+  }
+  return output;
+}
+
+function getCheckDependencies(check) {
+  return normalizeCheckDependencies(check?.dependsOn ?? []);
 }
 
 function normalizePhaseLines(lines) {
@@ -195,7 +243,7 @@ function buildGroupsFromLegacyPhase(phase, fallback) {
         const narrative = phase?.skillNarratives?.[skill]?.[step] ?? null;
         const name = narrative?.title || `${label} ${step}`;
         const id = `${skill}-${step}`;
-        const dependsOn = step > 1 ? [`${skill}-${step - 1}`] : [];
+        const dependsOn = step > 1 ? [{ id: `${skill}-${step - 1}`, type: "block" }] : [];
         checks.push({
           id,
           name,
@@ -416,16 +464,87 @@ function isGroupComplete(phase, groupId, checkProgress) {
   return (group.checks ?? []).every((check) => isCheckComplete(check, checkProgress));
 }
 
+function isDependencyComplete(phase, depId, checkProgress) {
+  if (!depId) return true;
+  const depCheck = getPhaseCheckById(phase, depId);
+  if (!depCheck) return true;
+  const target = getPhaseCheckTarget(depCheck);
+  const current = Number(checkProgress?.[depId] ?? 0);
+  return current >= target;
+}
+
+function getCheckDependencyEffects(phase, check, checkProgress) {
+  const deps = getCheckDependencies(check);
+  let dcPenalty = 0;
+  let advantage = false;
+  let disadvantage = false;
+  let overrideSkill = "";
+  let overrideDc = null;
+  for (const dep of deps) {
+    const complete = isDependencyComplete(phase, dep.id, checkProgress);
+    switch (dep.type) {
+      case "harder": {
+        const penalty = Number.isFinite(dep.dcPenalty) && dep.dcPenalty > 0 ? dep.dcPenalty : 1;
+        if (!complete) dcPenalty += penalty;
+        break;
+      }
+      case "advantage":
+        if (complete) advantage = true;
+        break;
+      case "disadvantage":
+        if (!complete) disadvantage = true;
+        break;
+      case "override":
+        if (complete) {
+          if (dep.overrideSkill) overrideSkill = dep.overrideSkill;
+          if (Number.isFinite(dep.overrideDc)) overrideDc = dep.overrideDc;
+        }
+        break;
+      case "block":
+      default:
+        break;
+    }
+  }
+  if (advantage && disadvantage) {
+    advantage = false;
+    disadvantage = false;
+  }
+  return {
+    dcPenalty,
+    advantage,
+    disadvantage,
+    overrideSkill,
+    overrideDc,
+  };
+}
+
+function getCheckRollData(phase, check, checkProgress) {
+  const effects = getCheckDependencyEffects(phase, check, checkProgress);
+  const baseDc = getPhaseDc(phase, check);
+  let dc = baseDc;
+  if (Number.isFinite(effects.overrideDc)) {
+    dc = effects.overrideDc;
+  }
+  if (effects.dcPenalty) {
+    dc += effects.dcPenalty;
+  }
+  const skill = effects.overrideSkill || check?.skill || "";
+  return {
+    skill,
+    dc,
+    advantage: effects.advantage,
+    disadvantage: effects.disadvantage,
+    dcPenalty: effects.dcPenalty,
+    overrideSkill: effects.overrideSkill,
+    overrideDc: effects.overrideDc,
+  };
+}
+
 function isCheckUnlocked(phase, check, checkProgress) {
-  const deps = Array.isArray(check?.dependsOn) ? check.dependsOn : [];
-  if (!deps.length) return true;
-  return deps.every((depId) => {
-    const depCheck = getPhaseCheckById(phase, depId);
-    if (!depCheck) return true;
-    const target = getPhaseCheckTarget(depCheck);
-    const current = Number(checkProgress?.[depId] ?? 0);
-    return current >= target;
-  });
+  const deps = getCheckDependencies(check);
+  const blockers = deps.filter((dep) => dep.type === "block");
+  if (!blockers.length) return true;
+  return blockers.every((dep) => isDependencyComplete(phase, dep.id, checkProgress));
 }
 
 function getPhaseDc(phase, checkId) {
@@ -439,19 +558,22 @@ function getPhaseCheckChoices(phase, checkProgress) {
   return getPhaseChecks(phase).map((check) => {
     const complete = isCheckComplete(check, checkProgress);
     const unlocked = isCheckUnlocked(phase, check, checkProgress);
-    const skillLabel = check.skill ? getSkillLabel(check.skill) : "";
+    const rollData = getCheckRollData(phase, check, checkProgress);
+    const skillLabel = rollData.skill ? getSkillLabel(rollData.skill) : "";
     return {
       key: check.id,
       label: getPhaseCheckLabel(check),
       description: check.description ?? "",
-      skill: check.skill,
+      skill: rollData.skill,
       skillLabel,
-      dc: getPhaseDc(phase, check),
+      dc: rollData.dc,
       groupId: check.groupId,
       groupName: check.groupName,
       complete,
       locked: !unlocked || complete,
-      dependsOn: check.dependsOn ?? [],
+      dependsOn: getCheckDependencies(check).map((dep) => dep.id),
+      advantage: rollData.advantage,
+      disadvantage: rollData.disadvantage,
     };
   });
 }
@@ -516,6 +638,9 @@ export {
   getPhaseDefinition,
   initializePhaseState,
   getPhaseNumber,
+  normalizeCheckDependencies,
+  getCheckDependencies,
+  getCheckRollData,
   getFirstPhaseId,
   getDefaultSkills,
   getPhaseGroups,

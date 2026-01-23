@@ -14,6 +14,8 @@ import {
 
   getPhaseDc,
 
+  getCheckRollData,
+
   getPhaseProgress,
 
   getPhaseAvailableChecks,
@@ -56,7 +58,7 @@ function getAbilityKey(skillKey) {
 
 }
 
-async function rollPf2eSkill(actor, skillKey, advantage) {
+async function rollPf2eSkill(actor, skillKey, advantage, disadvantage) {
 
   if (!actor || !skillKey) return null;
 
@@ -95,13 +97,15 @@ async function rollPf2eSkill(actor, skillKey, advantage) {
   }
 
   if (!statistic) return null;
-
+  if (advantage && disadvantage) {
+    advantage = false;
+    disadvantage = false;
+  }
   const options = { skipDialog: true };
-
   if (advantage) {
-
     options.rollTwice = "keep-higher";
-
+  } else if (disadvantage) {
+    options.rollTwice = "keep-lower";
   }
 
   try {
@@ -134,19 +138,20 @@ async function rollPf2eSkill(actor, skillKey, advantage) {
 
 }
 
-async function rollSkill(actor, skillKey, advantage) {
-
+async function rollSkill(actor, skillKey, advantage, disadvantage) {
+  if (advantage && disadvantage) {
+    advantage = false;
+    disadvantage = false;
+  }
   if (isAbilityKey(skillKey)) {
-
-    return rollAbility(actor, getAbilityKey(skillKey), advantage);
-
+    return rollAbility(actor, getAbilityKey(skillKey), advantage, disadvantage);
   }
 
   if (!actor?.rollSkill) {
 
     if (game.system?.id === "pf2e") {
 
-      const pf2eRoll = await rollPf2eSkill(actor, skillKey, advantage);
+      const pf2eRoll = await rollPf2eSkill(actor, skillKey, advantage, disadvantage);
 
       if (pf2eRoll) return pf2eRoll;
 
@@ -162,7 +167,7 @@ async function rollSkill(actor, skillKey, advantage) {
 
     if (game.user?.isGM && actor.hasPlayerOwner) {
 
-      return await rollSkillDirect(actor, skillKey, advantage);
+      return await rollSkillDirect(actor, skillKey, advantage, disadvantage);
 
     }
 
@@ -171,6 +176,12 @@ async function rollSkill(actor, skillKey, advantage) {
     if (advantage) {
 
       config.advantage = true;
+
+    }
+
+    if (disadvantage) {
+
+      config.disadvantage = true;
 
     }
 
@@ -198,7 +209,7 @@ async function rollSkill(actor, skillKey, advantage) {
 
     if (game.user?.isGM && actor.hasPlayerOwner) {
 
-      return rollSkillDirect(actor, skillKey, advantage);
+      return rollSkillDirect(actor, skillKey, advantage, disadvantage);
 
     }
 
@@ -210,13 +221,13 @@ async function rollSkill(actor, skillKey, advantage) {
 
 }
 
-async function rollSkillDirect(actor, skillKey, advantage) {
+async function rollSkillDirect(actor, skillKey, advantage, disadvantage) {
 
   const skillData = actor.system?.skills?.[skillKey];
 
   const mod = Number(skillData?.total ?? skillData?.mod ?? 0);
 
-  const formula = advantage ? "2d20kh + @mod" : "1d20 + @mod";
+  const formula = advantage ? "2d20kh + @mod" : (disadvantage ? "2d20kl + @mod" : "1d20 + @mod");
 
   const roll = await new Roll(formula, { mod }).evaluate({ async: true });
 
@@ -232,7 +243,12 @@ async function rollSkillDirect(actor, skillKey, advantage) {
 
 }
 
-async function rollAbility(actor, abilityKey, advantage) {
+async function rollAbility(actor, abilityKey, advantage, disadvantage) {
+
+  if (advantage && disadvantage) {
+    advantage = false;
+    disadvantage = false;
+  }
 
   if (!abilityKey) {
 
@@ -247,6 +263,12 @@ async function rollAbility(actor, abilityKey, advantage) {
   if (advantage) {
 
     options.advantage = true;
+
+  }
+
+  if (disadvantage) {
+
+    options.disadvantage = true;
 
   }
 
@@ -290,7 +312,7 @@ async function rollAbility(actor, abilityKey, advantage) {
 
     if (game.user?.isGM && actor?.hasPlayerOwner) {
 
-      return await rollAbilityDirect(actor, abilityKey, advantage);
+      return await rollAbilityDirect(actor, abilityKey, advantage, disadvantage);
 
     }
 
@@ -310,7 +332,7 @@ async function rollAbility(actor, abilityKey, advantage) {
 
     if (roll) return roll;
 
-    return await rollAbilityDirect(actor, abilityKey, advantage);
+    return await rollAbilityDirect(actor, abilityKey, advantage, disadvantage);
 
   } catch (error) {
 
@@ -318,7 +340,7 @@ async function rollAbility(actor, abilityKey, advantage) {
 
     if (game.user?.isGM && actor?.hasPlayerOwner) {
 
-      return rollAbilityDirect(actor, abilityKey, advantage);
+      return rollAbilityDirect(actor, abilityKey, advantage, disadvantage);
 
     }
 
@@ -330,7 +352,7 @@ async function rollAbility(actor, abilityKey, advantage) {
 
 }
 
-async function rollAbilityDirect(actor, abilityKey, advantage) {
+async function rollAbilityDirect(actor, abilityKey, advantage, disadvantage) {
 
   if (!actor) return null;
 
@@ -338,7 +360,7 @@ async function rollAbilityDirect(actor, abilityKey, advantage) {
 
   const mod = Number(abilityData?.mod ?? abilityData?.value ?? 0);
 
-  const formula = advantage ? "2d20kh + @mod" : "1d20 + @mod";
+  const formula = advantage ? "2d20kh + @mod" : (disadvantage ? "2d20kl + @mod" : "1d20 + @mod");
 
   const roll = await new Roll(formula, { mod }).evaluate({ async: true });
 
@@ -393,16 +415,22 @@ async function runIntervalRoll({ actor, checkChoice, trackerId }) {
   }
 
   if (!selectedCheck) return;
-
-  const skillKey = selectedCheck.skill;
-
-  const skillLabel = skillKey ? getSkillLabel(skillKey) : selectedCheck.skill;
-
   const checkLabel = getPhaseCheckLabel(selectedCheck);
+  const rollData = getCheckRollData(
+    activePhase,
+    selectedCheck,
+    activePhase.checkProgress
+  );
+  const skillKey = rollData.skill;
+  const skillLabel = skillKey ? getSkillLabel(skillKey) : selectedCheck.skill;
+  const dc = rollData.dc;
 
-  const dc = getPhaseDc(activePhase, selectedCheck);
-
-  const roll = await rollSkill(actor, skillKey, false);
+  const roll = await rollSkill(
+    actor,
+    skillKey,
+    rollData.advantage,
+    rollData.disadvantage
+  );
 
   if (!roll) return;
 
@@ -566,7 +594,7 @@ async function runIntervalRoll({ actor, checkChoice, trackerId }) {
 
     groupName: selectedCheck.groupName,
 
-    skillChoice: selectedCheck.skill,
+    skillChoice: skillKey,
 
     skillKey,
 
