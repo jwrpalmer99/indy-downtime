@@ -168,6 +168,13 @@
 .drep-progress-fill {
   height: 100%;
   background: linear-gradient(90deg, #f39c12, #e67e22);
+  /* background-color: hsl(calc(var(--progress) * 1.2), 50%, 20%); */
+  /* background: linear-gradient(90deg, #660702, hsl(calc(var(--progress) * 1.2), 50%, 20%)); */
+}
+
+.drep-progress-fill.main {
+  height: 150%;
+  /* background-color: hsl(calc(var(--progress) * 1.2), 50%, 20%); */
 }
 
 .drep-panel {
@@ -535,7 +542,10 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
-  background-color: hsl(calc(var(--progress) * 0.3333), 70%, 40%);
+}
+
+.drep-progress-block.main {
+  /* background-color: hsl(calc(var(--progress) * 1.2), 50%, 10%); */
 }
 
 .drep-check-group {
@@ -1072,3 +1082,16 @@
 
 
 
+
+
+.drep-check-tooltip {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 6px;
+  color: #c5b79d;
+  cursor: help;
+}
+
+.drep-check-tooltip i {
+  font-size: 0.9em;
+}

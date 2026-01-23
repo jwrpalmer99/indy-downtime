@@ -518,6 +518,36 @@ function getCheckDependencyEffects(phase, check, checkProgress) {
   };
 }
 
+function getCheckDependencyDetails(phase, check, checkProgress) {
+  const deps = getCheckDependencies(check);
+  const details = [];
+  for (const dep of deps) {
+    const sourceCheck = getPhaseCheckById(phase, dep.id);
+    const sourceLabel = getPhaseCheckLabel(sourceCheck) || dep.id;
+    const complete = isDependencyComplete(phase, dep.id, checkProgress);
+    if (dep.type === "harder") {
+      const penalty = Number.isFinite(dep.dcPenalty) && dep.dcPenalty > 0 ? dep.dcPenalty : 1;
+      if (!complete) {
+        details.push({ type: "harder", dcPenalty: penalty, source: sourceLabel });
+      }
+      continue;
+    }
+    if (dep.type === "advantage") {
+      if (complete) {
+        details.push({ type: "advantage", source: sourceLabel });
+      }
+      continue;
+    }
+    if (dep.type === "disadvantage") {
+      if (!complete) {
+        details.push({ type: "disadvantage", source: sourceLabel });
+      }
+      continue;
+    }
+  }
+  return details;
+}
+
 function getCheckRollData(phase, check, checkProgress) {
   const effects = getCheckDependencyEffects(phase, check, checkProgress);
   const baseDc = getPhaseDc(phase, check);
@@ -641,6 +671,7 @@ export {
   normalizeCheckDependencies,
   getCheckDependencies,
   getCheckRollData,
+  getCheckDependencyDetails,
   getFirstPhaseId,
   getDefaultSkills,
   getPhaseGroups,

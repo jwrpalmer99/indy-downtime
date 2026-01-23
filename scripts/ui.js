@@ -45,6 +45,8 @@ import {
   getPhaseNumber,
 
   getPhaseCheckChoices,
+  getPhaseCheckById,
+  getCheckDependencyDetails,
 
   getPhaseCheckTarget,
 
@@ -481,15 +483,38 @@ function buildTrackerData({
 
   const checkDescriptions = {};
 
+  const checkTooltips = {};
+
   for (const choice of checkChoices) {
 
     checkTitles[choice.key] = choice.label;
 
     checkDescriptions[choice.key] = choice.description || "";
 
+    const check = getPhaseCheckById(activePhase, choice.key);
+    const depDetails = getCheckDependencyDetails(activePhase, check, activePhase.checkProgress);
+    if (depDetails.length) {
+      const lines = depDetails.map((detail) => {
+        if (detail.type === "harder") {
+          return `+${detail.dcPenalty} DC (from ${detail.source})`;
+        }
+        if (detail.type === "advantage") {
+          return `Advantage (from ${detail.source})`;
+        }
+        if (detail.type === "disadvantage") {
+          return `Disadvantage (from ${detail.source})`;
+        }
+        return "";
+      }).filter(Boolean);
+      checkTooltips[choice.key] = lines.join("\n");
+    } else {
+      checkTooltips[choice.key] = "";
+    }
+
   }
 
 
+  const selectedCheckTooltip = checkTooltips[selectedChoice?.key ?? preferredChoice] ?? "";
 
   const checkGroups = getPhaseGroups(activePhase).map((group) => {
 
@@ -578,6 +603,7 @@ function buildTrackerData({
     checkTitles,
 
     checkDescriptions,
+    checkTooltips,
 
     checkGroups,
 
@@ -604,6 +630,7 @@ function buildTrackerData({
     selectedCheckLabel,
 
     selectedCheckDescription,
+    selectedCheckTooltip,
 
     sheetActor: actor ? { id: actor.id, name: actor.name } : null,
 
@@ -675,7 +702,7 @@ function attachTrackerListeners(html, { render, actor, app } = {}) {
 
     if (title) {
 
-      scope.find(".drep-check-title").text(`Current Focus: ${title}`);
+      scope.find(".drep-check-title-text").text(`Current Focus: ${title}`);
 
     }
 
@@ -694,6 +721,16 @@ function attachTrackerListeners(html, { render, actor, app } = {}) {
     } else {
 
       descEl.text("").hide();
+
+    const tooltip = scope
+      .find(`[data-drep-check-tooltip='${selected}']`)
+      .data("tooltip") || "";
+    const tooltipEl = scope.find(".drep-check-tooltip");
+    if (tooltip) {
+      tooltipEl.attr("title", tooltip).show();
+    } else {
+      tooltipEl.attr("title", "").hide();
+    }
 
     }
 
