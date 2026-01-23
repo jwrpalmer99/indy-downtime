@@ -60,6 +60,29 @@ import {
   updateTidyTabLabel,
 } from "./ui.js";
 
+const confirmDialogV2 = ({ title, content, yesLabel = "Yes", noLabel = "Cancel" }) =>
+  new Promise((resolve) => {
+    const dialog = new foundry.applications.api.DialogV2({
+      window: { title },
+      content: `<div>${content}</div>`,
+      buttons: [
+        {
+          action: "yes",
+          label: yesLabel,
+          default: true,
+          callback: () => resolve(true),
+        },
+        {
+          action: "no",
+          label: noLabel,
+          callback: () => resolve(false),
+        },
+      ],
+      close: () => resolve(false),
+    });
+    dialog.render(true);
+  });
+
 class DowntimeRepSettings extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
     id: "indy-downtime-settings",
@@ -144,7 +167,7 @@ class DowntimeRepSettings extends HandlebarsApplicationMixin(ApplicationV2) {
       existing.push(uuid);
       textarea.val(existing.join("\n"));
     });
-    html.find("[data-drep-action]").on("click", (event) => {
+    html.find("[data-drep-action]").on("click", async (event) => {
       event.preventDefault();
       const action = event.currentTarget?.dataset?.drepAction;
       if (!action) return;
@@ -158,17 +181,16 @@ class DowntimeRepSettings extends HandlebarsApplicationMixin(ApplicationV2) {
       }
       if (action === "remove-tracker") {
         if (getTrackers().length <= 1) return;
-        Dialog.confirm({
+        const confirmed = await confirmDialogV2({
           title: "Remove Tracker",
           content: "<p>Remove the current tracker? This cannot be undone.</p>",
-        }).then(async (confirmed) => {
-          if (!confirmed) return;
-          await removeCurrentTracker();
-          registerSheetTab();
-          updateTidyTabLabel();
-          rerenderCharacterSheets();
-          this.render();
         });
+        if (!confirmed) return;
+        await removeCurrentTracker();
+        registerSheetTab();
+        updateTidyTabLabel();
+        rerenderCharacterSheets();
+        this.render();
         return;
       }
         if (action === "open-phase-config") {
@@ -267,7 +289,7 @@ class DowntimeRepSettings extends HandlebarsApplicationMixin(ApplicationV2) {
     const prompt = prompts[action];
     if (!prompt) return;
 
-    const confirmed = await Dialog.confirm({
+    const confirmed = await confirmDialogV2({
       title: prompt.title,
       content: prompt.content,
     });
@@ -315,7 +337,7 @@ class DowntimeRepSettings extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!Array.isArray(state.log) || !state.log[index]) return;
 
     if (action === "log-delete") {
-      const confirmed = await Dialog.confirm({
+      const confirmed = await confirmDialogV2({
         title: "Remove Log Entry",
         content: "<p>Remove this log entry and recalculate progress?</p>",
       });
@@ -1129,26 +1151,30 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
         resolve(value);
       };
       const content = `<p>Copy or move this line to <strong>${targetLabel}</strong>?</p>`;
-      new Dialog({
-        title: "Assign Line",
-        content,
-        buttons: {
-          copy: {
+      const dialog = new foundry.applications.api.DialogV2({
+        window: { title: "Assign Line" },
+        content: `<div>${content}</div>`,
+        buttons: [
+          {
+            action: "copy",
             label: "Copy",
             callback: () => finish("copy"),
           },
-          move: {
+          {
+            action: "move",
             label: "Move",
+            default: true,
             callback: () => finish("move"),
           },
-          cancel: {
+          {
+            action: "cancel",
             label: "Cancel",
             callback: () => finish(null),
           },
-        },
-        default: "move",
+        ],
         close: () => finish(null),
-      }).render(true);
+      });
+      dialog.render(true);
     });
 
     html.on("click.drepFlow", ".drep-flow-line-remove", (event) => {
