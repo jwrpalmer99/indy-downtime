@@ -12,6 +12,13 @@ import {
 import { parseList } from "./parse.js";
 import { getCurrentTracker, getTrackerById } from "./tracker.js";
 
+function getLegacySetting(key) {
+  const settingKey = `${MODULE_ID}.${key}`;
+  if (!game?.settings?.settings?.has(settingKey)) return undefined;
+  return game.settings.get(MODULE_ID, key);
+}
+
+
 function debugLog(message, data = {}) {
   try {
     if (!game?.settings?.get(MODULE_ID, DEBUG_SETTING)) return;
@@ -54,7 +61,7 @@ function saveJsonToFile(data, filename) {
 function getHeaderLabel(trackerId) {
   return (
     getTrackerById(trackerId)?.headerLabel ||
-    game.settings.get(MODULE_ID, "headerLabel") ||
+    getLegacySetting("headerLabel") ||
     DEFAULT_HEADER_LABEL
   );
 }
@@ -63,7 +70,7 @@ function getHeaderLabel(trackerId) {
 function getTabLabel(trackerId) {
   return (
     getTrackerById(trackerId)?.tabLabel ||
-    game.settings.get(MODULE_ID, "tabLabel") ||
+    getLegacySetting("tabLabel") ||
     DEFAULT_TAB_LABEL
   );
 }
@@ -72,7 +79,7 @@ function getTabLabel(trackerId) {
 function getIntervalLabel(trackerId) {
   return (
     getTrackerById(trackerId)?.intervalLabel ||
-    game.settings.get(MODULE_ID, "intervalLabel") ||
+    getLegacySetting("intervalLabel") ||
     DEFAULT_INTERVAL_LABEL
   );
 }
@@ -96,7 +103,7 @@ function shouldShowLockedChecks(trackerId) {
 
 function getRestrictedActorUuids(trackerId) {
   const stored = getTrackerById(trackerId)?.restrictedActorUuids ??
-    game.settings.get(MODULE_ID, RESTRICTED_ACTORS_SETTING);
+    getLegacySetting(RESTRICTED_ACTORS_SETTING);
   if (!Array.isArray(stored)) return [];
   return stored.filter((uuid) => typeof uuid === "string" && uuid.trim().length);
 }
@@ -230,3 +237,5 @@ export {
   getSkillLabel,
   localizeSkillLabel,
 };
+
+

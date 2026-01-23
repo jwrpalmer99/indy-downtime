@@ -12,8 +12,14 @@ import {
   TRACKERS_SETTING,
 } from "../constants.js";
 import { debugLog, parseRestrictedActorUuids, sanitizeLabel } from "./labels.js";
+
 import { buildEmptyPhase1, normalizePhaseConfig } from "./phase.js";
 import { normalizeProjectState } from "./state.js";
+function getLegacySetting(key) {
+  const settingKey = `${MODULE_ID}.${key}`;
+  if (!game?.settings?.settings?.has(settingKey)) return undefined;
+  return game.settings.get(MODULE_ID, key);
+}
 
 
 function canWriteSettings() {
@@ -184,14 +190,14 @@ function buildDefaultTrackerFromLegacy() {
   return {
     id: "tracker-1",
     name: DEFAULT_TRACKER_NAME,
-    headerLabel: game.settings.get(MODULE_ID, "headerLabel") || DEFAULT_HEADER_LABEL,
-    tabLabel: game.settings.get(MODULE_ID, "tabLabel") || DEFAULT_TAB_LABEL,
-    intervalLabel: game.settings.get(MODULE_ID, "intervalLabel") || DEFAULT_INTERVAL_LABEL,
+    headerLabel: getLegacySetting("headerLabel") || DEFAULT_HEADER_LABEL,
+    tabLabel: getLegacySetting("tabLabel") || DEFAULT_TAB_LABEL,
+    intervalLabel: getLegacySetting("intervalLabel") || DEFAULT_INTERVAL_LABEL,
     tabIcon: DEFAULT_TAB_ICON,
     hideDcFromPlayers: false,
     showLockedChecksToPlayers: true,
     restrictedActorUuids:
-      game.settings.get(MODULE_ID, RESTRICTED_ACTORS_SETTING) ?? [],
+      getLegacySetting(RESTRICTED_ACTORS_SETTING) ?? [],
     phaseConfig,
     state,
   };
@@ -212,3 +218,5 @@ export {
   removeCurrentTracker,
   buildDefaultTrackerFromLegacy,
 };
+
+
