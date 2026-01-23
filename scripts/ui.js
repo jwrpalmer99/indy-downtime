@@ -83,6 +83,10 @@ const pendingTabRestore = new WeakMap();
 function requestTabRestore(app, tabId) {
   if (!app || !tabId) return;
   pendingTabRestore.set(app, tabId);
+  debugLog("Queued tab restore", {
+    tabId,
+    appClass: app?.constructor?.name,
+  });
 }
 
 function consumePendingTabRestore(app) {
@@ -96,7 +100,17 @@ function consumePendingTabRestore(app) {
 function restorePendingTab(app, root) {
   const tabId = consumePendingTabRestore(app);
   if (!tabId) return;
-  const restore = () => restoreActiveTab(app, root, tabId);
+  debugLog("Restoring pending tab", {
+    tabId,
+    appClass: app?.constructor?.name,
+  });
+  const restore = () => {
+    restoreActiveTab(app, root, tabId);
+    debugLog("Restore attempt completed", {
+      tabId,
+      appClass: app?.constructor?.name,
+    });
+  };
   if (typeof requestAnimationFrame === "function") {
     requestAnimationFrame(() => requestAnimationFrame(restore));
   } else {
@@ -130,6 +144,24 @@ function formatCheckOptionLabel(choice, showDc) {
 
 function getActiveTabId(app, root) {
 
+  const $context = root instanceof jQuery ? root : $(root);
+
+  if ($context?.length) {
+
+    const contentTab = $context.closest(".tab[data-tab], [data-tab][role='tabpanel']").first();
+
+    const contentTabId = contentTab.data("tab") || contentTab.attr("data-tab") || "";
+
+    if (contentTabId) {
+      debugLog("Active tab from content", {
+        tabId: contentTabId,
+        appClass: app?.constructor?.name,
+      });
+      return contentTabId;
+    }
+
+  }
+
   const rootEl = app?.element ?? root?.closest?.(".app") ?? root;
 
   const $root = rootEl instanceof jQuery ? rootEl : $(rootEl);
@@ -144,7 +176,13 @@ function getActiveTabId(app, root) {
 
     const tabId = active.data("tab") || active.attr("data-tab") || "";
 
-    if (tabId) return tabId;
+    if (tabId) {
+      debugLog("Active tab from DOM", {
+        tabId,
+        appClass: app?.constructor?.name,
+      });
+      return tabId;
+    }
 
   }
 
@@ -170,9 +208,21 @@ function getActiveTabId(app, root) {
 
     if (!controller) continue;
 
-    if (typeof controller.active === "string" && controller.active) return controller.active;
+    if (typeof controller.active === "string" && controller.active) {
+      debugLog("Active tab from controller", {
+        tabId: controller.active,
+        appClass: app?.constructor?.name,
+      });
+      return controller.active;
+    }
 
-    if (controller.active?.tab) return controller.active.tab;
+    if (controller.active?.tab) {
+      debugLog("Active tab from controller", {
+        tabId: controller.active.tab,
+        appClass: app?.constructor?.name,
+      });
+      return controller.active.tab;
+    }
 
   }
 
