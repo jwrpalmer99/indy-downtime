@@ -485,6 +485,8 @@ function buildTrackerData({
 
   const checkTooltips = {};
 
+  const checkLockMap = new Map(checkChoices.map((choice) => [choice.key, { locked: choice.locked, complete: choice.complete }]));
+
   for (const choice of checkChoices) {
 
     checkTitles[choice.key] = choice.label;
@@ -495,14 +497,17 @@ function buildTrackerData({
     const depDetails = getCheckDependencyDetails(activePhase, check, activePhase.checkProgress);
     if (depDetails.length) {
       const lines = depDetails.map((detail) => {
+        const status = checkLockMap.get(detail.sourceId);
+        const isLocked = Boolean(status?.locked) && !status?.complete;
+        const displaySource = (!showLockedChecks && isLocked) ? "???" : detail.source;
         if (detail.type === "harder") {
-          return `+${detail.dcPenalty} DC (from ${detail.source})`;
+          return `+${detail.dcPenalty} DC (from ${displaySource})`;
         }
         if (detail.type === "advantage") {
-          return `Advantage (from ${detail.source})`;
+          return `Advantage (from ${displaySource})`;
         }
         if (detail.type === "disadvantage") {
-          return `Disadvantage (from ${detail.source})`;
+          return `Disadvantage (from ${displaySource})`;
         }
         return "";
       }).filter(Boolean);
@@ -641,86 +646,47 @@ function buildTrackerData({
 
 
 function attachTrackerListeners(html, { render, actor, app } = {}) {
-
   const root = html.find("[data-drep-root]").first();
-
   const scope = root.length ? root : html;
-
   const trackerId =
-
     scope.data("drepTracker") ||
-
     scope.find("[data-drep-tracker]").data("drepTracker") ||
-
     getCurrentTrackerId();
 
-
-
   scope.find(".always-interactive").each((_, element) => {
-
     if (element?.dataset?.drepDisabled === "true") return;
-
     element.disabled = false;
-
   });
-
   debugLog("Listeners attached", {
-
     rollButtons: scope.find("[data-drep-action='roll-interval']").length,
-
   });
-
-
 
   scope.find("[data-drep-action='roll-interval']").on("click", (event) => {
-
     event.preventDefault();
-
     debugLog("Roll click detected");
-
     handleRoll(scope, { render, actorOverride: actor, trackerId, app });
-
   });
 
-
-
   scope.find("[data-drep-name='checkChoice']").on("change", (event) => {
-
     const selected = $(event.currentTarget).val();
-
     if (selected) {
-
       setLastSkillChoice(trackerId, selected);
-
     }
-
     const title = scope
-
       .find(`[data-drep-check-title='${selected}']`)
-
       .data("title") || "";
-
     if (title) {
-
       scope.find(".drep-check-title-text").text(`Current Focus: ${title}`);
-
     }
-
     const description = scope
-
       .find(`[data-drep-check-description='${selected}']`)
-
       .data("description") || "";
-
     const descEl = scope.find(".drep-check-description");
-
     if (description) {
-
       descEl.text(description).show();
-
     } else {
-
       descEl.text("").hide();
+    }
 
     const tooltip = scope
       .find(`[data-drep-check-tooltip='${selected}']`)
@@ -731,14 +697,8 @@ function attachTrackerListeners(html, { render, actor, app } = {}) {
     } else {
       tooltipEl.attr("title", "").hide();
     }
-
-    }
-
   });
-
 }
-
-
 
 async function handleRoll(root, { render, actorOverride, trackerId, app } = {}) {
 

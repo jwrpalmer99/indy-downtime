@@ -753,7 +753,7 @@ async function postSummaryMessage({
 
       <div class="drep-chat">
 
-        <h3>${getIntervalLabel(trackerId)} Check: ${checkLabel}</h3>
+        <h5>${getIntervalLabel(trackerId)} Check: ${checkLabel}</h5>
 
         <p><strong>Actor:</strong> ${actor.name}</p>
 

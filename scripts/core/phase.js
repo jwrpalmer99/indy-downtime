@@ -524,23 +524,24 @@ function getCheckDependencyDetails(phase, check, checkProgress) {
   for (const dep of deps) {
     const sourceCheck = getPhaseCheckById(phase, dep.id);
     const sourceLabel = getPhaseCheckLabel(sourceCheck) || dep.id;
+    const sourceId = dep.id;
     const complete = isDependencyComplete(phase, dep.id, checkProgress);
     if (dep.type === "harder") {
       const penalty = Number.isFinite(dep.dcPenalty) && dep.dcPenalty > 0 ? dep.dcPenalty : 1;
       if (!complete) {
-        details.push({ type: "harder", dcPenalty: penalty, source: sourceLabel });
+        details.push({ type: "harder", dcPenalty: penalty, source: sourceLabel, sourceId });
       }
       continue;
     }
     if (dep.type === "advantage") {
       if (complete) {
-        details.push({ type: "advantage", source: sourceLabel });
+        details.push({ type: "advantage", source: sourceLabel, sourceId });
       }
       continue;
     }
     if (dep.type === "disadvantage") {
       if (!complete) {
-        details.push({ type: "disadvantage", source: sourceLabel });
+        details.push({ type: "disadvantage", source: sourceLabel, sourceId });
       }
       continue;
     }
