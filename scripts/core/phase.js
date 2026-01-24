@@ -700,6 +700,7 @@ export {
   pickLineForCheck,
   pickLineForGroup,
   isPhaseComplete,
+  isDependencyComplete
 };
 
 function buildEmptyPhase1() {

@@ -27,7 +27,7 @@
   <div class="drep-flow-lanes">
     {{#each groups}}
       <div class="drep-flow-lane" data-drep-group-id="{{this.id}}">
-        <div class="drep-flow-lane-header">{{this.name}}</div>
+        <div class="drep-flow-lane-header">{{this.name}}{{#if this.maxChecks}} <span class="drep-flow-group-cap">(Max Success: {{this.maxChecks}})</span>{{/if}}</div>
         {{#if (and @root.showFlowLines this.successLines.length)}}
           <div class="drep-flow-lines success">
             <span class="drep-flow-lines-label">Group Success Lines</span>
@@ -46,7 +46,7 @@
         {{/if}}
         <div class="drep-flow-checks">
           {{#each this.checks}}
-            <div class="drep-flow-check" data-drep-check-id="{{this.id}}">
+            <div class="drep-flow-check {{#if this.locked}}is-locked{{/if}} {{#if this.groupMaxed}}is-group-maxed{{/if}} {{#if this.complete}}is-complete{{/if}}" data-drep-check-id="{{this.id}}">
               <div class="drep-flow-check-name">{{this.name}}</div>
               <div class="drep-flow-check-meta">{{this.skillLabel}}{{#if (and this.dc (not @root.hideDc))}} - DC {{this.dc}}{{/if}}</div>
               {{#if this.dependsOnEntries.length}}
@@ -54,7 +54,7 @@
                 <div class="drep-flow-deps">
                   <span class="drep-flow-deps-label">Depends on</span>
                   {{#each this.dependsOnEntries}}
-                    <span class="drep-flow-dep" data-dep-id="{{this.id}}" data-target-check-id="{{../id}}" data-dep-type="{{this.type}}" title="{{this.detail}}">{{this.label}}{{#unless @root.readOnly}}<button type="button" class="drep-flow-dep-remove" title="Remove">x</button>{{/unless}}</span>
+                    <span class="drep-flow-dep {{#if (and this.complete (not ../locked) (not ../complete))}}is-complete{{/if}}" data-dep-id="{{this.id}}" data-target-check-id="{{../id}}" data-dep-type="{{this.type}}" title="{{this.detail}}">{{this.label}}{{#unless @root.readOnly}}<button type="button" class="drep-flow-dep-remove" title="Remove">x</button>{{/unless}}</span>
                   {{/each}}
                 </div>
               {{/if}}

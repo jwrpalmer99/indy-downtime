@@ -26,6 +26,8 @@ import {
   getPhaseNumber,
   getPhaseChecks,
   isCheckUnlocked,
+  isCheckComplete,
+  isDependencyComplete,
   getPhaseCheckLabel,
   getPhaseCheckTarget,
   getRestrictedActorUuids,
@@ -1065,6 +1067,16 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
     const phaseState = state?.phases?.[phase?.id] ?? {};
     const checkProgress = phaseState?.checkProgress ?? {};
     const redactLockedChecks = this._readOnly && !shouldShowLockedChecks(this._trackerId);
+    const groupCounts = {};
+    if (Array.isArray(state?.log)) {
+      for (const entry of state.log) {
+        if (!entry || entry.type === "phase-complete") continue;
+        if (phase?.id && entry.phaseId && entry.phaseId !== phase.id) continue;
+        const groupId = entry.groupId;
+        if (!groupId) continue;
+        groupCounts[groupId] = (groupCounts[groupId] ?? 0) + 1;
+      }
+    }
 
     const checkLabels = {};
     const successByCheck = {};
@@ -1158,14 +1170,24 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
       const checks = (group.checks ?? []).map((check) => {
         const skillLabel = check.skill ? getSkillLabel(check.skill) : "";
         const name = check.name || skillLabel || "Check";
+        const complete = isCheckComplete(check, checkProgress);
         const unlocked = isCheckUnlocked(phase, check, checkProgress);
-        const displayName = redactLockedChecks && !unlocked ? "???" : name;
-        const displaySkillLabel = redactLockedChecks && !unlocked ? "???" : skillLabel;
+        const group = getPhaseGroups(phase).find((entry) => entry.id === check.groupId);
+        const groupLimit = Number(group?.maxChecks ?? 0);
+        const groupUsed = Number(groupCounts?.[check.groupId] ?? 0);
+        const groupAvailable = !groupLimit || groupUsed < groupLimit;
+        const groupMaxed = Boolean(groupLimit) && !groupAvailable;
+        const isLocked = !unlocked || complete || groupMaxed;
+        const displayName = redactLockedChecks && isLocked && !complete ? "???" : name;
+        const displaySkillLabel = redactLockedChecks && isLocked && !complete ? "???" : skillLabel;
         checkLabels[check.id] = displayName;
         return {
           id: check.id,
           name: displayName,
           skillLabel: displaySkillLabel,
+          complete,
+          locked: isLocked,
+          groupMaxed: groupMaxed && !complete,
           dc: Number(check.dc ?? 0),
           dependsOn: normalizeCheckDependencies(check.dependsOn ?? []),
           successLines: successByCheck[check.id] ?? [],
@@ -1175,6 +1197,7 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
       return {
         id: group.id,
         name: group.name || "Group",
+        maxChecks: Number(group.maxChecks ?? 0),
         checks,
         successLines: successByGroup[group.id] ?? [],
         failureLines: failureByGroup[group.id] ?? [],
@@ -1191,6 +1214,7 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
           dcPenalty: dep.dcPenalty ?? 0,
           overrideSkill: dep.overrideSkill ?? "",
           overrideDc: dep.overrideDc ?? null,
+          complete: isDependencyComplete(phase, dep.id, checkProgress),
         }));
       }
     }

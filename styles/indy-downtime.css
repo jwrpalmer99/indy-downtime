@@ -1097,3 +1097,38 @@
 .drep-check-tooltip i {
   font-size: 0.9em;
 }
+
+.drep-flow-check.is-complete {
+  background: rgba(20, 80, 35, 0.75) !important;
+  border-color: rgba(30, 120, 55, 0.9) !important;
+  background: rgba(20, 80, 35, 0.65);
+  border-color: rgba(30, 120, 55, 0.7);
+}
+
+.drep-flow-check.is-locked {
+  background: rgba(90, 20, 20, 0.6);
+  border-color: rgba(140, 40, 40, 0.7);
+  background: rgba(90, 20, 20, 0.6);
+  border-color: rgba(140, 40, 40, 0.7);
+}
+
+.drep-flow-check.is-locked.is-complete {
+  background: rgba(20, 80, 35, 0.75) !important;
+  border-color: rgba(30, 120, 55, 0.9) !important;
+}
+
+.drep-flow-dep.is-complete {
+  background: rgba(20, 80, 35, 0.7);
+  border-color: rgba(30, 120, 55, 0.85);
+  color: #e7f6ec;
+}
+
+.drep-flow-check.is-group-maxed {
+  background: rgba(85, 85, 85, 0.65) !important;
+  border-color: rgba(140, 140, 140, 0.7) !important;
+}
+
+.drep-flow-check.is-locked.is-group-maxed {
+  background: rgba(85, 85, 85, 0.65) !important;
+  border-color: rgba(140, 140, 140, 0.7) !important;
+}
