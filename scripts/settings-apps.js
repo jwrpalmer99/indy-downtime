@@ -1415,7 +1415,7 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
       const numeric = Number(value);
       if (!Number.isFinite(numeric)) return 100;
       const rounded = Math.round(numeric / 5) * 5;
-      return Math.min(140, Math.max(50, rounded));
+      return Math.min(200, Math.max(50, rounded));
     };
 
     const applyFlowZoom = (value) => {
@@ -1430,6 +1430,19 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
     };
 
     applyFlowZoom(Number.isFinite(this._flowZoom) ? this._flowZoom : 100);
+    if (this._flowWheelHandler && html[0]) {
+      html[0].removeEventListener("wheel", this._flowWheelHandler);
+    }
+    this._flowWheelHandler = (event) => {
+      if (!event.ctrlKey) return;
+      if (!html[0] || !html[0].contains(event.target)) return;
+      event.preventDefault();
+      const delta = event.deltaY < 0 ? 5 : -5;
+      applyFlowZoom((this._flowZoom ?? 100) + delta);
+    };
+    if (html[0]) {
+      html[0].addEventListener("wheel", this._flowWheelHandler, { passive: false });
+    }
 
     const captureFlowCollapse = () => {
       const state = {};
