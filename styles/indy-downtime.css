@@ -220,6 +220,7 @@
   font-weight: 600;
   font-size: 14px;
   margin-bottom: 8px;
+  display: inline-flex;
 }
 
 .drep-collapsible[open] summary {
@@ -803,7 +804,7 @@
 }
 
 .drep-collapsible > summary {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
@@ -966,6 +967,17 @@
 .drep-flow-lane-header {
   font-weight: 600;
   margin-bottom: 8px;
+  width: 100%;
+  display: inline-flex;
+}
+
+.drep-flow-add-check {
+  margin-left: auto;
+  font-size: x-small;
+}
+
+.drep-flow-add-line {
+  font-size: x-small;
 }
 
 .drep-flow-check {

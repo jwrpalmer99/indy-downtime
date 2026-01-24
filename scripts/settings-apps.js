@@ -732,7 +732,18 @@ class DowntimeRepPhaseConfig extends HandlebarsApplicationMixin(ApplicationV2) {
       const lineType = payload.lineType;
       if (!lineId || !lineType) return;
       const listKey = lineType === "success" ? "successLines" : "failureLines";
-      const line = (phase[listKey] ?? []).find((entry) => entry.id === lineId);
+      let line = (phase[listKey] ?? []).find((entry) => entry.id === lineId);
+      if (!line) {
+        const savedConfig = getPhaseConfig(this._trackerId);
+        const savedPhase = savedConfig.find((entry) => entry.id === phaseId) ?? savedConfig[0];
+        const savedLine = (savedPhase?.[listKey] ?? []).find((entry) => entry.id === lineId);
+        if (savedLine) {
+          phase[listKey] = Array.isArray(phase[listKey]) ? phase[listKey] : [];
+          const cloned = foundry.utils.deepClone(savedLine);
+          phase[listKey].push(cloned);
+          line = cloned;
+        }
+      }
       if (!line) return;
       line.dependsOnChecks = Array.isArray(payload.dependsOnChecks)
         ? payload.dependsOnChecks
@@ -768,6 +779,8 @@ class DowntimeRepPhaseConfig extends HandlebarsApplicationMixin(ApplicationV2) {
         phaseId,
         phase,
         onUpdate: applyFlowUpdate,
+        openedFromSettings: true,
+        settingsAppId: this.appId,
       });
       app.render(true);
     });
@@ -1034,6 +1047,8 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
     this._phase = options.phase ?? null;
     this._onUpdate = typeof options.onUpdate === "function" ? options.onUpdate : null;
     this._readOnly = Boolean(options.readOnly);
+    this._openedFromSettings = Boolean(options.openedFromSettings);
+    this._settingsAppId = options.settingsAppId ?? null;
   }
 
   static DEFAULT_OPTIONS = {
@@ -1125,7 +1140,6 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
     };
 
     for (const line of phase?.successLines ?? []) {
-      if (!line?.text) continue;
       const hasChecks = Array.isArray(line.dependsOnChecks) && line.dependsOnChecks.length;
       const hasGroups = Array.isArray(line.dependsOnGroups) && line.dependsOnGroups.length;
       if (hasChecks) {
@@ -1146,7 +1160,6 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
     }
 
     for (const line of phase?.failureLines ?? []) {
-      if (!line?.text) continue;
       const hasChecks = Array.isArray(line.dependsOnChecks) && line.dependsOnChecks.length;
       const hasGroups = Array.isArray(line.dependsOnGroups) && line.dependsOnGroups.length;
       if (hasChecks) {
@@ -1238,6 +1251,25 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
       hideDc: this._readOnly ? shouldHideDc(this._trackerId) : false,
       readOnly: this._readOnly,
     };
+  }
+
+  async _onClose(options = {}) {
+    await super._onClose(options);
+    if (this._openedFromSettings) {
+      const app = this._settingsAppId ? ui.windows[this._settingsAppId] : null;
+      if (app) {
+        app.render(true, { focus: false });
+        return;
+      }
+      const fallback = Object.values(ui.windows).find(
+        (win) => win?.id === "indy-downtime-phase-config"
+      );
+      if (fallback) {
+        fallback.render(true, { focus: false });
+      } else {
+        rerenderSettingsApps(true);
+      }
+    }
   }
 
   _onRender(context, options) {
@@ -1408,6 +1440,62 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
       input.on("blur", () => finish(true));
     };
 
+    html.on("click.drepFlow", ".drep-flow-add-check", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      if (this._readOnly) return;
+      const groupId = event.currentTarget?.dataset?.groupId;
+      if (!groupId) return;
+      const phaseConfig = getPhaseConfig(this._trackerId);
+      const phase = phaseConfig.find((entry) => entry.id === this._phaseId) ?? phaseConfig[0];
+      if (!phase) return;
+      const group = (phase.groups ?? []).find((entry) => entry.id === groupId);
+      if (!group) return;
+      group.checks = Array.isArray(group.checks) ? group.checks : [];
+      const options = getSkillOptions();
+      const defaultSkill = options[0]?.key ?? "";
+      group.checks.push({
+        id: foundry.utils.randomID(),
+        name: "",
+        skill: defaultSkill,
+        description: "",
+        dc: 13,
+        value: 1,
+        dependsOn: [],
+      });
+      setTrackerPhaseConfig(this._trackerId, normalizePhaseConfig(phaseConfig));
+      rerenderCharacterSheets();
+      rerenderSettingsApps();
+      this._phase = phase;
+      this.render(true);
+    });
+
+    html.on("click.drepFlow", ".drep-flow-add-line", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      if (this._readOnly) return;
+      const lineType = event.currentTarget?.dataset?.lineType;
+      if (!lineType || (lineType !== "success" && lineType !== "failure")) return;
+      const phaseConfig = getPhaseConfig(this._trackerId);
+      const phase = phaseConfig.find((entry) => entry.id === this._phaseId) ?? phaseConfig[0];
+      if (!phase) return;
+      const listKey = lineType === "success" ? "successLines" : "failureLines";
+      phase[listKey] = Array.isArray(phase[listKey]) ? phase[listKey] : [];
+      phase[listKey].push({
+        id: foundry.utils.randomID(),
+        text: "New Line",
+        dependsOnChecks: [],
+        dependsOnGroups: [],
+      });
+      setTrackerPhaseConfig(this._trackerId, normalizePhaseConfig(phaseConfig));
+      rerenderCharacterSheets();
+      rerenderSettingsApps();
+      captureFlowCollapse();
+      this._phase = phase;
+      this.render(true);
+    });
+
+
     html.on("dblclick.drepFlow", ".drep-flow-editable", (event) => {
       if (this._readOnly) return;
       event.preventDefault();
@@ -1484,7 +1572,7 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
       if (!lineId || !lineType) return;
 
       const phaseConfig = getPhaseConfig(this._trackerId);
-      const phase = this._phase ?? phaseConfig.find((entry) => entry.id === this._phaseId) ?? phaseConfig[0];
+      const phase = phaseConfig.find((entry) => entry.id === this._phaseId) ?? this._phase ?? phaseConfig[0];
       if (!phase) return;
       const listKey = lineType === "success" ? "successLines" : "failureLines";
       const line = (phase[listKey] ?? []).find((entry) => entry.id === lineId);
@@ -1494,6 +1582,17 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
       const groupId = !checkId
         ? lineCard?.closest(".drep-flow-lane")?.dataset?.drepGroupId ?? ""
         : "";
+
+      if (!checkId && !groupId) {
+        phase[listKey] = (phase[listKey] ?? []).filter((entry) => entry.id !== lineId);
+        setTrackerPhaseConfig(this._trackerId, normalizePhaseConfig(phaseConfig));
+        rerenderCharacterSheets();
+        rerenderSettingsApps();
+        captureFlowCollapse();
+        this._phase = phase;
+        this.render(true);
+        return;
+      }
 
       const nextChecks = checkId
         ? (Array.isArray(line.dependsOnChecks) ? line.dependsOnChecks.filter((id) => id !== checkId) : [])
@@ -1552,7 +1651,7 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
       if (!depId || !targetCheckId) return;
 
       const phaseConfig = getPhaseConfig(this._trackerId);
-      const phase = this._phase ?? phaseConfig.find((entry) => entry.id === this._phaseId) ?? phaseConfig[0];
+      const phase = phaseConfig.find((entry) => entry.id === this._phaseId) ?? this._phase ?? phaseConfig[0];
       if (!phase) return;
       let targetCheck = null;
       for (const group of phase.groups ?? []) {
@@ -1588,7 +1687,7 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
       if (!depId || !targetCheckId) return;
 
       const phaseConfig = getPhaseConfig(this._trackerId);
-      const phase = this._phase ?? phaseConfig.find((entry) => entry.id === this._phaseId) ?? phaseConfig[0];
+      const phase = phaseConfig.find((entry) => entry.id === this._phaseId) ?? this._phase ?? phaseConfig[0];
       if (!phase) return;
       let targetCheck = null;
       for (const group of phase.groups ?? []) {
@@ -1656,7 +1755,7 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
       if (!lineId || (lineType !== "success" && lineType !== "failure")) return;
 
       const phaseConfig = getPhaseConfig(this._trackerId);
-      const phase = this._phase ?? phaseConfig.find((entry) => entry.id === this._phaseId) ?? phaseConfig[0];
+      const phase = phaseConfig.find((entry) => entry.id === this._phaseId) ?? this._phase ?? phaseConfig[0];
       if (!phase) return;
       const listKey = lineType === "success" ? "successLines" : "failureLines";
       const line = (phase[listKey] ?? []).find((entry) => entry.id === lineId);
@@ -1736,7 +1835,7 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
       const payloadType = payload?.type;
 
       const phaseConfig = getPhaseConfig(this._trackerId);
-      const phase = this._phase ?? phaseConfig.find((entry) => entry.id === this._phaseId) ?? phaseConfig[0];
+      const phase = phaseConfig.find((entry) => entry.id === this._phaseId) ?? this._phase ?? phaseConfig[0];
       if (!phase) return;
 
       if (payloadType === "check") {

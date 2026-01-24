@@ -1538,7 +1538,7 @@ function rerenderCharacterSheets() {
 
 
 
-function rerenderSettingsApps() {
+function rerenderSettingsApps(dofocus = false) {
   for (const app of getOpenApps()) {
     const appId = String(app?.id ?? app?.options?.id ?? "");
     if (!appId.startsWith("indy-downtime")) continue;
@@ -1546,7 +1546,7 @@ function rerenderSettingsApps() {
     if (appId === "indy-downtime-settings") continue;
     if (appId === "indy-downtime-dep-editor") continue;
     if (appId === "indy-downtime-phase-flow") continue;
-    forceRenderApp(app, { focus: false });
+    forceRenderApp(app, { focus: dofocus });
   }
 }
 
