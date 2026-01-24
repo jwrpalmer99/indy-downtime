@@ -25,6 +25,7 @@ import {
   getPhaseGroups,
   getPhaseNumber,
   getPhaseChecks,
+  isCheckUnlocked,
   getPhaseCheckLabel,
   getPhaseCheckTarget,
   getRestrictedActorUuids,
@@ -49,6 +50,7 @@ import {
   setTrackerPhaseConfig,
   setWorldState,
   shouldHideDc,
+  shouldShowLockedChecks,
   updateTrackerSettings,
   getSettingsExportPayload,
   getStateExportPayload,
@@ -1058,6 +1060,11 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
     const phaseNumber = phase ? getPhaseNumber(phase.id, this._trackerId) : 1;
     const phaseName = phase?.name ?? "Phase";
 
+    const state = getWorldState(this._trackerId);
+    const phaseState = state?.phases?.[phase?.id] ?? {};
+    const checkProgress = phaseState?.checkProgress ?? {};
+    const redactLockedChecks = this._readOnly && !shouldShowLockedChecks(this._trackerId);
+
     const checkLabels = {};
     const successByCheck = {};
     const failureByCheck = {};
@@ -1150,11 +1157,14 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
       const checks = (group.checks ?? []).map((check) => {
         const skillLabel = check.skill ? getSkillLabel(check.skill) : "";
         const name = check.name || skillLabel || "Check";
-        checkLabels[check.id] = name;
+        const unlocked = isCheckUnlocked(phase, check, checkProgress);
+        const displayName = redactLockedChecks && !unlocked ? "???" : name;
+        const displaySkillLabel = redactLockedChecks && !unlocked ? "???" : skillLabel;
+        checkLabels[check.id] = displayName;
         return {
           id: check.id,
-          name,
-          skillLabel,
+          name: displayName,
+          skillLabel: displaySkillLabel,
           dc: Number(check.dc ?? 0),
           dependsOn: normalizeCheckDependencies(check.dependsOn ?? []),
           successLines: successByCheck[check.id] ?? [],
