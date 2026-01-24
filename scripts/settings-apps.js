@@ -1280,6 +1280,7 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
         const skillLabel = check.skill ? getSkillLabel(check.skill) : "";
         const name = check.name || skillLabel || "Check";
         const rawName = check.name || "";
+        const rawDescription = check.description ?? "";
         const complete = isCheckComplete(check, checkProgress);
         const unlocked = isCheckUnlocked(phase, check, checkProgress);
         const group = getPhaseGroups(phase).find((entry) => entry.id === check.groupId);
@@ -1290,6 +1291,7 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
         const isLocked = !unlocked || complete || groupMaxed;
         const displayName = redactLockedChecks && isLocked && !complete ? "???" : name;
         const displaySkillLabel = redactLockedChecks && isLocked && !complete ? "???" : skillLabel;
+        const displayDescription = redactLockedChecks && isLocked && !complete ? "???" : rawDescription;
         checkLabels[check.id] = displayName;
         return {
           id: check.id,
@@ -1522,6 +1524,13 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
           const dcValue = Number(newValue);
           debugLog("Inline edit save", { edit: config.edit, checkId: config.checkId, value: dcValue });
           if (updateCheckField(phase, config.checkId, { dc: Number.isFinite(dcValue) ? dcValue : 0 })) {
+            savePhaseConfig(phase);
+          }
+          return;
+        }
+        if (config.edit === "check-description") {
+          debugLog("Inline edit save", { edit: config.edit, checkId: config.checkId, value: newValue });
+          if (updateCheckField(phase, config.checkId, { description: newValue })) {
             savePhaseConfig(phase);
           }
           return;
@@ -1919,6 +1928,8 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
           beginInlineEdit(target, { edit, type: "select", value: target.dataset.value ?? target.dataset.skill ?? "", checkId });
         } else if (edit === "check-dc") {
           beginInlineEdit(target, { edit, type: "number", value: target.dataset.dc ?? "", checkId });
+        } else if (edit === "check-description") {
+          beginInlineEdit(target, { edit, type: "textarea", value: target.dataset.value ?? target.textContent, checkId });
         }
         return;
       }

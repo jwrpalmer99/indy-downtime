@@ -1037,6 +1037,12 @@
   margin-top: 2px;
 }
 
+.drep-flow-check-desc {
+  font-size: 12px;
+  color: var(--color-text-dark-secondary);
+  margin-top: 4px;
+}
+
 .drep-flow-deps {
   display: flex;
   flex-wrap: wrap;

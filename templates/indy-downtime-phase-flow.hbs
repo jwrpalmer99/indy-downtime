@@ -56,6 +56,11 @@
                   <span class="drep-flow-check-dc drep-flow-editable" data-edit="check-dc" data-check-id="{{this.id}}" data-dc="{{this.dc}}">DC {{this.dc}}</span>
                 {{/if}}
               </div>
+              {{#if (or this.description (not @root.readOnly))}}
+                <div class="drep-flow-check-desc drep-flow-editable" data-edit="check-description" data-check-id="{{this.id}}" data-value="{{this.rawDescription}}">
+                  {{#if this.description}}{{this.description}}{{else}}(description){{/if}}
+                </div>
+              {{/if}}
               {{#if this.dependsOnEntries.length}}
                 {{#if @root.showFlowRelationships}}
                 <div class="drep-flow-deps">
