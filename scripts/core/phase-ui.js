@@ -3,8 +3,17 @@ import { normalizeCheckDependencies, normalizePhaseConfig } from "./phase.js";
 
 function mergeDependencyDetails(depIds, existingDeps) {
   const normalized = normalizeCheckDependencies(existingDeps ?? []);
-  const existingMap = new Map(normalized.map((dep) => [dep.id, dep]));
-  return depIds.map((id) => existingMap.get(id) ?? { id });
+  const existingMap = new Map(
+    normalized.map((dep) => [`${dep.kind || "check"}:${dep.id}`, dep])
+  );
+  return depIds.map((raw) => {
+    const trimmed = String(raw ?? "").trim();
+    if (!trimmed) return null;
+    const isGroup = trimmed.startsWith("group:");
+    const id = isGroup ? trimmed.slice("group:".length) : trimmed;
+    const key = `${isGroup ? "group" : "check"}:${id}`;
+    return existingMap.get(key) ?? { id, kind: isGroup ? "group" : "check" };
+  }).filter(Boolean);
 }
 
 function initDependencyDragDrop(html, logger = () => {}) {

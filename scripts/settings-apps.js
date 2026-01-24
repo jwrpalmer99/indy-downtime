@@ -523,7 +523,9 @@ class DowntimeRepPhaseConfig extends HandlebarsApplicationMixin(ApplicationV2) {
           skill: check.skill ?? "",
           description: check.description ?? "",
           dc: Number(check.dc ?? 0),
-          dependsOnValue: normalizeCheckDependencies(check.dependsOn ?? []).map((dep) => dep.id).join(", "),
+          dependsOnValue: normalizeCheckDependencies(check.dependsOn ?? [])
+            .map((dep) => (dep.kind === "group" ? `group:${dep.id}` : dep.id))
+            .join(", "),
         }));
         return {
           id: group.id,
@@ -793,7 +795,7 @@ class DowntimeRepPhaseConfig extends HandlebarsApplicationMixin(ApplicationV2) {
         const checkId = payload.checkId;
         if (!checkId) return;
         const dependsOn = normalizeCheckDependencies(payload.dependsOn ?? []);
-        const dependsOnIds = dependsOn.map((dep) => dep.id);
+        const dependsOnIds = dependsOn.map((dep) => (dep.kind === "group" ? `group:${dep.id}` : dep.id));
         let updated = false;
         for (const group of phase.groups ?? []) {
           const check = (group.checks ?? []).find((entry) => entry.id === checkId);
@@ -1185,6 +1187,7 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
     }
 
     const checkLabels = {};
+    const groupLabels = {};
     const successByCheck = {};
     const failureByCheck = {};
     const successByGroup = {};
@@ -1211,7 +1214,7 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
     };
 
     const formatDependencyLabel = (dep) => {
-      const base = checkLabels[dep.id] || dep.id;
+      const base = dep.kind === "group" ? (groupLabels[dep.id] || dep.id) : (checkLabels[dep.id] || dep.id);
       const type = dep?.type ?? "block";
       if (type === "block") return base;
       if (type === "harder") {
@@ -1301,9 +1304,11 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
           failureLines: failureByCheck[check.id] ?? [],
         };
       });
+      const groupName = group.name || "Group";
+      groupLabels[group.id] = groupName;
       return {
         id: group.id,
-        name: group.name || "Group",
+        name: groupName,
         rawName: group.name || "",
         maxChecks: Number(group.maxChecks ?? 0),
         checks,
@@ -1322,8 +1327,17 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
           dcPenalty: dep.dcPenalty ?? 0,
           overrideSkill: dep.overrideSkill ?? "",
           overrideDc: dep.overrideDc ?? null,
-          complete: isDependencyComplete(phase, dep.id, checkProgress),
+          complete: isDependencyComplete(phase, dep, checkProgress),
         }));
+        if (check.dependsOnEntries.length) {
+          debugLog("Flow check deps", {
+            checkId: check.id,
+            dependsOn: check.dependsOnEntries,
+            showFlowRelationships: this._readOnly
+              ? getTrackerById(this._trackerId)?.showFlowRelationships !== false
+              : true,
+          });
+        }
       }
     }
 
@@ -2011,6 +2025,20 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
       this.render(true);
     });
 
+
+    html.on("dragstart.drepFlow", ".drep-flow-lane-header, .drep-flow-group-name", (event) => {
+      event.stopPropagation();
+      const groupId = event.currentTarget?.closest(".drep-flow-lane")?.dataset?.drepGroupId;
+      debugLog("Flow drag group start", { groupId });
+      if (!groupId) return;
+      const payload = JSON.stringify({ type: "group", groupId });
+      const dataTransfer = event.originalEvent?.dataTransfer || event.dataTransfer;
+      if (dataTransfer) {
+        dataTransfer.setData("text/plain", payload);
+        dataTransfer.effectAllowed = "move";
+      }
+    });
+
     html.on("dragstart.drepFlow", ".drep-flow-line-chip", (event) => {
       event.stopPropagation();
       const lineId = event.currentTarget?.dataset?.drepLineId;
@@ -2026,6 +2054,7 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
     html.on("dragstart.drepFlow", ".drep-flow-check", (event) => {
       if (event.target?.closest(".drep-flow-line-chip")) return;
       const checkId = event.currentTarget?.dataset?.drepCheckId;
+      debugLog("Flow drag check start", { checkId });
       if (!checkId) return;
       const payload = JSON.stringify({ type: "check", checkId });
       if (event.originalEvent?.dataTransfer) {
@@ -2063,6 +2092,7 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
           dependsOn: nextDepends,
         });
       }
+      setTrackerPhaseConfig(this._trackerId, normalizePhaseConfig(phaseConfig));
       captureFlowCollapse();
       captureFlowCollapse();
       this._phase = phase;
@@ -2215,8 +2245,10 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
       event.preventDefault();
       event.currentTarget?.classList?.remove("is-drop-target");
       const targetCheckId = event.currentTarget?.dataset?.drepCheckId;
+      debugLog("Flow drop on check", { targetCheckId });
       if (!targetCheckId) return;
-      const raw = event.originalEvent?.dataTransfer?.getData("text/plain") ?? "";
+      const raw = event.originalEvent?.dataTransfer?.getData("text/plain") ?? event.dataTransfer?.getData("text/plain") ?? "";
+      debugLog("Flow drop raw payload", { raw });
       if (!raw) return;
       let payload = null;
       try {
@@ -2230,9 +2262,11 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
       const phase = phaseConfig.find((entry) => entry.id === this._phaseId) ?? this._phase ?? phaseConfig[0];
       if (!phase) return;
 
-      if (payloadType === "check") {
-        const sourceCheckId = payload?.checkId;
-        if (!sourceCheckId || sourceCheckId === targetCheckId) return;
+
+      if (payloadType === "group") {
+        const sourceGroupId = payload?.groupId;
+        debugLog("Flow drop group on check", { sourceGroupId, targetCheckId });
+        if (!sourceGroupId) return;
         let targetCheck = null;
         for (const group of phase.groups ?? []) {
           targetCheck = (group.checks ?? []).find((entry) => entry.id === targetCheckId) ?? null;
@@ -2240,8 +2274,8 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
         }
         if (!targetCheck) return;
         const current = normalizeCheckDependencies(targetCheck.dependsOn ?? []);
-        if (current.some((dep) => dep.id === sourceCheckId)) return;
-        const nextDepends = [...current, { id: sourceCheckId, type: "block" }];
+        if (current.some((dep) => dep.id === sourceGroupId && dep.kind === "group")) return;
+        const nextDepends = [...current, { id: sourceGroupId, type: "block", kind: "group" }];
         targetCheck.dependsOn = nextDepends;
         if (this._onUpdate) {
           this._onUpdate({
@@ -2251,6 +2285,42 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
             dependsOn: nextDepends,
           });
         }
+        setTrackerPhaseConfig(this._trackerId, normalizePhaseConfig(phaseConfig));
+        this._phase = phase;
+        this.render(true);
+        return;
+      }
+
+      if (payloadType === "check") {
+        const sourceCheckId = payload?.checkId;
+        debugLog("Flow drop check on check", { sourceCheckId, targetCheckId });
+        if (!sourceCheckId || sourceCheckId === targetCheckId) return;
+        let targetCheck = null;
+        for (const group of phase.groups ?? []) {
+          targetCheck = (group.checks ?? []).find((entry) => entry.id === targetCheckId) ?? null;
+          if (targetCheck) break;
+        }
+        if (!targetCheck) {
+          debugLog("Flow drop check missing target", { targetCheckId });
+          return;
+        }
+        const current = normalizeCheckDependencies(targetCheck.dependsOn ?? []);
+        if (current.some((dep) => dep.id === sourceCheckId && (dep.kind ?? "check") === "check")) {
+          debugLog("Flow drop check already linked", { sourceCheckId, targetCheckId });
+          return;
+        }
+        const nextDepends = [...current, { id: sourceCheckId, type: "block", kind: "check" }];
+        targetCheck.dependsOn = nextDepends;
+        debugLog("Flow drop check linked", { sourceCheckId, targetCheckId, dependsOn: nextDepends });
+        if (this._onUpdate) {
+          this._onUpdate({
+            kind: "check",
+            phaseId: phase.id,
+            checkId: targetCheckId,
+            dependsOn: nextDepends,
+          });
+        }
+        setTrackerPhaseConfig(this._trackerId, normalizePhaseConfig(phaseConfig));
         this._phase = phase;
         this.render(true);
         return;
@@ -2300,6 +2370,7 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
       }
       captureFlowCollapse();
       captureFlowCollapse();
+      setTrackerPhaseConfig(this._trackerId, normalizePhaseConfig(phaseConfig));
       this._phase = phase;
       this.render(true);
     });

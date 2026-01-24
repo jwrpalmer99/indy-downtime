@@ -29,7 +29,7 @@
   <div class="drep-flow-lanes">
     {{#each groups}}
       <div class="drep-flow-lane" data-drep-group-id="{{this.id}}">
-        <div class="drep-flow-lane-header"><span class="drep-flow-group-name drep-flow-editable" data-edit="group-name" data-group-id="{{this.id}}" data-value="{{this.rawName}}">{{this.name}}</span>{{#if this.maxChecks}} <span class="drep-flow-group-cap">(Max: {{this.maxChecks}})</span>{{/if}}{{#unless @root.readOnly}} <span class="right-group"><button type="button" class="drep-flow-group-max" data-drep-action="set-group-max" data-group-id="{{this.id}}" title="Set max success">Max</button> <button type="button" class="drep-flow-add-check" data-drep-action="add-check" data-group-id="{{this.id}}">+ Check</button>{{#unless this.checks.length}}<button type="button" class="drep-flow-remove-group" data-drep-action="remove-group" data-group-id="{{this.id}}" title="Delete group">x</button>{{/unless}}{{/unless}}</span></div>
+        <div class="drep-flow-lane-header" draggable="true"><span class="drep-flow-group-name drep-flow-editable" draggable="true" data-edit="group-name" data-group-id="{{this.id}}" data-value="{{this.rawName}}">{{this.name}}</span>{{#if this.maxChecks}} <span class="drep-flow-group-cap">(Max: {{this.maxChecks}})</span>{{/if}}{{#unless @root.readOnly}} <span class="right-group"><button type="button" class="drep-flow-group-max" data-drep-action="set-group-max" data-group-id="{{this.id}}" title="Set max success">Max</button> <button type="button" class="drep-flow-add-check" data-drep-action="add-check" data-group-id="{{this.id}}">+ Check</button>{{#unless this.checks.length}}<button type="button" class="drep-flow-remove-group" data-drep-action="remove-group" data-group-id="{{this.id}}" title="Delete group">x</button>{{/unless}}{{/unless}}</span></div>
         {{#if (and @root.showFlowLines this.successLines.length)}}
           <details class="drep-flow-lines success drep-collapsible" data-collapse-id="group-{{this.id}}-success">
             <summary><span class="drep-summary-toggle"><i class="fa-solid fa-angle-down drep-expand"></i><i class="fa-solid fa-angle-up drep-collapse"></i></span><span>Group Success Lines</span></summary>
@@ -48,7 +48,7 @@
         {{/if}}
         <div class="drep-flow-checks">
           {{#each this.checks}}
-            <div class="drep-flow-check {{#if this.locked}}is-locked{{/if}} {{#if this.groupMaxed}}is-group-maxed{{/if}} {{#if this.complete}}is-complete{{/if}}" data-drep-check-id="{{this.id}}" data-drep-group-id="{{../id}}">
+            <div class="drep-flow-check {{#if this.locked}}is-locked{{/if}} {{#if this.groupMaxed}}is-group-maxed{{/if}} {{#if this.complete}}is-complete{{/if}}" data-drep-check-id="{{this.id}}" data-drep-group-id="{{../id}}" draggable="true">
               <div class="drep-flow-check-name drep-flow-editable" data-edit="check-name" data-check-id="{{this.id}}" data-value="{{this.rawName}}">{{this.name}}{{#unless @root.readOnly}}<button type="button" class="drep-flow-remove-check" data-drep-action="remove-check" data-id="{{this.id}}">x</button>{{/unless}}</div>
               <div class="drep-flow-check-meta">
                 <span class="drep-flow-check-skill drep-flow-editable" data-edit="check-skill" data-check-id="{{this.id}}" data-skill="{{this.skill}}" data-value="{{this.skill}}">{{this.skillLabel}}</span>

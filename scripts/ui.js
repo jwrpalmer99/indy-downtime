@@ -502,7 +502,8 @@ function buildTrackerData({
     if (depDetails.length) {
       const lines = depDetails.map((detail) => {
         const status = checkLockMap.get(detail.sourceId);
-        const isLocked = Boolean(status?.locked) && !status?.complete;
+        const isGroup = detail.sourceKind === "group";
+        const isLocked = isGroup ? !detail.complete : (Boolean(status?.locked) && !status?.complete);
         const displaySource = (!showLockedChecks && isLocked) ? "???" : detail.source;
         if (detail.type === "harder") {
           return `+${detail.dcPenalty} DC (from ${displaySource})`;

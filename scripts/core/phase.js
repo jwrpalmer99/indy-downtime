@@ -178,15 +178,21 @@ function normalizeCheckDependencies(raw) {
   const output = [];
   for (const entry of entries) {
     if (typeof entry === "string") {
-      const id = entry.trim();
+      let id = entry.trim();
       if (!id) continue;
-      output.push({ id, type: "block" });
+      let kind = "check";
+      if (id.startsWith("group:")) {
+        kind = "group";
+        id = id.slice("group:".length);
+      }
+      output.push({ id, type: "block", kind });
       continue;
     }
     if (!entry || typeof entry !== "object") continue;
     const id = typeof entry.id === "string" ? entry.id.trim() : "";
     if (!id) continue;
     const type = DEPENDENCY_TYPES.has(entry.type) ? entry.type : "block";
+    const kind = entry.kind === "group" || entry.scope === "group" ? "group" : "check";
     const dcPenaltyRaw = Number(entry.dcPenalty ?? entry.penalty ?? entry.dcDelta ?? 0);
     const dcPenalty = Number.isFinite(dcPenaltyRaw) ? dcPenaltyRaw : 0;
     const overrideSkill =
@@ -196,6 +202,7 @@ function normalizeCheckDependencies(raw) {
     output.push({
       id,
       type,
+      kind,
       dcPenalty,
       overrideSkill,
       overrideDc,
@@ -467,10 +474,19 @@ function isGroupComplete(phase, groupId, checkProgress) {
   return (group.checks ?? []).every((check) => isCheckComplete(check, checkProgress));
 }
 
-function isDependencyComplete(phase, depId, checkProgress) {
+function isDependencyComplete(phase, dep, checkProgress) {
+  if (!dep) return true;
+  const depId = typeof dep === "string" ? dep : dep.id;
   if (!depId) return true;
+  const kind = typeof dep === "object" && dep.kind === "group" ? "group" : "check";
+  if (kind === "group") {
+    return isGroupComplete(phase, depId, checkProgress);
+  }
   const depCheck = getPhaseCheckById(phase, depId);
-  if (!depCheck) return true;
+  if (!depCheck) {
+    const group = getPhaseGroups(phase).find((entry) => entry.id === depId);
+    return group ? isGroupComplete(phase, depId, checkProgress) : true;
+  }
   const target = getPhaseCheckTarget(depCheck);
   const current = Number(checkProgress?.[depId] ?? 0);
   return current >= target;
@@ -484,7 +500,7 @@ function getCheckDependencyEffects(phase, check, checkProgress) {
   let overrideSkill = "";
   let overrideDc = null;
   for (const dep of deps) {
-    const complete = isDependencyComplete(phase, dep.id, checkProgress);
+    const complete = isDependencyComplete(phase, dep, checkProgress);
     switch (dep.type) {
       case "harder": {
         const penalty = Number.isFinite(dep.dcPenalty) && dep.dcPenalty > 0 ? dep.dcPenalty : 1;
@@ -525,26 +541,31 @@ function getCheckDependencyDetails(phase, check, checkProgress) {
   const deps = getCheckDependencies(check);
   const details = [];
   for (const dep of deps) {
-    const sourceCheck = getPhaseCheckById(phase, dep.id);
-    const sourceLabel = getPhaseCheckLabel(sourceCheck) || dep.id;
+    const sourceCheck = dep.kind === "group" ? null : getPhaseCheckById(phase, dep.id);
+    const sourceGroup = dep.kind === "group"
+      ? getPhaseGroups(phase).find((entry) => entry.id === dep.id)
+      : null;
+    const sourceLabel = dep.kind === "group"
+      ? (sourceGroup?.name || dep.id)
+      : (getPhaseCheckLabel(sourceCheck) || dep.id);
     const sourceId = dep.id;
-    const complete = isDependencyComplete(phase, dep.id, checkProgress);
+    const complete = isDependencyComplete(phase, dep, checkProgress);
     if (dep.type === "harder") {
       const penalty = Number.isFinite(dep.dcPenalty) && dep.dcPenalty > 0 ? dep.dcPenalty : 1;
       if (!complete) {
-        details.push({ type: "harder", dcPenalty: penalty, source: sourceLabel, sourceId });
+        details.push({ type: "harder", dcPenalty: penalty, source: sourceLabel, sourceId, sourceKind: dep.kind, complete });
       }
       continue;
     }
     if (dep.type === "advantage") {
       if (complete) {
-        details.push({ type: "advantage", source: sourceLabel, sourceId });
+        details.push({ type: "advantage", source: sourceLabel, sourceId, sourceKind: dep.kind, complete });
       }
       continue;
     }
     if (dep.type === "disadvantage") {
       if (!complete) {
-        details.push({ type: "disadvantage", source: sourceLabel, sourceId });
+        details.push({ type: "disadvantage", source: sourceLabel, sourceId, sourceKind: dep.kind, complete });
       }
       continue;
     }
@@ -578,7 +599,7 @@ function isCheckUnlocked(phase, check, checkProgress) {
   const deps = getCheckDependencies(check);
   const blockers = deps.filter((dep) => dep.type === "block");
   if (!blockers.length) return true;
-  return blockers.every((dep) => isDependencyComplete(phase, dep.id, checkProgress));
+  return blockers.every((dep) => isDependencyComplete(phase, dep, checkProgress));
 }
 
 function getPhaseDc(phase, checkId) {
