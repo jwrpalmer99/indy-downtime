@@ -1059,6 +1059,7 @@ class DowntimeRepPhaseConfig extends HandlebarsApplicationMixin(ApplicationV2) {
         phase.failureLines = (phase.failureLines ?? []).filter((line) => line.id !== lineId);
       }
       this._activeTab = phaseId;
+      setTrackerPhaseConfig(this._trackerId, normalizePhaseConfig(phaseConfig));
       captureScrollPosition();
       captureCollapseState();
       forceCollapseOpen(`phase-${phaseId}-${lineType}`);
@@ -2020,10 +2021,16 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
           dependsOnGroups: nextGroups,
         });
       }
-      captureFlowCollapse();
+      setTrackerPhaseConfig(this._trackerId, normalizePhaseConfig(phaseConfig));
+      rerenderCharacterSheets();
+      rerenderSettingsApps();
       captureFlowCollapse();
       this._phase = phase;
       this.render(true);
+      // captureFlowCollapse();
+      // captureFlowCollapse();
+      // this._phase = phase;
+      // this.render(true);
     });
 
 
