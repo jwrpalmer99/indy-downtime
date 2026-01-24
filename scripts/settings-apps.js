@@ -146,12 +146,41 @@ class DowntimeRepSettings extends HandlebarsApplicationMixin(ApplicationV2) {
   _onRender(context, options) {
     super._onRender(context, options);
     const html = $(this.element);
+    const trackerId = getCurrentTrackerId();
+    const trackerIcon = getTabIcon(trackerId) || "fas fa-fire";
+    this.options.window.icon = trackerIcon;
+    const appRoot = html.closest(".application").length ? html.closest(".application") : html;
+    appRoot.find(".window-header .window-title i").remove();
+    const windowIcon = appRoot.find(".window-header .window-icon").first();
+    if (windowIcon.length) {
+      windowIcon.attr("class", `window-icon fa-fw ${trackerIcon}`);
+    }
 
     html.find("[name='currentTrackerId']").on("change", (event) => {
       const selected = $(event.currentTarget).val();
       if (!selected) return;
       setCurrentTrackerId(selected);
+      const nextIcon = getTabIcon(selected) || "fas fa-fire";
+      this.options.window.icon = nextIcon;
+      const appRoot = html.closest(".application").length ? html.closest(".application") : html;
+      appRoot.find(".window-header .window-title i").remove();
+      const windowIcon = appRoot.find(".window-header .window-icon").first();
+      if (windowIcon.length) {
+        windowIcon.attr("class", `window-icon fa-fw ${nextIcon}`);
+      }
       this.render();
+    });
+
+    html.find("[name='trackerTabIcon']").on("input change", (event) => {
+      const raw = String($(event.currentTarget).val() ?? "").trim();
+      const nextIcon = raw || "fas fa-fire";
+      this.options.window.icon = nextIcon;
+      const appRoot = html.closest(".application").length ? html.closest(".application") : html;
+      appRoot.find(".window-header .window-title i").remove();
+      const windowIcon = appRoot.find(".window-header .window-icon").first();
+      if (windowIcon.length) {
+        windowIcon.attr("class", `window-icon fa-fw ${nextIcon}`);
+      }
     });
     html.find("[data-drep-drop='actor-uuids']").on("dragover", (event) => {
       event.preventDefault();
@@ -216,6 +245,8 @@ class DowntimeRepSettings extends HandlebarsApplicationMixin(ApplicationV2) {
       this.#handleMaintenanceAction(action);
     });
   }
+
+  
 
   static async _onSubmit(event, form, formData) {
     const data = foundry.utils.expandObject(formData.object ?? {});
@@ -461,6 +492,23 @@ class DowntimeRepPhaseConfig extends HandlebarsApplicationMixin(ApplicationV2) {
   _onRender(context, options) {
     super._onRender(context, options);
     const html = $(this.element);
+    const trackerId = getCurrentTrackerId();
+    const trackerIcon = getTabIcon(trackerId) || "fas fa-fire";
+    this.options.window.icon = trackerIcon;
+    const appRoot = html.closest(".app");
+    const headerIcon = appRoot.find(".window-header .window-title i").first();
+    if (headerIcon.length) {
+      headerIcon.attr("class", trackerIcon);
+    } else {
+      appRoot.find(".window-header .window-title").prepend(
+        `<i class="${trackerIcon}"></i> `
+      );
+    }
+    const windowIcon = appRoot.find(".window-header .window-icon");
+    if (windowIcon.length) {
+      windowIcon.html(`<i class="${trackerIcon}"></i>`);
+    }
+
     const syncFormState = () => {
       try {
         const formElement = html[0] instanceof HTMLFormElement
@@ -1139,6 +1187,23 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
   _onRender(context, options) {
     super._onRender(context, options);
     const html = $(this.element);
+    const trackerId = getCurrentTrackerId();
+    const trackerIcon = getTabIcon(trackerId) || "fas fa-fire";
+    this.options.window.icon = trackerIcon;
+    const appRoot = html.closest(".app");
+    const headerIcon = appRoot.find(".window-header .window-title i").first();
+    if (headerIcon.length) {
+      headerIcon.attr("class", trackerIcon);
+    } else {
+      appRoot.find(".window-header .window-title").prepend(
+        `<i class="${trackerIcon}"></i> `
+      );
+    }
+    const windowIcon = appRoot.find(".window-header .window-icon");
+    if (windowIcon.length) {
+      windowIcon.html(`<i class="${trackerIcon}"></i>`);
+    }
+
     html.off(".drepFlow");
     html.find(".drep-flow-line-chip").attr("draggable", true);
     html.find(".drep-flow-check").attr("draggable", true);
@@ -1566,6 +1631,23 @@ class DowntimeRepDepEditor extends HandlebarsApplicationMixin(ApplicationV2) {
   _onRender(context, options) {
     super._onRender(context, options);
     const html = $(this.element);
+    const trackerId = getCurrentTrackerId();
+    const trackerIcon = getTabIcon(trackerId) || "fas fa-fire";
+    this.options.window.icon = trackerIcon;
+    const appRoot = html.closest(".app");
+    const headerIcon = appRoot.find(".window-header .window-title i").first();
+    if (headerIcon.length) {
+      headerIcon.attr("class", trackerIcon);
+    } else {
+      appRoot.find(".window-header .window-title").prepend(
+        `<i class="${trackerIcon}"></i> `
+      );
+    }
+    const windowIcon = appRoot.find(".window-header .window-icon");
+    if (windowIcon.length) {
+      windowIcon.html(`<i class="${trackerIcon}"></i>`);
+    }
+
     const typeSelect = html.find("[name='depType']");
     const toggleFields = () => {
       const selected = String(typeSelect.val() ?? "block");
@@ -1719,6 +1801,23 @@ class DowntimeRepSettingsExport extends HandlebarsApplicationMixin(ApplicationV2
   _onRender(context, options) {
     super._onRender(context, options);
     const html = $(this.element);
+    const trackerId = getCurrentTrackerId();
+    const trackerIcon = getTabIcon(trackerId) || "fas fa-fire";
+    this.options.window.icon = trackerIcon;
+    const appRoot = html.closest(".app");
+    const headerIcon = appRoot.find(".window-header .window-title i").first();
+    if (headerIcon.length) {
+      headerIcon.attr("class", trackerIcon);
+    } else {
+      appRoot.find(".window-header .window-title").prepend(
+        `<i class="${trackerIcon}"></i> `
+      );
+    }
+    const windowIcon = appRoot.find(".window-header .window-icon");
+    if (windowIcon.length) {
+      windowIcon.html(`<i class="${trackerIcon}"></i>`);
+    }
+
     const textarea = html.find("[data-drep-io='json']");
     html.find("[data-drep-action='export']").on("click", (event) => {
       event.preventDefault();
@@ -1777,6 +1876,23 @@ class DowntimeRepStateExport extends HandlebarsApplicationMixin(ApplicationV2) {
   _onRender(context, options) {
     super._onRender(context, options);
     const html = $(this.element);
+    const trackerId = getCurrentTrackerId();
+    const trackerIcon = getTabIcon(trackerId) || "fas fa-fire";
+    this.options.window.icon = trackerIcon;
+    const appRoot = html.closest(".app");
+    const headerIcon = appRoot.find(".window-header .window-title i").first();
+    if (headerIcon.length) {
+      headerIcon.attr("class", trackerIcon);
+    } else {
+      appRoot.find(".window-header .window-title").prepend(
+        `<i class="${trackerIcon}"></i> `
+      );
+    }
+    const windowIcon = appRoot.find(".window-header .window-icon");
+    if (windowIcon.length) {
+      windowIcon.html(`<i class="${trackerIcon}"></i>`);
+    }
+
     const textarea = html.find("[data-drep-io='json']");
     html.find("[data-drep-action='export']").on("click", (event) => {
       event.preventDefault();
