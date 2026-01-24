@@ -942,6 +942,32 @@ function registerSheetTab() {
 
     if (!sheetClass) continue;
 
+    const className = String(sheetClass.name ?? "");
+    const isTidySheet = className.includes("Tidy5e");
+    if (isTidySheet) {
+      if (Array.isArray(sheetClass.TABS)) {
+        sheetClass.TABS = sheetClass.TABS.filter((tab) => {
+          const tabId = String(tab.tab ?? "");
+          if (tabId === SHEET_TAB_ID) return false;
+          return !tabId.startsWith(`${SHEET_TAB_ID}-`);
+        });
+        if (!sheetClass.TABS.length) {
+          delete sheetClass.TABS;
+        }
+      }
+      if (sheetClass.PARTS && typeof sheetClass.PARTS === "object") {
+        for (const key of Object.keys(sheetClass.PARTS)) {
+          if (key === SHEET_TAB_ID || String(key).startsWith(`${SHEET_TAB_ID}-`)) {
+            delete sheetClass.PARTS[key];
+          }
+        }
+        if (!Object.keys(sheetClass.PARTS).length) {
+          delete sheetClass.PARTS;
+        }
+      }
+      continue;
+    }
+
     const tabs = Array.isArray(sheetClass.TABS)
 
       ? sheetClass.TABS.filter((tab) => {
@@ -954,7 +980,8 @@ function registerSheetTab() {
 
         })
 
-      : [];
+      : null;
+    if (!tabs) continue;
 
     const parts = { ...(sheetClass.PARTS ?? {}) };
 
