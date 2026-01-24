@@ -2131,6 +2131,7 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
             dependsOn: nextDepends,
           });
         }
+        setTrackerPhaseConfig(this._trackerId, normalizePhaseConfig(phaseConfig));
         this._phase = phase;
         this.render(true);
       };
@@ -2477,7 +2478,8 @@ class DowntimeRepDepEditor extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!app) return;
     const data = foundry.utils.expandObject(formData.object ?? {});
     const type = app._forceType ?? String(data.depType ?? "block");
-    const nextDep = { id: app._dep?.id ?? "", type };
+    const kind = app._dep?.kind ?? String(data.depKind ?? "check");
+    const nextDep = { id: app._dep?.id ?? "", type, kind };
     if (type === "harder") {
       const penaltyRaw = Number(data.dcPenalty);
       nextDep.dcPenalty = Number.isFinite(penaltyRaw) && penaltyRaw > 0 ? penaltyRaw : 1;
