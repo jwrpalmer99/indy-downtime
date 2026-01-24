@@ -326,6 +326,12 @@ function applyPhaseConfigFormData(phaseConfig, formData) {
     const groups = [];
     for (const [groupId, groupData] of Object.entries(data.groups ?? {})) {
       const groupName = typeof groupData?.name === "string" ? groupData.name.trim() : "";
+      const maxChecksRaw = Number(groupData?.maxChecks);
+      const existingGroup = (phase.groups ?? []).find((entry) => entry.id === groupId);
+      const existingMax = Number(existingGroup?.maxChecks ?? 0);
+      const maxChecks = Number.isFinite(maxChecksRaw) && maxChecksRaw >= 0
+        ? maxChecksRaw
+        : (Number.isFinite(existingMax) ? existingMax : 0);
       const checks = [];
       for (const [checkId, checkData] of Object.entries(groupData?.checks ?? {})) {
         const name = typeof checkData?.name === "string" ? checkData.name.trim() : "";
@@ -351,7 +357,7 @@ function applyPhaseConfigFormData(phaseConfig, formData) {
           dependsOn,
         });
       }
-      groups.push({ id: groupId, name: groupName, checks });
+      groups.push({ id: groupId, name: groupName, checks, maxChecks });
     }
     next.groups = groups;
 

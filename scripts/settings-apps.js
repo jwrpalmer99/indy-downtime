@@ -463,6 +463,7 @@ class DowntimeRepPhaseConfig extends HandlebarsApplicationMixin(ApplicationV2) {
         return {
           id: group.id,
           name: group.name ?? "",
+          maxChecks: Number.isFinite(Number(group.maxChecks)) ? Number(group.maxChecks) : 0,
           checks,
         };
       });

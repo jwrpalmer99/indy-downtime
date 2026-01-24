@@ -409,13 +409,16 @@ function buildTrackerData({
 
   const showLockedChecks = game.user?.isGM || shouldShowLockedChecks(resolvedTrackerId);
 
+  const groupCounts = getGroupCheckCounts(state.log, activePhase.id);
 
 
   const checkChoices = getPhaseCheckChoices(
 
     activePhase,
 
-    activePhase.checkProgress
+    activePhase.checkProgress,
+
+    { groupCounts }
 
   ).map((choice) => ({
 
@@ -525,6 +528,24 @@ function buildTrackerData({
   const checkGroups = getPhaseGroups(activePhase).map((group) => {
 
     const checks = group.checks ?? [];
+
+    const groupLimit = Number(group.maxChecks ?? 0);
+
+    if (Number.isFinite(groupLimit) && groupLimit > 0) {
+      const used = Number(groupCounts[group.id] ?? 0);
+      const value = Math.min(used, groupLimit);
+      const target = groupLimit;
+      const percent = target > 0
+        ? Math.min(100, Math.round((value / target) * 100))
+        : 0;
+      return {
+        id: group.id,
+        name: group.name || "Group",
+        value,
+        target,
+        percent,
+      };
+    }
 
     let value = 0;
 
@@ -646,6 +667,20 @@ function buildTrackerData({
 }
 
 
+
+
+function getGroupCheckCounts(logEntries, phaseId) {
+  const counts = {};
+  if (!Array.isArray(logEntries)) return counts;
+  for (const entry of logEntries) {
+    if (!entry || entry.type === "phase-complete") continue;
+    if (phaseId && entry.phaseId && entry.phaseId !== phaseId) continue;
+    const groupId = entry.groupId;
+    if (!groupId) continue;
+    counts[groupId] = (counts[groupId] ?? 0) + 1;
+  }
+  return counts;
+}
 
 function attachTrackerListeners(html, { render, actor, app } = {}) {
   const root = html.find("[data-drep-root]").first();

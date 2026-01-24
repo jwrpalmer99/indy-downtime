@@ -123,10 +123,13 @@ function normalizeGroups(groups) {
         ? group.name.trim()
         : `Group ${index + 1}`;
     const checks = normalizeChecks(group?.checks ?? [], id, usedCheckIds);
+    const maxChecksRaw = Number(group?.maxChecks);
+    const maxChecks = Number.isFinite(maxChecksRaw) && maxChecksRaw > 0 ? maxChecksRaw : 0;
     return {
       id,
       name,
       checks,
+      maxChecks,
     };
   });
 }
@@ -585,10 +588,15 @@ function getPhaseDc(phase, checkId) {
   return Number.isFinite(dc) ? dc : DEFAULT_CHECK_DC;
 }
 
-function getPhaseCheckChoices(phase, checkProgress) {
+function getPhaseCheckChoices(phase, checkProgress, options = {}) {
+  const groupCounts = options.groupCounts ?? {};
   return getPhaseChecks(phase).map((check) => {
     const complete = isCheckComplete(check, checkProgress);
     const unlocked = isCheckUnlocked(phase, check, checkProgress);
+    const group = getPhaseGroups(phase).find((entry) => entry.id === check.groupId);
+    const groupLimit = Number(group?.maxChecks ?? 0);
+    const groupUsed = Number(groupCounts?.[check.groupId] ?? 0);
+    const groupAvailable = !groupLimit || groupUsed < groupLimit;
     const rollData = getCheckRollData(phase, check, checkProgress);
     const skillLabel = rollData.skill ? getSkillLabel(rollData.skill) : "";
     return {
@@ -601,7 +609,7 @@ function getPhaseCheckChoices(phase, checkProgress) {
       groupId: check.groupId,
       groupName: check.groupName,
       complete,
-      locked: !unlocked || complete,
+      locked: !unlocked || complete || !groupAvailable,
       dependsOn: getCheckDependencies(check).map((dep) => dep.id),
       advantage: rollData.advantage,
       disadvantage: rollData.disadvantage,

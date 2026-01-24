@@ -81,7 +81,7 @@
         </div>
 
         <details class="drep-phase-section drep-collapsible" data-collapse-id="phase-{{this.id}}-groups">
-          <summary><span class="drep-summary-toggle"><i class="fa-solid fa-angle-down drep-expand"></i><i class="fa-solid fa-angle-up drep-collapse"></i></span><span>Groups</span><span class="drep-summary-chips">{{#each this.groups}}<span class="drep-summary-chip drep-group-chip" data-group-id="{{this.id}}" title="Drag to dependencies">{{#if this.name}}{{this.name}}{{else}}Group{{/if}}</span>{{/each}}</span></summary>
+          <summary><span class="drep-summary-toggle"><i class="fa-solid fa-angle-down drep-expand"></i><i class="fa-solid fa-angle-up drep-collapse"></i></span><span>Groups</span></summary>
           <div class="drep-phase-section-header">
             <button type="button" class="dialog-button" data-drep-action="add-group" data-phase-id="{{this.id}}">
               Add Group
@@ -90,16 +90,17 @@
          
           {{#each this.groups}}
             <details class="drep-group-card drep-collapsible" data-group-id="{{this.id}}" data-collapse-id="phase-{{../id}}-group-{{this.id}}">
-              <summary class="drep-group-summary"><span class="drep-summary-toggle"><i class="fa-solid fa-angle-down drep-expand"></i><i class="fa-solid fa-angle-up drep-collapse"></i></span><span>Group: {{#if this.name}}{{this.name}}{{else}}Group{{/if}}</span><span class="drep-summary-chips">{{#each this.checks}}<span class="drep-summary-chip drep-check-chip" data-check-id="{{this.id}}" title="Drag to dependencies">{{#if this.name}}{{this.name}}{{else}}Check{{/if}}</span>{{/each}}</span></summary>
+              <summary class="drep-group-summary"><span class="drep-summary-toggle"><i class="fa-solid fa-angle-down drep-expand"></i><i class="fa-solid fa-angle-up drep-collapse"></i></span><span>Group: {{#if this.name}}{{this.name}}{{else}}Group{{/if}}</span></summary>
               <div class="drep-group-header">
                 <div class="drep-group-title">
                   <label>
                     Group Name
                     <input type="text" name="phases.{{../id}}.groups.{{this.id}}.name" value="{{this.name}}" />
                   </label>
-                  <span class="drep-group-chip" data-group-id="{{this.id}}" title="Drag to dependencies">
-                    {{#if this.name}}{{this.name}}{{else}}Group{{/if}}
-                  </span>
+                  <label class="drep-group-max">
+                    Maximum Checks
+                    <input type="number" min="0" name="phases.{{../id}}.groups.{{this.id}}.maxChecks" value="{{this.maxChecks}}" />
+                  </label>
                 </div>
                 <div class="drep-group-actions">
                   <button type="button" class="dialog-button" data-drep-action="add-check" data-phase-id="{{../id}}" data-group-id="{{this.id}}">
