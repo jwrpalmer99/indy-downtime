@@ -1170,6 +1170,7 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
       const checks = (group.checks ?? []).map((check) => {
         const skillLabel = check.skill ? getSkillLabel(check.skill) : "";
         const name = check.name || skillLabel || "Check";
+        const rawName = check.name || "";
         const complete = isCheckComplete(check, checkProgress);
         const unlocked = isCheckUnlocked(phase, check, checkProgress);
         const group = getPhaseGroups(phase).find((entry) => entry.id === check.groupId);
@@ -1184,6 +1185,8 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
         return {
           id: check.id,
           name: displayName,
+          rawName,
+          skill: check.skill ?? "",
           skillLabel: displaySkillLabel,
           complete,
           locked: isLocked,
@@ -1260,6 +1263,147 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
     html.off(".drepFlow");
     html.find(".drep-flow-line-chip").attr("draggable", true);
     html.find(".drep-flow-check").attr("draggable", true);
+
+    const savePhaseConfig = (phase) => {
+      const phaseConfig = getPhaseConfig(this._trackerId);
+      const index = phaseConfig.findIndex((entry) => entry.id === phase.id);
+      if (index >= 0) {
+        phaseConfig[index] = phase;
+      }
+      setTrackerPhaseConfig(this._trackerId, normalizePhaseConfig(phaseConfig));
+      rerenderCharacterSheets();
+      rerenderSettingsApps();
+      this._phase = phase;
+      this.render(true);
+    };
+
+    const updateCheckField = (phase, checkId, updates) => {
+      for (const group of phase.groups ?? []) {
+        const check = (group.checks ?? []).find((entry) => entry.id === checkId);
+        if (check) {
+          Object.assign(check, updates);
+          return true;
+        }
+      }
+      return false;
+    };
+
+    const updateLineText = (phase, lineId, lineType, textValue) => {
+      const listKey = lineType === "failure" ? "failureLines" : "successLines";
+      const line = (phase[listKey] ?? []).find((entry) => entry.id === lineId);
+      if (!line) return false;
+      line.text = textValue;
+      return true;
+    };
+
+    const beginInlineEdit = (element, config) => {
+      const $el = $(element);
+      if ($el.data("editing")) return;
+      $el.data("editing", true);
+      const originalDisplay = $el.text();
+      let input;
+
+      if (config.type === "select") {
+        input = $('<select class="drep-inline-edit"></select>');
+        for (const option of getSkillOptions()) {
+          input.append(`<option value="${option.key}">${option.label}</option>`);
+        }
+        input.val(config.value || "");
+      } else if (config.type === "textarea") {
+        input = $('<textarea rows="2" class="drep-inline-edit"></textarea>');
+        input.val(config.value || "");
+      } else if (config.type === "number") {
+        input = $('<input type="number" min="0" class="drep-inline-edit" />');
+        input.val(config.value ?? "");
+      } else {
+        input = $('<input type="text" class="drep-inline-edit" />');
+        input.val(config.value ?? "");
+      }
+
+      $el.empty().append(input);
+      input.trigger("focus");
+      if (input[0]?.select) input[0].select();
+
+      const finish = (save) => {
+        if (!save) {
+          $el.text(originalDisplay);
+          $el.data("editing", false);
+          return;
+        }
+        const newValue = String(input.val() ?? "").trim();
+        const phaseConfig = getPhaseConfig(this._trackerId);
+        const phase = phaseConfig.find((entry) => entry.id === this._phaseId) ?? phaseConfig[0];
+        if (!phase) return;
+
+        if (config.edit === "check-name") {
+          debugLog("Inline edit save", { edit: config.edit, checkId: config.checkId, value: newValue });
+          if (updateCheckField(phase, config.checkId, { name: newValue })) {
+            savePhaseConfig(phase);
+          }
+          return;
+        }
+        if (config.edit === "check-skill") {
+          debugLog("Inline edit save", { edit: config.edit, checkId: config.checkId, value: newValue });
+          if (updateCheckField(phase, config.checkId, { skill: newValue })) {
+            savePhaseConfig(phase);
+          }
+          return;
+        }
+        if (config.edit === "check-dc") {
+          const dcValue = Number(newValue);
+          debugLog("Inline edit save", { edit: config.edit, checkId: config.checkId, value: dcValue });
+          if (updateCheckField(phase, config.checkId, { dc: Number.isFinite(dcValue) ? dcValue : 0 })) {
+            savePhaseConfig(phase);
+          }
+          return;
+        }
+        if (config.edit === "line-text") {
+          debugLog("Inline edit save", { edit: config.edit, lineId: config.lineId, lineType: config.lineType, value: newValue });
+          if (updateLineText(phase, config.lineId, config.lineType, newValue)) {
+            savePhaseConfig(phase);
+          }
+          return;
+        }
+      };
+
+      input.on("keydown", (event) => {
+        if (event.key === "Escape") {
+          event.preventDefault();
+          finish(false);
+        }
+        if (event.key === "Enter" && config.type !== "textarea") {
+          event.preventDefault();
+          finish(true);
+        }
+      });
+      input.on("blur", () => finish(true));
+    };
+
+    html.on("dblclick.drepFlow", ".drep-flow-editable", (event) => {
+      if (this._readOnly) return;
+      event.preventDefault();
+      const target = event.currentTarget;
+      const edit = target?.dataset?.edit;
+      if (!edit) return;
+      if (edit.startsWith("check")) {
+        const checkId = target.dataset.checkId;
+        if (!checkId) return;
+        if (edit === "check-name") {
+          beginInlineEdit(target, { edit, type: "text", value: target.dataset.value ?? target.textContent, checkId });
+        } else if (edit === "check-skill") {
+          beginInlineEdit(target, { edit, type: "select", value: target.dataset.value ?? target.dataset.skill ?? "", checkId });
+        } else if (edit === "check-dc") {
+          beginInlineEdit(target, { edit, type: "number", value: target.dataset.dc ?? "", checkId });
+        }
+        return;
+      }
+      if (edit === "line-text") {
+        const lineId = target.dataset.lineId;
+        const lineType = target.dataset.lineType;
+        if (!lineId || !lineType) return;
+        beginInlineEdit(target, { edit, type: "textarea", value: target.dataset.value ?? target.textContent, lineId, lineType });
+      }
+    });
 
     if (this._readOnly) {
       html.find(".drep-flow-line-chip").attr("draggable", false);
