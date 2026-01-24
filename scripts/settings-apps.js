@@ -1264,6 +1264,34 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
     html.find(".drep-flow-line-chip").attr("draggable", true);
     html.find(".drep-flow-check").attr("draggable", true);
 
+    const captureFlowCollapse = () => {
+      const state = {};
+      html.find("details[data-collapse-id]").each((_, element) => {
+        const id = element?.dataset?.collapseId;
+        if (!id) return;
+        state[id] = Boolean(element.open);
+      });
+      this._collapseStateFlow = { ...(this._collapseStateFlow ?? {}), ...state };
+    };
+
+    html.find("details[data-collapse-id]").each((_, element) => {
+      const id = element?.dataset?.collapseId;
+      if (!id) return;
+      if (this._collapseStateFlow?.[id]) {
+        element.open = true;
+      } else {
+        element.open = false;
+      }
+    });
+
+    html.on("toggle.drepFlow", "details[data-collapse-id]", (event) => {
+      const id = event.currentTarget?.dataset?.collapseId;
+      if (!id) return;
+      this._collapseStateFlow = this._collapseStateFlow ?? {};
+      this._collapseStateFlow[id] = event.currentTarget.open;
+    });
+
+
     const savePhaseConfig = (phase) => {
       const phaseConfig = getPhaseConfig(this._trackerId);
       const index = phaseConfig.findIndex((entry) => entry.id === phase.id);
@@ -1273,6 +1301,7 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
       setTrackerPhaseConfig(this._trackerId, normalizePhaseConfig(phaseConfig));
       rerenderCharacterSheets();
       rerenderSettingsApps();
+      captureFlowCollapse();
       this._phase = phase;
       this.render(true);
     };
@@ -1485,6 +1514,8 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
           dependsOnGroups: nextGroups,
         });
       }
+      captureFlowCollapse();
+      captureFlowCollapse();
       this._phase = phase;
       this.render(true);
     });
@@ -1541,6 +1572,8 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
           dependsOn: nextDepends,
         });
       }
+      captureFlowCollapse();
+      captureFlowCollapse();
       this._phase = phase;
       this.render(true);
     });
@@ -1666,6 +1699,8 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
           dependsOnGroups: nextGroups,
         });
       }
+      captureFlowCollapse();
+      captureFlowCollapse();
       this._phase = phase;
       this.render(true);
     });
@@ -1772,6 +1807,8 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
           dependsOnGroups: nextGroups,
         });
       }
+      captureFlowCollapse();
+      captureFlowCollapse();
       this._phase = phase;
       this.render(true);
     });

@@ -4,7 +4,7 @@
   </header>
 
   {{#if (and (not readOnly) showFlowLines unassignedSuccess.length)}}
-    <details class="drep-flow-unassigned drep-collapsible">
+    <details class="drep-flow-unassigned drep-collapsible" data-collapse-id="unassigned-success">
       <summary><span class="drep-summary-toggle"><i class="fa-solid fa-angle-down drep-expand"></i><i class="fa-solid fa-angle-up drep-collapse"></i></span><span>Unassigned Success Lines</span></summary>
       <div class="drep-flow-lines success">
         {{#each unassignedSuccess}}
@@ -14,7 +14,7 @@
     </details>
   {{/if}}
   {{#if (and (not readOnly) showFlowLines unassignedFailure.length)}}
-    <details class="drep-flow-unassigned drep-collapsible">
+    <details class="drep-flow-unassigned drep-collapsible" data-collapse-id="unassigned-failure">
       <summary><span class="drep-summary-toggle"><i class="fa-solid fa-angle-down drep-expand"></i><i class="fa-solid fa-angle-up drep-collapse"></i></span><span>Unassigned Failure Lines</span></summary>
       <div class="drep-flow-lines failure">
         {{#each unassignedFailure}}
@@ -29,7 +29,7 @@
       <div class="drep-flow-lane" data-drep-group-id="{{this.id}}">
         <div class="drep-flow-lane-header">{{this.name}}{{#if this.maxChecks}} <span class="drep-flow-group-cap">(Max Success: {{this.maxChecks}})</span>{{/if}}</div>
         {{#if (and @root.showFlowLines this.successLines.length)}}
-          <details class="drep-flow-lines success drep-collapsible">
+          <details class="drep-flow-lines success drep-collapsible" data-collapse-id="group-{{this.id}}-success">
             <summary><span class="drep-summary-toggle"><i class="fa-solid fa-angle-down drep-expand"></i><i class="fa-solid fa-angle-up drep-collapse"></i></span><span>Group Success Lines</span></summary>
             {{#each this.successLines}}
               <div class="drep-flow-line drep-flow-line-chip" draggable="true" data-drep-line-id="{{this.id}}" data-drep-line-type="success"><span class="drep-flow-line-text drep-flow-editable" data-edit="line-text" data-line-id="{{this.id}}" data-line-type="success" data-value="{{this.text}}">{{this.text}}</span>{{#unless @root.readOnly}}<button type="button" class="drep-flow-line-remove" title="Remove">x</button>{{/unless}}</div>
@@ -37,7 +37,7 @@
           </details>
         {{/if}}
         {{#if (and @root.showFlowLines this.failureLines.length)}}
-          <details class="drep-flow-lines failure drep-collapsible">
+          <details class="drep-flow-lines failure drep-collapsible" data-collapse-id="group-{{this.id}}-failure">
             <summary><span class="drep-summary-toggle"><i class="fa-solid fa-angle-down drep-expand"></i><i class="fa-solid fa-angle-up drep-collapse"></i></span><span>Group Failure Lines</span></summary>
             {{#each this.failureLines}}
               <div class="drep-flow-line drep-flow-line-chip" draggable="true" data-drep-line-id="{{this.id}}" data-drep-line-type="failure"><span class="drep-flow-line-text drep-flow-editable" data-edit="line-text" data-line-id="{{this.id}}" data-line-type="failure" data-value="{{this.text}}">{{this.text}}</span>{{#unless @root.readOnly}}<button type="button" class="drep-flow-line-remove" title="Remove">x</button>{{/unless}}</div>
@@ -65,7 +65,7 @@
               {{/if}}
               {{/if}}
               {{#if (and @root.showFlowLines this.successLines.length)}}
-                <details class="drep-flow-lines success drep-collapsible">
+                <details class="drep-flow-lines success drep-collapsible" data-collapse-id="check-{{this.id}}-success">
                   <summary><span class="drep-summary-toggle"><i class="fa-solid fa-angle-down drep-expand"></i><i class="fa-solid fa-angle-up drep-collapse"></i></span><span>Success Lines</span></summary>
                   {{#each this.successLines}}
                     <div class="drep-flow-line drep-flow-line-chip" draggable="true" data-drep-line-id="{{this.id}}" data-drep-line-type="success"><span class="drep-flow-line-text drep-flow-editable" data-edit="line-text" data-line-id="{{this.id}}" data-line-type="success" data-value="{{this.text}}">{{this.text}}</span>{{#unless @root.readOnly}}<button type="button" class="drep-flow-line-remove" title="Remove">x</button>{{/unless}}</div>
@@ -73,7 +73,7 @@
                 </details>
               {{/if}}
               {{#if (and @root.showFlowLines this.failureLines.length)}}
-                <details class="drep-flow-lines failure drep-collapsible">
+                <details class="drep-flow-lines failure drep-collapsible" data-collapse-id="check-{{this.id}}-failure">
                   <summary><span class="drep-summary-toggle"><i class="fa-solid fa-angle-down drep-expand"></i><i class="fa-solid fa-angle-up drep-collapse"></i></span><span>Failure Lines</span></summary>
                   {{#each this.failureLines}}
                     <div class="drep-flow-line drep-flow-line-chip" draggable="true" data-drep-line-id="{{this.id}}" data-drep-line-type="failure"><span class="drep-flow-line-text drep-flow-editable" data-edit="line-text" data-line-id="{{this.id}}" data-line-type="failure" data-value="{{this.text}}">{{this.text}}</span>{{#unless @root.readOnly}}<button type="button" class="drep-flow-line-remove" title="Remove">x</button>{{/unless}}</div>
