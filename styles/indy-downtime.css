@@ -313,6 +313,10 @@
   background: darkslategray;
 }
 
+.drep-button-secondary {
+  width: fit-content;
+}
+
 .drep-button-primary {
   display: inline-flex;
   align-items: center !important;
