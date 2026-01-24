@@ -408,6 +408,23 @@ function getPhaseGroups(phase) {
   return Array.isArray(phase?.groups) ? phase.groups : [];
 }
 
+function resolveGroupByIdOrName(phase, groupIdOrName) {
+  if (!phase || !groupIdOrName) return null;
+  const groups = getPhaseGroups(phase);
+  const direct = groups.find((entry) => entry.id === groupIdOrName);
+  if (direct) return direct;
+  const normalized =
+    typeof groupIdOrName === "string" ? groupIdOrName.trim().toLowerCase() : "";
+  if (!normalized) return null;
+  return (
+    groups.find(
+      (entry) =>
+        typeof entry?.name === "string" &&
+        entry.name.trim().toLowerCase() === normalized
+    ) ?? null
+  );
+}
+
 function getPhaseChecks(phase) {
   const groups = getPhaseGroups(phase);
   const output = [];
@@ -469,8 +486,16 @@ function isCheckComplete(check, checkProgress) {
 
 function isGroupComplete(phase, groupId, checkProgress) {
   if (!phase || !groupId) return false;
-  const group = getPhaseGroups(phase).find((entry) => entry.id === groupId);
+  const group = resolveGroupByIdOrName(phase, groupId);
   if (!group) return false;
+  const maxChecks = Number(group.maxChecks ?? 0);
+  const completed = (group.checks ?? []).reduce(
+    (total, check) => total + (isCheckComplete(check, checkProgress) ? 1 : 0),
+    0
+  );
+  if (Number.isFinite(maxChecks) && maxChecks > 0) {
+    return completed >= maxChecks;
+  }
   return (group.checks ?? []).every((check) => isCheckComplete(check, checkProgress));
 }
 
@@ -484,7 +509,7 @@ function isDependencyComplete(phase, dep, checkProgress) {
   }
   const depCheck = getPhaseCheckById(phase, depId);
   if (!depCheck) {
-    const group = getPhaseGroups(phase).find((entry) => entry.id === depId);
+    const group = resolveGroupByIdOrName(phase, depId);
     return group ? isGroupComplete(phase, depId, checkProgress) : true;
   }
   const target = getPhaseCheckTarget(depCheck);
@@ -542,12 +567,14 @@ function getCheckDependencyDetails(phase, check, checkProgress) {
   const details = [];
   for (const dep of deps) {
     const sourceCheck = dep.kind === "group" ? null : getPhaseCheckById(phase, dep.id);
-    const sourceGroup = dep.kind === "group"
-      ? getPhaseGroups(phase).find((entry) => entry.id === dep.id)
-      : null;
-    const sourceLabel = dep.kind === "group"
-      ? (sourceGroup?.name || dep.id)
-      : (getPhaseCheckLabel(sourceCheck) || dep.id);
+    const sourceGroup =
+      dep.kind === "group"
+        ? resolveGroupByIdOrName(phase, dep.id)
+        : resolveGroupByIdOrName(phase, dep.id);
+    const sourceLabel =
+      dep.kind === "group"
+        ? (sourceGroup?.name || dep.id)
+        : (getPhaseCheckLabel(sourceCheck) || sourceGroup?.name || dep.id);
     const sourceId = dep.id;
     const complete = isDependencyComplete(phase, dep, checkProgress);
     if (dep.type === "harder") {

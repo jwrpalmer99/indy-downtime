@@ -676,6 +676,7 @@ function getGroupCheckCounts(logEntries, phaseId) {
   for (const entry of logEntries) {
     if (!entry || entry.type === "phase-complete") continue;
     if (phaseId && entry.phaseId && entry.phaseId !== phaseId) continue;
+    if (entry.success !== true) continue;
     const groupId = entry.groupId;
     if (!groupId) continue;
     counts[groupId] = (counts[groupId] ?? 0) + 1;

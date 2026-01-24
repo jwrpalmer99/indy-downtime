@@ -1180,6 +1180,7 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
       for (const entry of state.log) {
         if (!entry || entry.type === "phase-complete") continue;
         if (phase?.id && entry.phaseId && entry.phaseId !== phase.id) continue;
+        if (entry.success !== true) continue;
         const groupId = entry.groupId;
         if (!groupId) continue;
         groupCounts[groupId] = (groupCounts[groupId] ?? 0) + 1;
