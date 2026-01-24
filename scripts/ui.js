@@ -80,6 +80,10 @@ import {
 let tidyApi = null;
 
 let registeredTidyTrackerIds = new Set();
+let tidyContextHooked = false;
+let pendingTidyCleanupTabIds = new Set();
+let lastKnownTrackerIds = new Set();
+const TIDY_PLACEHOLDER_MAX = 3;
 
 const pendingTabRestore = new WeakMap();
 
@@ -1249,10 +1253,14 @@ function createTidyCleanupTab(api, trackerId) {
     tabId,
 
     path: TIDY_TEMPLATE_PATH,
+    enabled: () => false,
 
     getData: async (data) => {
 
-      return foundry.utils.mergeObject(data ?? {}, { isAllowedActor: false }, {
+      const base = (data && typeof data === "object") ? data : { tabs: [] };
+      if (!Array.isArray(base.tabs)) base.tabs = [];
+
+      return foundry.utils.mergeObject(base, { isAllowedActor: false }, {
 
         inplace: false,
 
@@ -1274,6 +1282,154 @@ function createTidyCleanupTab(api, trackerId) {
 
 }
 
+function pruneTidySelectedTabs(removedTrackerIds) {
+  if (!game?.modules?.get("tidy5e-sheet")?.active) return [];
+  const removedTabIds = new Set(
+    Array.isArray(removedTrackerIds)
+      ? removedTrackerIds.map((id) => getTrackerTabId(id))
+      : []
+  );
+  const activeTabIds = new Set(getTrackers().map((tracker) => getTrackerTabId(tracker.id)));
+  const shouldRemoveTabId = (tabId) => {
+    if (!tabId || typeof tabId !== "string") return false;
+    if (removedTabIds.has(tabId)) return true;
+    if (!tabId.startsWith(`${SHEET_TAB_ID}-`)) return false;
+    return !activeTabIds.has(tabId);
+  };
+  const staleTabIds = new Set();
+  const updates = [];
+  if (game?.actors) {
+    for (const actor of Array.from(game.actors)) {
+      if (actor?.type !== "character") continue;
+      const selected = actor.getFlag("tidy5e-sheet", "selected-tabs");
+      if (Array.isArray(selected) && selected.length) {
+        for (const tabId of selected) {
+          if (shouldRemoveTabId(tabId)) staleTabIds.add(tabId);
+        }
+        const next = selected.filter((tabId) => !shouldRemoveTabId(tabId));
+        if (next.length !== selected.length) {
+          if (next.length) {
+            updates.push(actor.setFlag("tidy5e-sheet", "selected-tabs", next));
+          } else {
+            updates.push(actor.unsetFlag("tidy5e-sheet", "selected-tabs"));
+          }
+        }
+      }
+      const tabConfig = actor.getFlag("tidy5e-sheet", "tab-configuration");
+      if (tabConfig?.selected && Array.isArray(tabConfig.selected)) {
+        for (const tabId of tabConfig.selected) {
+          if (shouldRemoveTabId(tabId)) staleTabIds.add(tabId);
+        }
+        const next = tabConfig.selected.filter((tabId) => !shouldRemoveTabId(tabId));
+        if (next.length !== tabConfig.selected.length) {
+          const updated = { ...tabConfig, selected: next };
+          if (next.length) {
+            updates.push(actor.setFlag("tidy5e-sheet", "tab-configuration", updated));
+          } else {
+            updates.push(actor.unsetFlag("tidy5e-sheet", "tab-configuration"));
+          }
+        }
+      }
+      const sidebarConfig = actor.getFlag("tidy5e-sheet", "sidebar-tab-configuration");
+      if (sidebarConfig?.selected && Array.isArray(sidebarConfig.selected)) {
+        for (const tabId of sidebarConfig.selected) {
+          if (shouldRemoveTabId(tabId)) staleTabIds.add(tabId);
+        }
+        const next = sidebarConfig.selected.filter((tabId) => !shouldRemoveTabId(tabId));
+        if (next.length !== sidebarConfig.selected.length) {
+          const updated = { ...sidebarConfig, selected: next };
+          if (next.length) {
+            updates.push(actor.setFlag("tidy5e-sheet", "sidebar-tab-configuration", updated));
+          } else {
+            updates.push(actor.unsetFlag("tidy5e-sheet", "sidebar-tab-configuration"));
+          }
+        }
+      }
+    }
+  }
+
+  if (game?.settings?.settings?.has("tidy5e-sheet.defaultCharacterSheetTabs")) {
+    const currentDefaults = game.settings.get("tidy5e-sheet", "defaultCharacterSheetTabs");
+    if (Array.isArray(currentDefaults)) {
+      for (const tabId of currentDefaults) {
+        if (shouldRemoveTabId(tabId)) staleTabIds.add(tabId);
+      }
+      const filteredDefaults = currentDefaults.filter((tabId) => !shouldRemoveTabId(tabId));
+      if (filteredDefaults.length !== currentDefaults.length) {
+        let nextDefaults = filteredDefaults;
+        if (!nextDefaults.length) {
+          const defaultSetting = game.settings.settings.get("tidy5e-sheet.defaultCharacterSheetTabs");
+          const fallback = defaultSetting?.default;
+          nextDefaults = Array.isArray(fallback) ? fallback : [];
+        }
+        updates.push(game.settings.set("tidy5e-sheet", "defaultCharacterSheetTabs", nextDefaults));
+      }
+    }
+  }
+
+  if (game?.settings?.settings?.has("tidy5e-sheet.initialCharacterSheetTab")) {
+    const currentInitial = game.settings.get("tidy5e-sheet", "initialCharacterSheetTab");
+    if (currentInitial && shouldRemoveTabId(currentInitial)) {
+      staleTabIds.add(currentInitial);
+    }
+    if (currentInitial && shouldRemoveTabId(currentInitial)) {
+      const defaults = game.settings.get("tidy5e-sheet", "defaultCharacterSheetTabs");
+      let nextInitial = Array.isArray(defaults) ? defaults[0] : "";
+      if (!nextInitial) {
+        const defaultSetting = game.settings.settings.get("tidy5e-sheet.initialCharacterSheetTab");
+        nextInitial = defaultSetting?.default ?? "";
+      }
+      if (nextInitial) {
+        updates.push(game.settings.set("tidy5e-sheet", "initialCharacterSheetTab", nextInitial));
+      }
+    }
+  }
+
+  if (game?.settings?.settings?.has("tidy5e-sheet.tabConfiguration")) {
+    const config = game.settings.get("tidy5e-sheet", "tabConfiguration");
+    if (config && typeof config === "object") {
+      const nextConfig = foundry.utils.deepClone(config);
+      let changed = false;
+      for (const entry of Object.values(nextConfig)) {
+        if (!entry || typeof entry !== "object") continue;
+        if (!Array.isArray(entry.selected)) continue;
+        for (const tabId of entry.selected) {
+          if (shouldRemoveTabId(tabId)) staleTabIds.add(tabId);
+        }
+        const next = entry.selected.filter((tabId) => !shouldRemoveTabId(tabId));
+        if (next.length !== entry.selected.length) {
+          entry.selected = next;
+          changed = true;
+        }
+      }
+      if (changed) {
+        updates.push(game.settings.set("tidy5e-sheet", "tabConfiguration", nextConfig));
+      }
+    }
+  }
+
+  if (updates.length) {
+    Promise.allSettled(updates).catch(() => {});
+  }
+  return Array.from(staleTabIds);
+}
+
+function stripStaleTidyTabs(context) {
+  if (!context) return;
+  const activeTabIds = new Set(getTrackers().map((tracker) => getTrackerTabId(tracker.id)));
+  const shouldKeep = (tab) => {
+    const tabId = tab?.id;
+    if (!tabId || typeof tabId !== "string") return true;
+    if (!tabId.startsWith(`${SHEET_TAB_ID}-`)) return true;
+    return activeTabIds.has(tabId);
+  };
+  if (Array.isArray(context.tabs)) {
+    context.tabs = context.tabs.filter(shouldKeep);
+  }
+  if (Array.isArray(context.sidebarTabs)) {
+    context.sidebarTabs = context.sidebarTabs.filter(shouldKeep);
+  }
+}
 
 
 function createTidyTab(api, tracker) {
@@ -1309,6 +1465,8 @@ function createTidyTab(api, tracker) {
     getData: async (data) => {
 
       const actor = resolveActorFromContext(data);
+      const base = (data && typeof data === "object") ? data : { tabs: [] };
+      if (!Array.isArray(base.tabs)) base.tabs = [];
 
       debugLog("Tidy tab getData", {
 
@@ -1324,7 +1482,7 @@ function createTidyTab(api, tracker) {
 
       if (trackerMissing) {
 
-        return foundry.utils.mergeObject(data ?? {}, { isAllowedActor: false }, {
+        return foundry.utils.mergeObject(base, { isAllowedActor: false }, {
 
           inplace: false,
 
@@ -1336,7 +1494,7 @@ function createTidyTab(api, tracker) {
 
       if (!isActorAllowed(actor, tracker.id)) {
 
-        return foundry.utils.mergeObject(data ?? {}, { isAllowedActor: false }, {
+        return foundry.utils.mergeObject(base, { isAllowedActor: false }, {
 
           inplace: false,
 
@@ -1358,7 +1516,7 @@ function createTidyTab(api, tracker) {
 
       });
 
-      return foundry.utils.mergeObject(data ?? {}, trackerData, {
+      return foundry.utils.mergeObject(base, trackerData, {
 
         inplace: false,
 
@@ -1435,18 +1593,32 @@ function createTidyTab(api, tracker) {
 
 
 function updateTidyTabLabel() {
-
-  if (!tidyApi?.registerCharacterTab || !tidyApi?.models?.HandlebarsTab) {
-
-    debugLog("Tidy API not ready");
-
-    return;
-
-  }
+  if (!game?.modules?.get("tidy5e-sheet")?.active) return;
 
   const trackers = getTrackers();
 
   const nextIds = new Set(trackers.map((tracker) => tracker.id));
+  const removedIds = Array.from(lastKnownTrackerIds).filter(
+    (trackerId) => !nextIds.has(trackerId)
+  );
+
+  const staleTabIds = pruneTidySelectedTabs(removedIds);
+  for (const tabId of staleTabIds) {
+    pendingTidyCleanupTabIds.add(tabId);
+  }
+  for (const trackerId of removedIds) {
+    pendingTidyCleanupTabIds.add(getTrackerTabId(trackerId));
+  }
+
+  if (!tidyApi?.registerCharacterTab || !tidyApi?.models?.HandlebarsTab) {
+
+    debugLog("Tidy API not ready");
+    registeredTidyTrackerIds = nextIds;
+    lastKnownTrackerIds = nextIds;
+
+    return;
+
+  }
 
   debugLog("Updating tidy tabs", {
 
@@ -1456,11 +1628,9 @@ function updateTidyTabLabel() {
 
   });
 
+  registerTidyPlaceholderTabs(tidyApi);
 
-
-  for (const trackerId of registeredTidyTrackerIds) {
-
-    if (nextIds.has(trackerId)) continue;
+  for (const trackerId of removedIds) {
 
     tidyApi.registerCharacterTab(createTidyCleanupTab(tidyApi, trackerId), {
 
@@ -1482,9 +1652,23 @@ function updateTidyTabLabel() {
 
   }
 
+  if (pendingTidyCleanupTabIds.size) {
+    const prefix = `${SHEET_TAB_ID}-`;
+    for (const tabId of Array.from(pendingTidyCleanupTabIds)) {
+      if (!tabId.startsWith(prefix)) continue;
+      const trackerId = tabId.slice(prefix.length);
+      if (!trackerId) continue;
+      tidyApi.registerCharacterTab(createTidyCleanupTab(tidyApi, trackerId), {
+        overrideExisting: true,
+      });
+    }
+    pendingTidyCleanupTabIds.clear();
+  }
+
 
 
   registeredTidyTrackerIds = nextIds;
+  lastKnownTrackerIds = nextIds;
 
   cleanupStaleSheetTabs(nextIds);
 
@@ -1631,16 +1815,41 @@ function registerTidyTab() {
 
 
     tidyApi = api;
+    const trackers = getTrackers();
 
-    for (const tracker of getTrackers()) {
+    registerTidyPlaceholderTabs(api);
 
-      api.registerCharacterTab(createTidyTab(api, tracker));
+    for (const tracker of trackers) {
+
+      api.registerCharacterTab(createTidyTab(api, tracker), {
+        overrideExisting: true,
+      });
 
     }
+    if (pendingTidyCleanupTabIds.size) {
+      const prefix = `${SHEET_TAB_ID}-`;
+      for (const tabId of Array.from(pendingTidyCleanupTabIds)) {
+        if (!tabId.startsWith(prefix)) continue;
+        const trackerId = tabId.slice(prefix.length);
+        if (!trackerId) continue;
+        api.registerCharacterTab(createTidyCleanupTab(api, trackerId), {
+          overrideExisting: true,
+        });
+      }
+      pendingTidyCleanupTabIds.clear();
+    }
+    registeredTidyTrackerIds = new Set(trackers.map((tracker) => tracker.id));
+    lastKnownTrackerIds = new Set(trackers.map((tracker) => tracker.id));
 
     debugLog("Registered tidy5e downtime tab");
 
   });
+  if (!tidyContextHooked) {
+    tidyContextHooked = true;
+    Hooks.on("tidy5e-sheet.prepareSheetContext", (_document, _app, context) => {
+      stripStaleTidyTabs(context);
+    });
+  }
 
 }
 

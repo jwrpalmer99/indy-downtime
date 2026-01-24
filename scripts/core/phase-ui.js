@@ -332,46 +332,52 @@ function applyPhaseConfigFormData(phaseConfig, formData) {
       next.phaseCompleteMacro = data.phaseCompleteMacro.trim();
     }
 
-    const groups = [];
-    for (const [groupId, groupData] of Object.entries(data.groups ?? {})) {
-      const groupName = typeof groupData?.name === "string" ? groupData.name.trim() : "";
-      const maxChecksRaw = Number(groupData?.maxChecks);
-      const existingGroup = (phase.groups ?? []).find((entry) => entry.id === groupId);
-      const existingMax = Number(existingGroup?.maxChecks ?? 0);
-      const maxChecks = Number.isFinite(maxChecksRaw) && maxChecksRaw >= 0
-        ? maxChecksRaw
-        : (Number.isFinite(existingMax) ? existingMax : 0);
-      const checks = [];
-      for (const [checkId, checkData] of Object.entries(groupData?.checks ?? {})) {
-        const name = typeof checkData?.name === "string" ? checkData.name.trim() : "";
-        const skill = typeof checkData?.skill === "string" ? checkData.skill.trim() : "";
-        const dc = Number(checkData?.dc);
-        const description =
-          typeof checkData?.description === "string" ? checkData.description.trim() : "";
+    if (Object.prototype.hasOwnProperty.call(data, "groups")) {
+      const groups = [];
+      for (const [groupId, groupData] of Object.entries(data.groups ?? {})) {
+        const groupName = typeof groupData?.name === "string" ? groupData.name.trim() : "";
+        const maxChecksRaw = Number(groupData?.maxChecks);
         const existingGroup = (phase.groups ?? []).find((entry) => entry.id === groupId);
-        const existingCheck = (existingGroup?.checks ?? []).find((entry) => entry.id === checkId);
-        const hasDependsOn = Object.prototype.hasOwnProperty.call(checkData ?? {}, "dependsOn");
-        let dependsOn = normalizeCheckDependencies(existingCheck?.dependsOn ?? []);
-        if (hasDependsOn) {
-          const depIds = parseList(checkData?.dependsOn ?? "");
-          dependsOn = mergeDependencyDetails(depIds, existingCheck?.dependsOn ?? []);
+        const existingMax = Number(existingGroup?.maxChecks ?? 0);
+        const maxChecks = Number.isFinite(maxChecksRaw) && maxChecksRaw >= 0
+          ? maxChecksRaw
+          : (Number.isFinite(existingMax) ? existingMax : 0);
+        const checks = [];
+        for (const [checkId, checkData] of Object.entries(groupData?.checks ?? {})) {
+          const name = typeof checkData?.name === "string" ? checkData.name.trim() : "";
+          const skill = typeof checkData?.skill === "string" ? checkData.skill.trim() : "";
+          const dc = Number(checkData?.dc);
+          const description =
+            typeof checkData?.description === "string" ? checkData.description.trim() : "";
+          const existingGroup = (phase.groups ?? []).find((entry) => entry.id === groupId);
+          const existingCheck = (existingGroup?.checks ?? []).find((entry) => entry.id === checkId);
+          const hasDependsOn = Object.prototype.hasOwnProperty.call(checkData ?? {}, "dependsOn");
+          let dependsOn = normalizeCheckDependencies(existingCheck?.dependsOn ?? []);
+          if (hasDependsOn) {
+            const depIds = parseList(checkData?.dependsOn ?? "");
+            dependsOn = mergeDependencyDetails(depIds, existingCheck?.dependsOn ?? []);
+          }
+          checks.push({
+            id: checkId,
+            name,
+            skill,
+            description,
+            dc: Number.isFinite(dc) ? dc : 0,
+            value: 1,
+            dependsOn,
+          });
         }
-        checks.push({
-          id: checkId,
-          name,
-          skill,
-          description,
-          dc: Number.isFinite(dc) ? dc : 0,
-          value: 1,
-          dependsOn,
-        });
+        groups.push({ id: groupId, name: groupName, checks, maxChecks });
       }
-      groups.push({ id: groupId, name: groupName, checks, maxChecks });
+      next.groups = groups;
     }
-    next.groups = groups;
 
-    next.successLines = parseLineData(data.successLines);
-    next.failureLines = parseLineData(data.failureLines);
+    if (Object.prototype.hasOwnProperty.call(data, "successLines")) {
+      next.successLines = parseLineData(data.successLines);
+    }
+    if (Object.prototype.hasOwnProperty.call(data, "failureLines")) {
+      next.failureLines = parseLineData(data.failureLines);
+    }
 
     return next;
   });
