@@ -1532,6 +1532,104 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
       this.render(true);
     });
 
+
+    html.on("click.drepFlow", "[data-drep-action=\"add-group\"]", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      if (this._readOnly) return;
+      const phaseConfig = getPhaseConfig(this._trackerId);
+      const phase = phaseConfig.find((entry) => entry.id === this._phaseId) ?? phaseConfig[0];
+      if (!phase) return;
+      if (!this._phaseId) {
+        this._phaseId = phase.id;
+      }
+      phase.groups = Array.isArray(phase.groups) ? phase.groups : [];
+      phase.groups.push({
+        id: foundry.utils.randomID(),
+        name: "",
+        checks: [],
+      });
+      if (this._onUpdate) {
+        this._onUpdate({
+          kind: "phase",
+          phaseId: phase.id,
+          phase: foundry.utils.deepClone(phase),
+        });
+      } else {
+        setTrackerPhaseConfig(this._trackerId, normalizePhaseConfig(phaseConfig));
+      }
+      rerenderCharacterSheets();
+      rerenderSettingsApps();
+      captureFlowCollapse();
+      this._phase = phase;
+      this.render(true);
+    });
+
+    html.on("click.drepFlow", "[data-drep-action=\"remove-group\"]", async (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      if (this._readOnly) return;
+      const groupId = event.currentTarget?.dataset?.groupId;
+      if (!groupId) return;
+
+      const confirm = await new Promise((resolve) => {
+        let resolved = false;
+        const finish = (value) => {
+          if (resolved) return;
+          resolved = true;
+          resolve(value);
+        };
+        const dialog = new foundry.applications.api.DialogV2({
+          window: { title: "Delete Group" },
+          content: "<p>Delete this group? This cannot be undone.</p>",
+          buttons: [
+            {
+              action: "delete",
+              label: "Delete",
+              default: true,
+              callback: () => finish(true),
+            },
+            {
+              action: "cancel",
+              label: "Cancel",
+              callback: () => finish(false),
+            },
+          ],
+          close: () => finish(false),
+        });
+        dialog.render(true);
+      });
+      if (!confirm) return;
+
+      const phaseConfig = getPhaseConfig(this._trackerId);
+      const phase = phaseConfig.find((entry) => entry.id === this._phaseId) ?? phaseConfig[0];
+      if (!phase) return;
+      if (!this._phaseId) {
+        this._phaseId = phase.id;
+      }
+      phase.groups = (phase.groups ?? []).filter((group) => group.id !== groupId);
+      for (const listKey of ["successLines", "failureLines"]) {
+        for (const line of phase[listKey] ?? []) {
+          if (!Array.isArray(line.dependsOnGroups)) continue;
+          line.dependsOnGroups = line.dependsOnGroups.filter((id) => id !== groupId);
+        }
+      }
+      if (this._onUpdate) {
+        this._onUpdate({
+          kind: "phase",
+          phaseId: phase.id,
+          phase: foundry.utils.deepClone(phase),
+        });
+      } else {
+        setTrackerPhaseConfig(this._trackerId, normalizePhaseConfig(phaseConfig));
+      }
+      rerenderCharacterSheets();
+      rerenderSettingsApps();
+      captureFlowCollapse();
+      this._phase = phase;
+      this.render(true);
+    });
+
     html.on("click.drepFlow", ".drep-flow-remove-check", async (event) => {
       event.preventDefault();
       event.stopPropagation();
