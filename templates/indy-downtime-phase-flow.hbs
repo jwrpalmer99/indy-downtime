@@ -46,8 +46,8 @@
         {{/if}}
         <div class="drep-flow-checks">
           {{#each this.checks}}
-            <div class="drep-flow-check {{#if this.locked}}is-locked{{/if}} {{#if this.groupMaxed}}is-group-maxed{{/if}} {{#if this.complete}}is-complete{{/if}}" data-drep-check-id="{{this.id}}">
-              <div class="drep-flow-check-name drep-flow-editable" data-edit="check-name" data-check-id="{{this.id}}" data-value="{{this.rawName}}">{{this.name}}</div>
+            <div class="drep-flow-check {{#if this.locked}}is-locked{{/if}} {{#if this.groupMaxed}}is-group-maxed{{/if}} {{#if this.complete}}is-complete{{/if}}" data-drep-check-id="{{this.id}}" data-drep-group-id="{{../id}}">
+              <div class="drep-flow-check-name drep-flow-editable" data-edit="check-name" data-check-id="{{this.id}}" data-value="{{this.rawName}}">{{this.name}}{{#unless @root.readOnly}}<button type="button" class="drep-flow-remove-check" data-drep-action="remove-check" data-id="{{this.id}}">x</button>{{/unless}}</div>
               <div class="drep-flow-check-meta">
                 <span class="drep-flow-check-skill drep-flow-editable" data-edit="check-skill" data-check-id="{{this.id}}" data-skill="{{this.skill}}" data-value="{{this.skill}}">{{this.skillLabel}}</span>
                 {{#if (and this.dc (not @root.hideDc))}}

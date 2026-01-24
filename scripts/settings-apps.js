@@ -702,6 +702,16 @@ class DowntimeRepPhaseConfig extends HandlebarsApplicationMixin(ApplicationV2) {
         }
       };
 
+      if (payload.kind === "phase") {
+        const nextPhase = payload.phase;
+        if (!nextPhase) return;
+        const index = this._phaseConfig.findIndex((entry) => entry.id === phaseId);
+        if (index < 0) return;
+        this._phaseConfig[index] = foundry.utils.deepClone(nextPhase);
+        persistFlowUpdate();
+        return;
+      }
+
       if (payload.kind === "check") {
         const checkId = payload.checkId;
         if (!checkId) return;
@@ -836,6 +846,8 @@ class DowntimeRepPhaseConfig extends HandlebarsApplicationMixin(ApplicationV2) {
         name: "",
         checks: [],
       });
+      setTrackerPhaseConfig(this._trackerId, normalizePhaseConfig(this._phaseConfig));
+      rerenderCharacterSheets();
       this._activeTab = phaseId;
       captureScrollPosition();
       captureCollapseState();
@@ -851,6 +863,8 @@ class DowntimeRepPhaseConfig extends HandlebarsApplicationMixin(ApplicationV2) {
       const phase = this._phaseConfig.find((entry) => entry.id === phaseId);
       if (!phase || !groupId) return;
       phase.groups = (phase.groups ?? []).filter((group) => group.id !== groupId);
+      setTrackerPhaseConfig(this._trackerId, normalizePhaseConfig(this._phaseConfig));
+      rerenderCharacterSheets();
       this._activeTab = phaseId;
       captureScrollPosition();
       captureCollapseState();
@@ -1074,7 +1088,7 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
   async _prepareContext(options) {
     const context = await super._prepareContext(options);
     const phaseConfig = getPhaseConfig(this._trackerId);
-    const phase = this._phase ?? phaseConfig.find((entry) => entry.id === this._phaseId) ?? phaseConfig[0];
+    const phase = phaseConfig.find((entry) => entry.id === this._phaseId) ?? phaseConfig[0];
     const phaseNumber = phase ? getPhaseNumber(phase.id, this._trackerId) : 1;
     const phaseName = phase?.name ?? "Phase";
 
@@ -1449,28 +1463,40 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
       const phaseConfig = getPhaseConfig(this._trackerId);
       const phase = phaseConfig.find((entry) => entry.id === this._phaseId) ?? phaseConfig[0];
       if (!phase) return;
+      if (!this._phaseId) {
+        this._phaseId = phase.id;
+      }
       const group = (phase.groups ?? []).find((entry) => entry.id === groupId);
       if (!group) return;
       group.checks = Array.isArray(group.checks) ? group.checks : [];
       const options = getSkillOptions();
       const defaultSkill = options[0]?.key ?? "";
+      const defaultLabel = defaultSkill ? getSkillLabel(defaultSkill) : "";
       group.checks.push({
         id: foundry.utils.randomID(),
-        name: "",
+        name: defaultLabel,
         skill: defaultSkill,
         description: "",
         dc: 13,
         value: 1,
         dependsOn: [],
       });
-      setTrackerPhaseConfig(this._trackerId, normalizePhaseConfig(phaseConfig));
+      if (this._onUpdate) {
+        this._onUpdate({
+          kind: "phase",
+          phaseId: phase.id,
+          phase: foundry.utils.deepClone(phase),
+        });
+      } else {
+        setTrackerPhaseConfig(this._trackerId, normalizePhaseConfig(phaseConfig));
+      }
       rerenderCharacterSheets();
       rerenderSettingsApps();
       this._phase = phase;
       this.render(true);
     });
 
-    html.on("click.drepFlow", ".drep-flow-add-line", (event) => {
+    html.on("click.drepFlow", "[data-drep-action=\"add-line\"]", (event) => {
       event.preventDefault();
       event.stopPropagation();
       if (this._readOnly) return;
@@ -1479,6 +1505,9 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
       const phaseConfig = getPhaseConfig(this._trackerId);
       const phase = phaseConfig.find((entry) => entry.id === this._phaseId) ?? phaseConfig[0];
       if (!phase) return;
+      if (!this._phaseId) {
+        this._phaseId = phase.id;
+      }
       const listKey = lineType === "success" ? "successLines" : "failureLines";
       phase[listKey] = Array.isArray(phase[listKey]) ? phase[listKey] : [];
       phase[listKey].push({
@@ -1487,6 +1516,103 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
         dependsOnChecks: [],
         dependsOnGroups: [],
       });
+      if (this._onUpdate) {
+        this._onUpdate({
+          kind: "phase",
+          phaseId: phase.id,
+          phase: foundry.utils.deepClone(phase),
+        });
+      } else {
+        setTrackerPhaseConfig(this._trackerId, normalizePhaseConfig(phaseConfig));
+      }
+      rerenderCharacterSheets();
+      rerenderSettingsApps();
+      captureFlowCollapse();
+      this._phase = phase;
+      this.render(true);
+    });
+
+    html.on("click.drepFlow", ".drep-flow-remove-check", async (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      if (this._readOnly) return;
+      const checkCard = event.currentTarget?.closest(".drep-flow-check");
+      const checkId = checkCard?.dataset?.drepCheckId;
+      if (!checkId) return;
+
+      const confirm = await new Promise((resolve) => {
+        let resolved = false;
+        const finish = (value) => {
+          if (resolved) return;
+          resolved = true;
+          resolve(value);
+        };
+        const dialog = new foundry.applications.api.DialogV2({
+          window: { title: "Delete Check" },
+          content: "<p>Delete this check? This cannot be undone.</p>",
+          buttons: [
+            {
+              action: "delete",
+              label: "Delete",
+              default: true,
+              callback: () => finish(true),
+            },
+            {
+              action: "cancel",
+              label: "Cancel",
+              callback: () => finish(false),
+            },
+          ],
+          close: () => finish(false),
+        });
+        dialog.render(true);
+      });
+      if (!confirm) return;
+
+      const phaseConfig = getPhaseConfig(this._trackerId);
+      const phase = phaseConfig.find((entry) => entry.id === this._phaseId) ?? phaseConfig[0];
+      if (!phase) return;
+      if (!this._phaseId) {
+        this._phaseId = phase.id;
+      }
+      let targetGroup = null;
+      for (const group of phase.groups ?? []) {
+        if ((group.checks ?? []).some((check) => check.id === checkId)) {
+          targetGroup = group;
+          break;
+        }
+      }
+      if (!targetGroup && this._phase) {
+        const fallbackGroup = (this._phase.groups ?? []).find((group) =>
+          (group.checks ?? []).some((check) => check.id === checkId)
+        );
+        if (fallbackGroup) {
+          targetGroup = fallbackGroup;
+          const index = phaseConfig.findIndex((entry) => entry.id === this._phase.id);
+          if (index >= 0) {
+            phaseConfig[index] = this._phase;
+          }
+        }
+      }
+      if (!targetGroup) return;
+      targetGroup.checks = (targetGroup.checks ?? []).filter((check) => check.id !== checkId);
+
+      for (const group of phase.groups ?? []) {
+        for (const check of group.checks ?? []) {
+          const deps = normalizeCheckDependencies(check.dependsOn ?? []);
+          const next = deps.filter((dep) => dep.id !== checkId);
+          if (next.length !== deps.length) {
+            check.dependsOn = next;
+          }
+        }
+      }
+      for (const listKey of ["successLines", "failureLines"]) {
+        for (const line of phase[listKey] ?? []) {
+          if (!Array.isArray(line.dependsOnChecks)) continue;
+          line.dependsOnChecks = line.dependsOnChecks.filter((id) => id !== checkId);
+        }
+      }
+
       setTrackerPhaseConfig(this._trackerId, normalizePhaseConfig(phaseConfig));
       rerenderCharacterSheets();
       rerenderSettingsApps();
@@ -1494,6 +1620,8 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
       this._phase = phase;
       this.render(true);
     });
+
+
 
 
     html.on("dblclick.drepFlow", ".drep-flow-editable", (event) => {

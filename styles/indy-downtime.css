@@ -976,8 +976,18 @@
   font-size: x-small;
 }
 
+.drep-flow-remove-check {
+  margin-left: auto;
+  font-size: x-small;
+}
+
 .drep-flow-add-line {
   font-size: x-small;
+}
+
+.drep-flow-check-name.drep-flow-editable {
+  display: inline-flex;
+  width: 100%;
 }
 
 .drep-flow-check {
