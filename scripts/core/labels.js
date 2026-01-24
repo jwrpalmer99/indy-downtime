@@ -101,6 +101,23 @@ function shouldShowLockedChecks(trackerId) {
 }
 
 
+function shouldShowPhasePlan(trackerId) {
+  const tracker = trackerId ? getTrackerById(trackerId) : getCurrentTracker();
+  return Boolean(tracker?.showPhasePlanToPlayers);
+}
+
+
+function shouldShowFlowRelationships(trackerId) {
+  const tracker = trackerId ? getTrackerById(trackerId) : getCurrentTracker();
+  return tracker?.showFlowRelationships !== false;
+}
+
+function shouldShowFlowLines(trackerId) {
+  const tracker = trackerId ? getTrackerById(trackerId) : getCurrentTracker();
+  return tracker?.showFlowLines !== false;
+}
+
+
 function getRestrictedActorUuids(trackerId) {
   const stored = getTrackerById(trackerId)?.restrictedActorUuids ??
     getLegacySetting(RESTRICTED_ACTORS_SETTING);
@@ -227,6 +244,9 @@ export {
   getTabIcon,
   shouldHideDc,
   shouldShowLockedChecks,
+  shouldShowPhasePlan,
+  shouldShowFlowRelationships,
+  shouldShowFlowLines,
   getRestrictedActorUuids,
   parseRestrictedActorUuids,
   getLastSkillChoice,

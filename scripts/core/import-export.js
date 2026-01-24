@@ -35,6 +35,9 @@ function getSettingsExportPayload() {
     tabIcon: tracker.tabIcon,
     hideDcFromPlayers: tracker.hideDcFromPlayers,
     showLockedChecksToPlayers: tracker.showLockedChecksToPlayers,
+    showPhasePlanToPlayers: tracker.showPhasePlanToPlayers,
+    showFlowRelationships: tracker.showFlowRelationships,
+    showFlowLines: tracker.showFlowLines,
     restrictedActorUuids: tracker.restrictedActorUuids ?? [],
     phaseConfig: tracker.phaseConfig ?? [],
   }));
@@ -99,6 +102,9 @@ async function applySettingsImportPayload(payload) {
         tabIcon: sanitizeLabel(tracker?.tabIcon, DEFAULT_TAB_ICON),
         hideDcFromPlayers: Boolean(tracker?.hideDcFromPlayers),
         showLockedChecksToPlayers: tracker?.showLockedChecksToPlayers !== false,
+        showPhasePlanToPlayers: Boolean(tracker?.showPhasePlanToPlayers),
+        showFlowRelationships: tracker?.showFlowRelationships !== false,
+        showFlowLines: tracker?.showFlowLines !== false,
         restrictedActorUuids: parseRestrictedActorUuids(
           tracker?.restrictedActorUuids
         ),
@@ -133,6 +139,15 @@ async function applySettingsImportPayload(payload) {
     }
     if (typeof settings.showLockedChecksToPlayers !== "undefined") {
       updates.showLockedChecksToPlayers = Boolean(settings.showLockedChecksToPlayers);
+    }
+    if (typeof settings.showPhasePlanToPlayers !== "undefined") {
+      updates.showPhasePlanToPlayers = Boolean(settings.showPhasePlanToPlayers);
+    }
+    if (typeof settings.showFlowRelationships !== "undefined") {
+      updates.showFlowRelationships = Boolean(settings.showFlowRelationships);
+    }
+    if (typeof settings.showFlowLines !== "undefined") {
+      updates.showFlowLines = Boolean(settings.showFlowLines);
     }
     if (Array.isArray(settings.restrictedActorUuids)) {
       updates.restrictedActorUuids = parseRestrictedActorUuids(

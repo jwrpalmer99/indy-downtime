@@ -14,7 +14,7 @@
     </div>
   </header>
 
-  <section class="drep-status-row">
+  <section class="drep-status-row">    
     <div class="drep-status-grid">
       <div class="drep-progress-block main" style="--progress: {{progressPercent}}">
         <label>Phase Progress</label>
@@ -44,7 +44,11 @@
   </section>
 
   <section class="drep-panel">
-    <h2>{{intervalLabel}} Check</h2>
+    <div style="display: inline-flex; width: 100%">
+    <h2>{{intervalLabel}} Check</h2> {{#if showPhasePlan}}
+      <button type="button" class="drep-button drep-button-secondary" data-drep-action="view-phase-plan" style="margin-left: auto;">View Phase Plan</button>
+    {{/if}}
+    </div>
     {{#if canRoll}}
       <div class="drep-form">
         <div class="drep-grid">

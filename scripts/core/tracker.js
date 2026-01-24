@@ -100,6 +100,9 @@ function normalizeTrackers(trackers) {
       tabIcon: sanitizeLabel(tracker?.tabIcon, DEFAULT_TAB_ICON),
       hideDcFromPlayers: Boolean(tracker?.hideDcFromPlayers),
       showLockedChecksToPlayers: tracker?.showLockedChecksToPlayers !== false,
+      showPhasePlanToPlayers: Boolean(tracker?.showPhasePlanToPlayers),
+      showFlowRelationships: tracker?.showFlowRelationships !== false,
+      showFlowLines: tracker?.showFlowLines !== false,
       restrictedActorUuids: parseRestrictedActorUuids(
         tracker?.restrictedActorUuids
       ),
@@ -152,6 +155,9 @@ function addTracker() {
     tabIcon: DEFAULT_TAB_ICON,
     hideDcFromPlayers: false,
     showLockedChecksToPlayers: true,
+    showPhasePlanToPlayers: false,
+    showFlowRelationships: true,
+    showFlowLines: true,
     restrictedActorUuids: [],
     phaseConfig: [blankPhase],
     state: normalizeProjectState(DEFAULT_STATE, [blankPhase]),
@@ -200,6 +206,9 @@ function buildDefaultTrackerFromLegacy() {
     tabIcon: DEFAULT_TAB_ICON,
     hideDcFromPlayers: false,
     showLockedChecksToPlayers: true,
+    showPhasePlanToPlayers: false,
+    showFlowRelationships: true,
+    showFlowLines: true,
     restrictedActorUuids: parseRestrictedActorUuids(
       getLegacySetting(RESTRICTED_ACTORS_SETTING)
     ),

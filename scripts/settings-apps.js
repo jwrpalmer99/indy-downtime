@@ -48,6 +48,7 @@ import {
   setCurrentTrackerId,
   setTrackerPhaseConfig,
   setWorldState,
+  shouldHideDc,
   updateTrackerSettings,
   getSettingsExportPayload,
   getStateExportPayload,
@@ -133,6 +134,9 @@ class DowntimeRepSettings extends HandlebarsApplicationMixin(ApplicationV2) {
       trackerTabIcon: getTabIcon(trackerId),
       hideDcFromPlayers: Boolean(tracker?.hideDcFromPlayers),
       showLockedChecksToPlayers: tracker?.showLockedChecksToPlayers !== false,
+      showPhasePlanToPlayers: Boolean(tracker?.showPhasePlanToPlayers),
+      showFlowRelationships: tracker?.showFlowRelationships !== false,
+      showFlowLines: tracker?.showFlowLines !== false,
       isSingleTracker: trackerOptions.length <= 1,
       state,
       criticalBonusEnabled: state.criticalBonusEnabled,
@@ -250,8 +254,6 @@ class DowntimeRepSettings extends HandlebarsApplicationMixin(ApplicationV2) {
     });
   }
 
-  
-
   static async _onSubmit(event, form, formData) {
     const data = foundry.utils.expandObject(formData.object ?? {});
     await this._processFormData(data);
@@ -285,6 +287,9 @@ class DowntimeRepSettings extends HandlebarsApplicationMixin(ApplicationV2) {
       tabIcon: sanitizeLabel(formData.tabIcon, DEFAULT_TAB_ICON),
       hideDcFromPlayers: Boolean(formData.hideDcFromPlayers),
       showLockedChecksToPlayers: Boolean(formData.showLockedChecksToPlayers),
+      showPhasePlanToPlayers: Boolean(formData.showPhasePlanToPlayers),
+      showFlowRelationships: Boolean(formData.showFlowRelationships),
+      showFlowLines: Boolean(formData.showFlowLines),
       restrictedActorUuids: parseRestrictedActorUuids(
         formData.restrictedActorUuids
       ),
@@ -1023,6 +1028,7 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
     this._phaseId = options.phaseId ?? null;
     this._phase = options.phase ?? null;
     this._onUpdate = typeof options.onUpdate === "function" ? options.onUpdate : null;
+    this._readOnly = Boolean(options.readOnly);
   }
 
   static DEFAULT_OPTIONS = {
@@ -1185,6 +1191,14 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
       groups,
       unassignedSuccess,
       unassignedFailure,
+      showFlowRelationships: this._readOnly
+        ? getTrackerById(this._trackerId)?.showFlowRelationships !== false
+        : true,
+      showFlowLines: this._readOnly
+        ? getTrackerById(this._trackerId)?.showFlowLines !== false
+        : true,
+      hideDc: this._readOnly ? shouldHideDc(this._trackerId) : false,
+      readOnly: this._readOnly,
     };
   }
 
@@ -1211,6 +1225,13 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
     html.off(".drepFlow");
     html.find(".drep-flow-line-chip").attr("draggable", true);
     html.find(".drep-flow-check").attr("draggable", true);
+
+    if (this._readOnly) {
+      html.find(".drep-flow-line-chip").attr("draggable", false);
+      html.find(".drep-flow-check").attr("draggable", false);
+      return;
+    }
+
 
     const promptLineAssignment = (targetLabel) => new Promise((resolve) => {
       let resolved = false;
@@ -1928,3 +1949,8 @@ export {
   DowntimeRepSettingsExport,
   DowntimeRepStateExport,
 };
+
+Hooks.once("init", () => {
+  if (!game.indyDowntime) game.indyDowntime = {};
+  game.indyDowntime.DowntimeRepPhaseFlow = DowntimeRepPhaseFlow;
+});

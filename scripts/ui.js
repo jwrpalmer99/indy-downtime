@@ -71,6 +71,7 @@ import {
   shouldHideDc,
 
   shouldShowLockedChecks,
+  shouldShowPhasePlan,
 
 } from "./core-utils.js";
 
@@ -631,6 +632,7 @@ function buildTrackerData({
     showDc,
 
     intervalLabel: getIntervalLabel(resolvedTrackerId),
+    showPhasePlan: game.user?.isGM || shouldShowPhasePlan(resolvedTrackerId),
 
     selectedCheckLabel,
 
@@ -659,6 +661,21 @@ function attachTrackerListeners(html, { render, actor, app } = {}) {
   });
   debugLog("Listeners attached", {
     rollButtons: scope.find("[data-drep-action='roll-interval']").length,
+  });
+
+  scope.find("[data-drep-action='view-phase-plan']").on("click", (event) => {
+    event.preventDefault();
+    const phaseConfig = getPhaseConfig(trackerId);
+    const state = getWorldState(trackerId);
+    const activePhase = getActivePhase(state, trackerId);
+    const phase = phaseConfig.find((entry) => entry.id === activePhase?.id) || phaseConfig[0];
+    if (!phase) return;
+    const FlowClass = game?.indyDowntime?.DowntimeRepPhaseFlow;
+    if (!FlowClass) {
+      ui.notifications.warn("Indy Downtime Tracker: phase plan view is unavailable.");
+      return;
+    }
+    new FlowClass({ trackerId, phaseId: phase.id, phase, readOnly: true }).render(true);
   });
 
   scope.find("[data-drep-action='roll-interval']").on("click", (event) => {
