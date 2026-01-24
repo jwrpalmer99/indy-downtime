@@ -547,14 +547,24 @@
   gap: 4px;
 }
 
-.drep-progress-block.main {
-  /* background-color: hsl(calc(var(--progress) * 1.2), 50%, 10%); */
-}
-
 .drep-check-group {
   display: flex;
   flex-direction: column;
   gap: 6px;
+}
+
+.right-group {
+  display: inline-flex;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+.drep-flow-group-cap {
+  padding-left: 5px;
+}
+
+.drep-flow-group-max {
+  font-size: x-small;
 }
 
 .drep-check-group-name {
@@ -979,6 +989,14 @@
 .drep-flow-remove-check {
   margin-left: auto;
   font-size: x-small;
+}
+
+.drep-flow-add-group {
+  font-size: smaller;
+}
+
+.drep-flow-remove-group {
+  font-size: smaller;
 }
 
 .drep-flow-add-line {

@@ -1227,6 +1227,7 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
       return {
         id: group.id,
         name: group.name || "Group",
+        rawName: group.name || "",
         maxChecks: Number(group.maxChecks ?? 0),
         checks,
         successLines: successByGroup[group.id] ?? [],
@@ -1432,6 +1433,17 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
           }
           return;
         }
+        if (config.edit === "group-name") {
+          const groupId = config.groupId;
+          if (!groupId) return;
+          const groups = phase.groups ?? [];
+          const group = groups.find((entry) => entry.id === groupId);
+          if (!group) return;
+          group.name = newValue;
+          savePhaseConfig(phase);
+          return;
+        }
+
         if (config.edit === "line-text") {
           debugLog("Inline edit save", { edit: config.edit, lineId: config.lineId, lineType: config.lineType, value: newValue });
           if (updateLineText(phase, config.lineId, config.lineType, newValue)) {
@@ -1630,6 +1642,76 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
       this.render(true);
     });
 
+
+    html.on("click.drepFlow", "[data-drep-action=\"set-group-max\"]", async (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      if (this._readOnly) return;
+      const groupId = event.currentTarget?.dataset?.groupId;
+      if (!groupId) return;
+
+      const phaseConfig = getPhaseConfig(this._trackerId);
+      const phase = phaseConfig.find((entry) => entry.id === this._phaseId) ?? phaseConfig[0];
+      if (!phase) return;
+      if (!this._phaseId) {
+        this._phaseId = phase.id;
+      }
+      const group = (phase.groups ?? []).find((entry) => entry.id === groupId);
+      if (!group) return;
+      const current = Number.isFinite(Number(group.maxChecks)) ? Number(group.maxChecks) : 0;
+
+      const value = await new Promise((resolve) => {
+        let resolved = false;
+        const finish = (val) => {
+          if (resolved) return;
+          resolved = true;
+          resolve(val);
+        };
+        let dialogRef = null;
+        const dialog = new foundry.applications.api.DialogV2({
+          window: { title: "Set Max Success" },
+          content: `<div class="drep-input-row"><label>Max checks for this group</label><input type="number" min="0" step="1" value="${current}" data-drep-max-input></div>`,
+          buttons: [
+            {
+              action: "save",
+              label: "Save",
+              default: true,
+              callback: () => {
+                const input = dialogRef?.element?.querySelector("[data-drep-max-input]");
+                finish(input ? input.value : "");
+              },
+            },
+            {
+              action: "cancel",
+              label: "Cancel",
+              callback: () => finish(null),
+            },
+          ],
+          close: () => finish(null),
+        });
+        dialogRef = dialog;
+        dialog.render(true);
+      });
+      if (value === null) return;
+      const maxValue = Number(value);
+      group.maxChecks = Number.isFinite(maxValue) && maxValue >= 0 ? maxValue : 0;
+
+      if (this._onUpdate) {
+        this._onUpdate({
+          kind: "phase",
+          phaseId: phase.id,
+          phase: foundry.utils.deepClone(phase),
+        });
+      } else {
+        setTrackerPhaseConfig(this._trackerId, normalizePhaseConfig(phaseConfig));
+      }
+      rerenderCharacterSheets();
+      rerenderSettingsApps();
+      captureFlowCollapse();
+      this._phase = phase;
+      this.render(true);
+    });
+
     html.on("click.drepFlow", ".drep-flow-remove-check", async (event) => {
       event.preventDefault();
       event.stopPropagation();
@@ -1728,6 +1810,13 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
       const target = event.currentTarget;
       const edit = target?.dataset?.edit;
       if (!edit) return;
+      if (edit === "group-name") {
+        const groupId = target.dataset.groupId;
+        if (!groupId) return;
+        beginInlineEdit(target, { edit, type: "text", value: target.dataset.value ?? target.textContent, groupId });
+        return;
+      }
+
       if (edit.startsWith("check")) {
         const checkId = target.dataset.checkId;
         if (!checkId) return;

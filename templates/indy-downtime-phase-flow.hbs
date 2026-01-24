@@ -24,12 +24,12 @@
     </details>
   {{/if}}
 
-  {{#unless readOnly}}<div class="drep-flow-lanes-toolbar"><button type="button" data-drep-action="add-group">+ Group</button></div>{{/unless}}
+  {{#unless readOnly}}<div class="drep-flow-lanes-toolbar"><button class="drep-flow-add-group" type="button" data-drep-action="add-group">+ Group</button></div>{{/unless}}
 
   <div class="drep-flow-lanes">
     {{#each groups}}
       <div class="drep-flow-lane" data-drep-group-id="{{this.id}}">
-        <div class="drep-flow-lane-header">{{this.name}}{{#if this.maxChecks}} <span class="drep-flow-group-cap">(Max Success: {{this.maxChecks}})</span>{{/if}}{{#unless @root.readOnly}} <button type="button" class="drep-flow-add-check" data-drep-action="add-check" data-group-id="{{this.id}}">+ Check</button>{{#unless this.checks.length}}<button type="button" data-drep-action="remove-group" data-group-id="{{this.id}}" title="Delete group">x</button>{{/unless}}{{/unless}}</div>
+        <div class="drep-flow-lane-header"><span class="drep-flow-group-name drep-flow-editable" data-edit="group-name" data-group-id="{{this.id}}" data-value="{{this.rawName}}">{{this.name}}</span>{{#if this.maxChecks}} <span class="drep-flow-group-cap">(Max: {{this.maxChecks}})</span>{{/if}}{{#unless @root.readOnly}} <span class="right-group"><button type="button" class="drep-flow-group-max" data-drep-action="set-group-max" data-group-id="{{this.id}}" title="Set max success">Max</button> <button type="button" class="drep-flow-add-check" data-drep-action="add-check" data-group-id="{{this.id}}">+ Check</button>{{#unless this.checks.length}}<button type="button" class="drep-flow-remove-group" data-drep-action="remove-group" data-group-id="{{this.id}}" title="Delete group">x</button>{{/unless}}{{/unless}}</span></div>
         {{#if (and @root.showFlowLines this.successLines.length)}}
           <details class="drep-flow-lines success drep-collapsible" data-collapse-id="group-{{this.id}}-success">
             <summary><span class="drep-summary-toggle"><i class="fa-solid fa-angle-down drep-expand"></i><i class="fa-solid fa-angle-up drep-collapse"></i></span><span>Group Success Lines</span></summary>
