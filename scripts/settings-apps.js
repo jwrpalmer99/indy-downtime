@@ -171,7 +171,7 @@ class DowntimeRepSettings extends HandlebarsApplicationMixin(ApplicationV2) {
       this.render();
     });
 
-    html.find("[name='trackerTabIcon']").on("input change", (event) => {
+    html.find("[name='tabIcon']").on("input change", (event) => {
       const raw = String($(event.currentTarget).val() ?? "").trim();
       const nextIcon = raw || "fas fa-fire";
       this.options.window.icon = nextIcon;
@@ -180,6 +180,10 @@ class DowntimeRepSettings extends HandlebarsApplicationMixin(ApplicationV2) {
       const windowIcon = appRoot.find(".window-header .window-icon").first();
       if (windowIcon.length) {
         windowIcon.attr("class", `window-icon fa-fw ${nextIcon}`);
+      } else {
+        appRoot.find(".window-header").prepend(
+          `<i class=\"window-icon fa-fw ${nextIcon}\" inert></i>`
+        );
       }
     });
     html.find("[data-drep-drop='actor-uuids']").on("dragover", (event) => {
