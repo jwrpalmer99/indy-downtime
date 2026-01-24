@@ -1347,6 +1347,8 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
       }
     }
 
+    const flowZoom = Number.isFinite(this._flowZoom) ? this._flowZoom : 100;
+
     return {
       ...context,
       phaseNumber,
@@ -1354,6 +1356,7 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
       groups,
       unassignedSuccess,
       unassignedFailure,
+      flowZoom,
       showFlowRelationships: this._readOnly
         ? getTrackerById(this._trackerId)?.showFlowRelationships !== false
         : true,
@@ -1408,6 +1411,26 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
     html.find(".drep-flow-line-chip").attr("draggable", true);
     html.find(".drep-flow-check").attr("draggable", true);
 
+    const clampFlowZoom = (value) => {
+      const numeric = Number(value);
+      if (!Number.isFinite(numeric)) return 100;
+      const rounded = Math.round(numeric / 5) * 5;
+      return Math.min(140, Math.max(50, rounded));
+    };
+
+    const applyFlowZoom = (value) => {
+      const clamped = clampFlowZoom(value);
+      this._flowZoom = clamped;
+      const flowRoot = html.find(".drep-flow").first();
+      if (flowRoot.length) {
+        flowRoot[0].style.setProperty("--drep-flow-zoom", (clamped / 100).toFixed(2));
+      }
+      html.find(".drep-flow-zoom-range").val(clamped);
+      html.find(".drep-flow-zoom-label").text(`${clamped}%`);
+    };
+
+    applyFlowZoom(Number.isFinite(this._flowZoom) ? this._flowZoom : 100);
+
     const captureFlowCollapse = () => {
       const state = {};
       html.find("details[data-collapse-id]").each((_, element) => {
@@ -1433,6 +1456,25 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
       if (!id) return;
       this._collapseStateFlow = this._collapseStateFlow ?? {};
       this._collapseStateFlow[id] = event.currentTarget.open;
+    });
+
+    html.on("input.drepFlow change.drepFlow", ".drep-flow-zoom-range", (event) => {
+      applyFlowZoom(event.currentTarget?.value);
+    });
+
+    html.on("click.drepFlow", "[data-drep-action=\"flow-zoom-in\"]", (event) => {
+      event.preventDefault();
+      applyFlowZoom((this._flowZoom ?? 100) + 5);
+    });
+
+    html.on("click.drepFlow", "[data-drep-action=\"flow-zoom-out\"]", (event) => {
+      event.preventDefault();
+      applyFlowZoom((this._flowZoom ?? 100) - 5);
+    });
+
+    html.on("click.drepFlow", "[data-drep-action=\"flow-zoom-reset\"]", (event) => {
+      event.preventDefault();
+      applyFlowZoom(100);
     });
 
 

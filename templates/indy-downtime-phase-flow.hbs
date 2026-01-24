@@ -1,99 +1,108 @@
 <section class="drep-flow">
   <header class="drep-flow-header">
     <h2>Phase {{phaseNumber}}: {{phaseName}}</h2>
+    <div class="drep-flow-zoom" role="group" aria-label="Flow zoom">
+      <button type="button" class="drep-flow-zoom-out" data-drep-action="flow-zoom-out" title="Zoom out">-</button>
+      <input class="drep-flow-zoom-range" type="range" min="50" max="140" step="5" value="{{flowZoom}}" />
+      <span class="drep-flow-zoom-label">{{flowZoom}}%</span>
+      <button type="button" class="drep-flow-zoom-in" data-drep-action="flow-zoom-in" title="Zoom in">+</button>
+      <button type="button" class="drep-flow-zoom-reset" data-drep-action="flow-zoom-reset" title="Reset zoom">Reset</button>
+    </div>
   </header>
 
-  {{#if (and (not readOnly) showFlowLines)}}
-    <details class="drep-flow-unassigned drep-collapsible" data-collapse-id="unassigned-success">
-      <summary><span class="drep-summary-toggle"><i class="fa-solid fa-angle-down drep-expand"></i><i class="fa-solid fa-angle-up drep-collapse"></i></span><span>Unassigned Success Lines</span>{{#unless readOnly}}<button type="button" class="drep-flow-add-line" data-drep-action="add-line" data-line-type="success">+ Line</button>{{/unless}}</summary>
-      <div class="drep-flow-lines success">
-        {{#each unassignedSuccess}}
-          <div class="drep-flow-line drep-flow-line-chip" draggable="true" data-drep-line-id="{{this.id}}" data-drep-line-type="success"><span class="drep-flow-line-text drep-flow-editable" data-edit="line-text" data-line-id="{{this.id}}" data-line-type="success" data-value="{{this.text}}">{{#if this.text}}{{this.text}}{{else}}(empty){{/if}}</span>{{#unless @root.readOnly}}<button type="button" class="drep-flow-line-remove" title="Remove">x</button>{{/unless}}</div>
-        {{/each}}
-      </div>
-    </details>
-  {{/if}}
-  {{#if (and (not readOnly) showFlowLines)}}
-    <details class="drep-flow-unassigned drep-collapsible" data-collapse-id="unassigned-failure">
-      <summary><span class="drep-summary-toggle"><i class="fa-solid fa-angle-down drep-expand"></i><i class="fa-solid fa-angle-up drep-collapse"></i></span><span>Unassigned Failure Lines</span>{{#unless readOnly}}<button type="button" class="drep-flow-add-line" data-drep-action="add-line" data-line-type="failure">+ Line</button>{{/unless}}</summary>
-      <div class="drep-flow-lines failure">
-        {{#each unassignedFailure}}
-          <div class="drep-flow-line drep-flow-line-chip" draggable="true" data-drep-line-id="{{this.id}}" data-drep-line-type="failure"><span class="drep-flow-line-text drep-flow-editable" data-edit="line-text" data-line-id="{{this.id}}" data-line-type="failure" data-value="{{this.text}}">{{#if this.text}}{{this.text}}{{else}}(empty){{/if}}</span>{{#unless @root.readOnly}}<button type="button" class="drep-flow-line-remove" title="Remove">x</button>{{/unless}}</div>
-        {{/each}}
-      </div>
-    </details>
-  {{/if}}
+  <div class="drep-flow-zoom-surface">
+    {{#if (and (not readOnly) showFlowLines)}}
+      <details class="drep-flow-unassigned drep-collapsible" data-collapse-id="unassigned-success">
+        <summary><span class="drep-summary-toggle"><i class="fa-solid fa-angle-down drep-expand"></i><i class="fa-solid fa-angle-up drep-collapse"></i></span><span>Unassigned Success Lines</span>{{#unless readOnly}}<button type="button" class="drep-flow-add-line" data-drep-action="add-line" data-line-type="success">+ Line</button>{{/unless}}</summary>
+        <div class="drep-flow-lines success">
+          {{#each unassignedSuccess}}
+            <div class="drep-flow-line drep-flow-line-chip" draggable="true" data-drep-line-id="{{this.id}}" data-drep-line-type="success"><span class="drep-flow-line-text drep-flow-editable" data-edit="line-text" data-line-id="{{this.id}}" data-line-type="success" data-value="{{this.text}}">{{#if this.text}}{{this.text}}{{else}}(empty){{/if}}</span>{{#unless @root.readOnly}}<button type="button" class="drep-flow-line-remove" title="Remove">x</button>{{/unless}}</div>
+          {{/each}}
+        </div>
+      </details>
+    {{/if}}
+    {{#if (and (not readOnly) showFlowLines)}}
+      <details class="drep-flow-unassigned drep-collapsible" data-collapse-id="unassigned-failure">
+        <summary><span class="drep-summary-toggle"><i class="fa-solid fa-angle-down drep-expand"></i><i class="fa-solid fa-angle-up drep-collapse"></i></span><span>Unassigned Failure Lines</span>{{#unless readOnly}}<button type="button" class="drep-flow-add-line" data-drep-action="add-line" data-line-type="failure">+ Line</button>{{/unless}}</summary>
+        <div class="drep-flow-lines failure">
+          {{#each unassignedFailure}}
+            <div class="drep-flow-line drep-flow-line-chip" draggable="true" data-drep-line-id="{{this.id}}" data-drep-line-type="failure"><span class="drep-flow-line-text drep-flow-editable" data-edit="line-text" data-line-id="{{this.id}}" data-line-type="failure" data-value="{{this.text}}">{{#if this.text}}{{this.text}}{{else}}(empty){{/if}}</span>{{#unless @root.readOnly}}<button type="button" class="drep-flow-line-remove" title="Remove">x</button>{{/unless}}</div>
+          {{/each}}
+        </div>
+      </details>
+    {{/if}}
 
-  {{#unless readOnly}}<div class="drep-flow-lanes-toolbar"><button class="drep-flow-add-group" type="button" data-drep-action="add-group">+ Group</button></div>{{/unless}}
+    {{#unless readOnly}}<div class="drep-flow-lanes-toolbar"><button class="drep-flow-add-group" type="button" data-drep-action="add-group">+ Group</button></div>{{/unless}}
 
-  <div class="drep-flow-lanes">
-    {{#each groups}}
-      <div class="drep-flow-lane" data-drep-group-id="{{this.id}}">
-        <div class="drep-flow-lane-header" draggable="true"><span class="drep-flow-group-name drep-flow-editable" draggable="true" data-edit="group-name" data-group-id="{{this.id}}" data-value="{{this.rawName}}">{{this.name}}</span>{{#if this.maxChecks}} <span class="drep-flow-group-cap">(Max: {{this.maxChecks}})</span>{{/if}}{{#unless @root.readOnly}} <span class="right-group"><button type="button" class="drep-flow-group-max" data-drep-action="set-group-max" data-group-id="{{this.id}}" title="Set max success">Max</button> <button type="button" class="drep-flow-add-check" data-drep-action="add-check" data-group-id="{{this.id}}">+ Check</button>{{#unless this.checks.length}}<button type="button" class="drep-flow-remove-group" data-drep-action="remove-group" data-group-id="{{this.id}}" title="Delete group">x</button>{{/unless}}{{/unless}}</span></div>
-        {{#if (and @root.showFlowLines this.successLines.length)}}
-          <details class="drep-flow-lines success drep-collapsible" data-collapse-id="group-{{this.id}}-success">
-            <summary><span class="drep-summary-toggle"><i class="fa-solid fa-angle-down drep-expand"></i><i class="fa-solid fa-angle-up drep-collapse"></i></span><span>Group Success Lines</span></summary>
-            {{#each this.successLines}}
-              <div class="drep-flow-line drep-flow-line-chip" draggable="true" data-drep-line-id="{{this.id}}" data-drep-line-type="success"><span class="drep-flow-line-text drep-flow-editable" data-edit="line-text" data-line-id="{{this.id}}" data-line-type="success" data-value="{{this.text}}">{{#if this.text}}{{this.text}}{{else}}(empty){{/if}}</span>{{#unless @root.readOnly}}<button type="button" class="drep-flow-line-remove" title="Remove">x</button>{{/unless}}</div>
-            {{/each}}
-          </details>
-        {{/if}}
-        {{#if (and @root.showFlowLines this.failureLines.length)}}
-          <details class="drep-flow-lines failure drep-collapsible" data-collapse-id="group-{{this.id}}-failure">
-            <summary><span class="drep-summary-toggle"><i class="fa-solid fa-angle-down drep-expand"></i><i class="fa-solid fa-angle-up drep-collapse"></i></span><span>Group Failure Lines</span></summary>
-            {{#each this.failureLines}}
-              <div class="drep-flow-line drep-flow-line-chip" draggable="true" data-drep-line-id="{{this.id}}" data-drep-line-type="failure"><span class="drep-flow-line-text drep-flow-editable" data-edit="line-text" data-line-id="{{this.id}}" data-line-type="failure" data-value="{{this.text}}">{{#if this.text}}{{this.text}}{{else}}(empty){{/if}}</span>{{#unless @root.readOnly}}<button type="button" class="drep-flow-line-remove" title="Remove">x</button>{{/unless}}</div>
-            {{/each}}
-          </details>
-        {{/if}}
-        <div class="drep-flow-checks">
-          {{#each this.checks}}
-            <div class="drep-flow-check {{#if this.locked}}is-locked{{/if}} {{#if this.groupMaxed}}is-group-maxed{{/if}} {{#if this.complete}}is-complete{{/if}}" data-drep-check-id="{{this.id}}" data-drep-group-id="{{../id}}" draggable="true">
-              <div class="drep-flow-check-name drep-flow-editable" data-edit="check-name" data-check-id="{{this.id}}" data-value="{{this.rawName}}">{{this.name}}{{#unless @root.readOnly}}<button type="button" class="drep-flow-remove-check" data-drep-action="remove-check" data-id="{{this.id}}">x</button>{{/unless}}</div>
-              <div class="drep-flow-check-meta">
-                <span class="drep-flow-check-skill drep-flow-editable" data-edit="check-skill" data-check-id="{{this.id}}" data-skill="{{this.skill}}" data-value="{{this.skill}}">{{this.skillLabel}}</span>
-                {{#if (and this.dc (not @root.hideDc))}}
-                  <span class="drep-flow-check-dc drep-flow-editable" data-edit="check-dc" data-check-id="{{this.id}}" data-dc="{{this.dc}}">DC {{this.dc}}</span>
+    <div class="drep-flow-lanes">
+      {{#each groups}}
+        <div class="drep-flow-lane" data-drep-group-id="{{this.id}}">
+          <div class="drep-flow-lane-header" draggable="true"><span class="drep-flow-group-name drep-flow-editable" draggable="true" data-edit="group-name" data-group-id="{{this.id}}" data-value="{{this.rawName}}">{{this.name}}</span>{{#if this.maxChecks}} <span class="drep-flow-group-cap">(Max: {{this.maxChecks}})</span>{{/if}}{{#unless @root.readOnly}} <span class="right-group"><button type="button" class="drep-flow-group-max" data-drep-action="set-group-max" data-group-id="{{this.id}}" title="Set max success">Max</button> <button type="button" class="drep-flow-add-check" data-drep-action="add-check" data-group-id="{{this.id}}">+ Check</button>{{#unless this.checks.length}}<button type="button" class="drep-flow-remove-group" data-drep-action="remove-group" data-group-id="{{this.id}}" title="Delete group">x</button>{{/unless}}{{/unless}}</span></div>
+          {{#if (and @root.showFlowLines this.successLines.length)}}
+            <details class="drep-flow-lines success drep-collapsible" data-collapse-id="group-{{this.id}}-success">
+              <summary><span class="drep-summary-toggle"><i class="fa-solid fa-angle-down drep-expand"></i><i class="fa-solid fa-angle-up drep-collapse"></i></span><span>Group Success Lines</span></summary>
+              {{#each this.successLines}}
+                <div class="drep-flow-line drep-flow-line-chip" draggable="true" data-drep-line-id="{{this.id}}" data-drep-line-type="success"><span class="drep-flow-line-text drep-flow-editable" data-edit="line-text" data-line-id="{{this.id}}" data-line-type="success" data-value="{{this.text}}">{{#if this.text}}{{this.text}}{{else}}(empty){{/if}}</span>{{#unless @root.readOnly}}<button type="button" class="drep-flow-line-remove" title="Remove">x</button>{{/unless}}</div>
+              {{/each}}
+            </details>
+          {{/if}}
+          {{#if (and @root.showFlowLines this.failureLines.length)}}
+            <details class="drep-flow-lines failure drep-collapsible" data-collapse-id="group-{{this.id}}-failure">
+              <summary><span class="drep-summary-toggle"><i class="fa-solid fa-angle-down drep-expand"></i><i class="fa-solid fa-angle-up drep-collapse"></i></span><span>Group Failure Lines</span></summary>
+              {{#each this.failureLines}}
+                <div class="drep-flow-line drep-flow-line-chip" draggable="true" data-drep-line-id="{{this.id}}" data-drep-line-type="failure"><span class="drep-flow-line-text drep-flow-editable" data-edit="line-text" data-line-id="{{this.id}}" data-line-type="failure" data-value="{{this.text}}">{{#if this.text}}{{this.text}}{{else}}(empty){{/if}}</span>{{#unless @root.readOnly}}<button type="button" class="drep-flow-line-remove" title="Remove">x</button>{{/unless}}</div>
+              {{/each}}
+            </details>
+          {{/if}}
+          <div class="drep-flow-checks">
+            {{#each this.checks}}
+              <div class="drep-flow-check {{#if this.locked}}is-locked{{/if}} {{#if this.groupMaxed}}is-group-maxed{{/if}} {{#if this.complete}}is-complete{{/if}}" data-drep-check-id="{{this.id}}" data-drep-group-id="{{../id}}" draggable="true">
+                <div class="drep-flow-check-name drep-flow-editable" data-edit="check-name" data-check-id="{{this.id}}" data-value="{{this.rawName}}">{{this.name}}{{#unless @root.readOnly}}<button type="button" class="drep-flow-remove-check" data-drep-action="remove-check" data-id="{{this.id}}">x</button>{{/unless}}</div>
+                <div class="drep-flow-check-meta">
+                  <span class="drep-flow-check-skill drep-flow-editable" data-edit="check-skill" data-check-id="{{this.id}}" data-skill="{{this.skill}}" data-value="{{this.skill}}">{{this.skillLabel}}</span>
+                  {{#if (and this.dc (not @root.hideDc))}}
+                    <span class="drep-flow-check-dc drep-flow-editable" data-edit="check-dc" data-check-id="{{this.id}}" data-dc="{{this.dc}}">DC {{this.dc}}</span>
+                  {{/if}}
+                </div>
+                {{#if (or this.description (not @root.readOnly))}}
+                  <div class="drep-flow-check-desc drep-flow-editable" data-edit="check-description" data-check-id="{{this.id}}" data-value="{{this.rawDescription}}">
+                    {{#if this.description}}{{this.description}}{{else}}(description){{/if}}
+                  </div>
+                {{/if}}
+                {{#if this.dependsOnEntries.length}}
+                  {{#if @root.showFlowRelationships}}
+                  <div class="drep-flow-deps">
+                    <span class="drep-flow-deps-label">Depends on</span>
+                    {{#each this.dependsOnEntries}}
+                      <span class="drep-flow-dep {{#if (and this.complete (not ../locked) (not ../complete))}}is-complete{{/if}}" data-dep-id="{{this.id}}" data-target-check-id="{{../id}}" data-dep-type="{{this.type}}" title="{{this.detail}}">{{this.label}}{{#unless @root.readOnly}}<button type="button" class="drep-flow-dep-remove" title="Remove">x</button>{{/unless}}</span>
+                    {{/each}}
+                  </div>
+                {{/if}}
+                {{/if}}
+                {{#if (and @root.showFlowLines this.successLines.length)}}
+                  <details class="drep-flow-lines success drep-collapsible" data-collapse-id="check-{{this.id}}-success">
+                    <summary><span class="drep-summary-toggle"><i class="fa-solid fa-angle-down drep-expand"></i><i class="fa-solid fa-angle-up drep-collapse"></i></span><span>Success Lines</span></summary>
+                    {{#each this.successLines}}
+                      <div class="drep-flow-line drep-flow-line-chip" draggable="true" data-drep-line-id="{{this.id}}" data-drep-line-type="success"><span class="drep-flow-line-text drep-flow-editable" data-edit="line-text" data-line-id="{{this.id}}" data-line-type="success" data-value="{{this.text}}">{{#if this.text}}{{this.text}}{{else}}(empty){{/if}}</span>{{#unless @root.readOnly}}<button type="button" class="drep-flow-line-remove" title="Remove">x</button>{{/unless}}</div>
+                    {{/each}}
+                  </details>
+                {{/if}}
+                {{#if (and @root.showFlowLines this.failureLines.length)}}
+                  <details class="drep-flow-lines failure drep-collapsible" data-collapse-id="check-{{this.id}}-failure">
+                    <summary><span class="drep-summary-toggle"><i class="fa-solid fa-angle-down drep-expand"></i><i class="fa-solid fa-angle-up drep-collapse"></i></span><span>Failure Lines</span></summary>
+                    {{#each this.failureLines}}
+                      <div class="drep-flow-line drep-flow-line-chip" draggable="true" data-drep-line-id="{{this.id}}" data-drep-line-type="failure"><span class="drep-flow-line-text drep-flow-editable" data-edit="line-text" data-line-id="{{this.id}}" data-line-type="failure" data-value="{{this.text}}">{{#if this.text}}{{this.text}}{{else}}(empty){{/if}}</span>{{#unless @root.readOnly}}<button type="button" class="drep-flow-line-remove" title="Remove">x</button>{{/unless}}</div>
+                    {{/each}}
+                  </details>
                 {{/if}}
               </div>
-              {{#if (or this.description (not @root.readOnly))}}
-                <div class="drep-flow-check-desc drep-flow-editable" data-edit="check-description" data-check-id="{{this.id}}" data-value="{{this.rawDescription}}">
-                  {{#if this.description}}{{this.description}}{{else}}(description){{/if}}
-                </div>
-              {{/if}}
-              {{#if this.dependsOnEntries.length}}
-                {{#if @root.showFlowRelationships}}
-                <div class="drep-flow-deps">
-                  <span class="drep-flow-deps-label">Depends on</span>
-                  {{#each this.dependsOnEntries}}
-                    <span class="drep-flow-dep {{#if (and this.complete (not ../locked) (not ../complete))}}is-complete{{/if}}" data-dep-id="{{this.id}}" data-target-check-id="{{../id}}" data-dep-type="{{this.type}}" title="{{this.detail}}">{{this.label}}{{#unless @root.readOnly}}<button type="button" class="drep-flow-dep-remove" title="Remove">x</button>{{/unless}}</span>
-                  {{/each}}
-                </div>
-              {{/if}}
-              {{/if}}
-              {{#if (and @root.showFlowLines this.successLines.length)}}
-                <details class="drep-flow-lines success drep-collapsible" data-collapse-id="check-{{this.id}}-success">
-                  <summary><span class="drep-summary-toggle"><i class="fa-solid fa-angle-down drep-expand"></i><i class="fa-solid fa-angle-up drep-collapse"></i></span><span>Success Lines</span></summary>
-                  {{#each this.successLines}}
-                    <div class="drep-flow-line drep-flow-line-chip" draggable="true" data-drep-line-id="{{this.id}}" data-drep-line-type="success"><span class="drep-flow-line-text drep-flow-editable" data-edit="line-text" data-line-id="{{this.id}}" data-line-type="success" data-value="{{this.text}}">{{#if this.text}}{{this.text}}{{else}}(empty){{/if}}</span>{{#unless @root.readOnly}}<button type="button" class="drep-flow-line-remove" title="Remove">x</button>{{/unless}}</div>
-                  {{/each}}
-                </details>
-              {{/if}}
-              {{#if (and @root.showFlowLines this.failureLines.length)}}
-                <details class="drep-flow-lines failure drep-collapsible" data-collapse-id="check-{{this.id}}-failure">
-                  <summary><span class="drep-summary-toggle"><i class="fa-solid fa-angle-down drep-expand"></i><i class="fa-solid fa-angle-up drep-collapse"></i></span><span>Failure Lines</span></summary>
-                  {{#each this.failureLines}}
-                    <div class="drep-flow-line drep-flow-line-chip" draggable="true" data-drep-line-id="{{this.id}}" data-drep-line-type="failure"><span class="drep-flow-line-text drep-flow-editable" data-edit="line-text" data-line-id="{{this.id}}" data-line-type="failure" data-value="{{this.text}}">{{#if this.text}}{{this.text}}{{else}}(empty){{/if}}</span>{{#unless @root.readOnly}}<button type="button" class="drep-flow-line-remove" title="Remove">x</button>{{/unless}}</div>
-                  {{/each}}
-                </details>
-              {{/if}}
-            </div>
-          {{/each}}
-          {{#unless this.checks.length}}
-            <div class="drep-muted">No checks in this group.</div>
-          {{/unless}}
+            {{/each}}
+            {{#unless this.checks.length}}
+              <div class="drep-muted">No checks in this group.</div>
+            {{/unless}}
+          </div>
         </div>
-      </div>
-    {{/each}}
+      {{/each}}
+    </div>
   </div>
 </section>
