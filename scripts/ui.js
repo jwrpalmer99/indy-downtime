@@ -1431,6 +1431,10 @@ function stripStaleTidyTabs(context) {
   }
 }
 
+function registerTidyPlaceholderTabs(_api) {
+  // Intentionally left as a no-op placeholder.
+}
+
 
 function createTidyTab(api, tracker) {
 
