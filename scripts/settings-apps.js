@@ -1297,6 +1297,8 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
           id: check.id,
           name: displayName,
           rawName,
+          description: displayDescription,
+          rawDescription,
           skill: check.skill ?? "",
           skillLabel: displaySkillLabel,
           complete,
