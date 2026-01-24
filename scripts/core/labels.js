@@ -9,7 +9,6 @@ import {
   MODULE_ID,
   RESTRICTED_ACTORS_SETTING,
 } from "../constants.js";
-import { parseList } from "./parse.js";
 import { getCurrentTracker, getTrackerById } from "./tracker.js";
 
 function getLegacySetting(key) {
@@ -107,15 +106,6 @@ function shouldShowPhasePlan(trackerId) {
 }
 
 
-function shouldShowFlowRelationships(trackerId) {
-  const tracker = trackerId ? getTrackerById(trackerId) : getCurrentTracker();
-  return tracker?.showFlowRelationships !== false;
-}
-
-function shouldShowFlowLines(trackerId) {
-  const tracker = trackerId ? getTrackerById(trackerId) : getCurrentTracker();
-  return tracker?.showFlowLines !== false;
-}
 
 
 function getRestrictedActorUuids(trackerId) {
@@ -227,13 +217,7 @@ function localizeSkillLabel(labelKey, fallback) {
 
 
 
-function pickFailureLine(lines) {
-  if (!lines || !lines.length) return "";
-  return lines[Math.floor(Math.random() * lines.length)];
-}
-
 export {
-  pickFailureLine,
   debugLog,
   clampNumber,
   sanitizeLabel,
@@ -245,8 +229,6 @@ export {
   shouldHideDc,
   shouldShowLockedChecks,
   shouldShowPhasePlan,
-  shouldShowFlowRelationships,
-  shouldShowFlowLines,
   getRestrictedActorUuids,
   parseRestrictedActorUuids,
   getLastSkillChoice,
@@ -255,7 +237,6 @@ export {
   setLastActorId,
   getSkillOptions,
   getSkillLabel,
-  localizeSkillLabel,
 };
 
 

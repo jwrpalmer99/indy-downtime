@@ -1,6 +1,6 @@
 export const MODULE_ID = "indy-downtime";
 export const SHEET_TAB_ID = "indy-downtime";
-export const SHEET_TAB_LABEL = "Downtime";
+const SHEET_TAB_LABEL = "Downtime";
 export const DEFAULT_HEADER_LABEL = "Indy Downtime Tracker";
 export const DEFAULT_TAB_LABEL = SHEET_TAB_LABEL;
 export const DEFAULT_INTERVAL_LABEL = "Weekly";

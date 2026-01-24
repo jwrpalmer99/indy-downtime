@@ -1,5 +1,3 @@
-import { Application } from "./foundry-ui.js";
-
 import {
 
   DEFAULT_STATE,
@@ -79,11 +77,9 @@ import {
 
 let tidyApi = null;
 
-let registeredTidyTrackerIds = new Set();
 let tidyContextHooked = false;
 let pendingTidyCleanupTabIds = new Set();
 let lastKnownTrackerIds = new Set();
-const TIDY_PLACEHOLDER_MAX = 3;
 
 const pendingTabRestore = new WeakMap();
 
@@ -318,50 +314,6 @@ function restoreActiveTab(app, root, tabId) {
 
 
 
-
-
-
-class DowntimeRepApp extends Application {
-
-  static get defaultOptions() {
-
-    return foundry.utils.mergeObject(super.defaultOptions, {
-
-      id: "indy-downtime-app",
-
-      title: "Indy Downtime Tracker",
-
-      template: "modules/indy-downtime/templates/indy-downtime.hbs",
-
-      width: 740,
-
-      height: "auto",
-
-      classes: ["indy-downtime"],
-
-    });
-
-  }
-
-
-
-  getData() {
-
-    return buildTrackerData({ showActorSelect: true, embedded: false });
-
-  }
-
-
-
-  activateListeners(html) {
-
-    super.activateListeners(html);
-
-    attachTrackerListeners(html, { render: () => this.render(), app: this });
-
-  }
-
-}
 
 
 
@@ -1458,11 +1410,6 @@ function stripStaleTidyTabs(context) {
   }
 }
 
-function registerTidyPlaceholderTabs(_api) {
-  // Intentionally left as a no-op placeholder.
-}
-
-
 function createTidyTab(api, tracker) {
 
   const tabId = getTrackerTabId(tracker.id);
@@ -1644,7 +1591,6 @@ function updateTidyTabLabel() {
   if (!tidyApi?.registerCharacterTab || !tidyApi?.models?.HandlebarsTab) {
 
     debugLog("Tidy API not ready");
-    registeredTidyTrackerIds = nextIds;
     lastKnownTrackerIds = nextIds;
 
     return;
@@ -1658,8 +1604,6 @@ function updateTidyTabLabel() {
     ids: Array.from(nextIds),
 
   });
-
-  registerTidyPlaceholderTabs(tidyApi);
 
   for (const trackerId of removedIds) {
 
@@ -1698,7 +1642,6 @@ function updateTidyTabLabel() {
 
 
 
-  registeredTidyTrackerIds = nextIds;
   lastKnownTrackerIds = nextIds;
 
   cleanupStaleSheetTabs(nextIds);
@@ -1848,8 +1791,6 @@ function registerTidyTab() {
     tidyApi = api;
     const trackers = getTrackers();
 
-    registerTidyPlaceholderTabs(api);
-
     for (const tracker of trackers) {
 
       api.registerCharacterTab(createTidyTab(api, tracker), {
@@ -1869,7 +1810,6 @@ function registerTidyTab() {
       }
       pendingTidyCleanupTabIds.clear();
     }
-    registeredTidyTrackerIds = new Set(trackers.map((tracker) => tracker.id));
     lastKnownTrackerIds = new Set(trackers.map((tracker) => tracker.id));
 
     debugLog("Registered tidy5e downtime tab");
@@ -1943,45 +1883,16 @@ function hideDowntimeTab($html, trackerId) {
 
 
 export {
-
-  DowntimeRepApp,
-
-  applyRequestedState,
-
   attachTrackerListeners,
-
   buildTrackerData,
-
-  createTidyTab,
-
-  forceRenderApp,
-
-  getOpenApps,
-
   handleSocketMessage,
-
   hideDowntimeTab,
-
   isActorAllowed,
-
   registerSheetTab,
-
   registerTidyTab,
-
   refreshSheetTabLabel,
-
   restorePendingTab,
-
   rerenderCharacterSheets,
-
   rerenderSettingsApps,
-
-  resolveActor,
-
-  resolveActorFromContext,
-
-  updateSheetTabLabel,
-
   updateTidyTabLabel,
-
 };

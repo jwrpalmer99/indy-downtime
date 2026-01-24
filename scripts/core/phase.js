@@ -83,25 +83,6 @@ function normalizePhaseConfig(config) {
   return output;
 }
 
-function parsePhaseConfig(raw) {
-  try {
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) {
-      ui.notifications.error(
-        "Indy Downtime Tracker: phase configuration must be a JSON array."
-      );
-      return null;
-    }
-    return normalizePhaseConfig(parsed);
-  } catch (error) {
-    console.error(error);
-    ui.notifications.error(
-      "Indy Downtime Tracker: phase configuration JSON is invalid."
-    );
-    return null;
-  }
-}
-
 function normalizePhaseGroups(phase, fallback) {
   if (Array.isArray(phase?.groups)) {
     return normalizeGroups(phase.groups);
@@ -718,7 +699,6 @@ function isPhaseComplete(phase) {
 export {
   getPhaseConfig,
   normalizePhaseConfig,
-  parsePhaseConfig,
   buildEmptyPhase1,
   buildNewPhase,
   getActivePhase,
@@ -726,17 +706,14 @@ export {
   initializePhaseState,
   getPhaseNumber,
   normalizeCheckDependencies,
-  getCheckDependencies,
   getCheckRollData,
   getCheckDependencyDetails,
   getFirstPhaseId,
-  getDefaultSkills,
   getPhaseGroups,
   getPhaseChecks,
   getPhaseCheckById,
   getPhaseCheckLabel,
   getPhaseCheckTarget,
-  getPhaseTotalTarget,
   buildCheckProgressMap,
   getPhaseProgress,
   isCheckComplete,

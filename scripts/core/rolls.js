@@ -551,12 +551,6 @@ async function rollFailureEventTable(phase, actor) {
   }
 }
 export {
-  rollSkill,
-  rollSkillDirect,
   runIntervalRoll,
   runPhaseCompleteMacro,
-  postSummaryMessage,
-  handleCompletion,
-  isCriticalSuccess,
-  rollFailureEventTable,
 };

@@ -2823,9 +2823,6 @@ class DowntimeRepStateExport extends DowntimeRepImportExportDialog {
 
 export {
   DowntimeRepSettings,
-  DowntimeRepPhaseConfig,
-  DowntimeRepProgressState,
-  DowntimeRepPhaseConfigExport,
   DowntimeRepSettingsExport,
   DowntimeRepStateExport,
 };

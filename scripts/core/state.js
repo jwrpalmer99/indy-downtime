@@ -5,7 +5,7 @@ import {
   SOCKET_EVENT_REQUEST,
   SOCKET_EVENT_STATE,
 } from "../constants.js";
-import { clampNumber, debugLog, getSkillLabel } from "./labels.js";
+import { clampNumber, getSkillLabel } from "./labels.js";
 import {
   buildCheckProgressMap,
   getFirstPhaseId,
@@ -385,12 +385,6 @@ export {
   normalizeProjectState,
   applyStateOverridesFromForm,
   recalculateStateFromLog,
-  applyLogEntryToState,
-  getLogSortValue,
-  deriveCheckCount,
   resetPhaseState,
   getNextIncompletePhaseId,
-  isPhaseUnlocked,
-  notifyStateUpdated,
-  requestStateUpdate,
 };

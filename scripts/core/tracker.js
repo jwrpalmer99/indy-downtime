@@ -224,13 +224,11 @@ export {
   setCurrentTrackerId,
   getCurrentTracker,
   getTrackerById,
-  normalizeTrackers,
   updateTrackerSettings,
   setTrackerPhaseConfig,
   setTrackerState,
   addTracker,
   removeCurrentTracker,
-  buildDefaultTrackerFromLegacy,
 };
 
 

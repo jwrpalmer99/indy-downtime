@@ -9,7 +9,6 @@ import {
   TRACKERS_SETTING,
   DEFAULT_TAB_ICON
 } from "../constants.js";
-import { parseJsonPayload } from "./parse.js";
 import {
   parseRestrictedActorUuids,
   sanitizeLabel,
@@ -23,7 +22,7 @@ import {
   updateTrackerSettings,
 } from "./tracker.js";
 import { normalizeProjectState, setWorldState } from "./state.js";
-import { getPhaseConfig, normalizePhaseConfig } from "./phase.js";
+import { normalizePhaseConfig } from "./phase.js";
 
 function getSettingsExportPayload() {
   const trackers = getTrackers().map((tracker) => ({
