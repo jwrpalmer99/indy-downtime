@@ -234,7 +234,70 @@ class DowntimeRepSettings extends HandlebarsApplicationMixin(ApplicationV2) {
         this.render();
         return;
       }
-        if (action === "open-phase-config") {
+  
+      if (action === "tracker-import-export") {
+        const tracker = getCurrentTracker();
+        const trackerId = tracker?.id ?? getCurrentTrackerId();
+        new DowntimeRepImportExportDialog({
+          trackerId,
+          title: "Indy Downtime Tracker: Export/Import Tracker",
+          notes: "Export or import only the current tracker's settings.",
+          filename: "indy-downtime-tracker.json",
+          getPayload: () => ({
+            module: MODULE_ID,
+            version: game.modules.get(MODULE_ID)?.version ?? "",
+            exportedAt: new Date().toISOString(),
+            tracker: {
+              id: tracker?.id ?? trackerId,
+              name: tracker?.name,
+              headerLabel: tracker?.headerLabel,
+              tabLabel: tracker?.tabLabel,
+              intervalLabel: tracker?.intervalLabel,
+              tabIcon: tracker?.tabIcon,
+              hideDcFromPlayers: tracker?.hideDcFromPlayers,
+              showLockedChecksToPlayers: tracker?.showLockedChecksToPlayers,
+              showPhasePlanToPlayers: tracker?.showPhasePlanToPlayers,
+              showFlowRelationships: tracker?.showFlowRelationships,
+              showFlowLines: tracker?.showFlowLines,
+              restrictedActorUuids: tracker?.restrictedActorUuids ?? [],
+              phaseConfig: tracker?.phaseConfig ?? [],
+            },
+          }),
+          applyPayload: async (parsed) => {
+            const payload = parsed?.tracker ?? parsed;
+            if (!payload || typeof payload !== "object") {
+              ui.notifications.error("Indy Downtime Tracker: invalid tracker payload.");
+              return;
+            }
+            const updates = {};
+            if (typeof payload.name === "string") updates.name = sanitizeLabel(payload.name, DEFAULT_TRACKER_NAME);
+            if (typeof payload.headerLabel === "string") updates.headerLabel = sanitizeLabel(payload.headerLabel, DEFAULT_HEADER_LABEL);
+            if (typeof payload.tabLabel === "string") updates.tabLabel = sanitizeLabel(payload.tabLabel, DEFAULT_TAB_LABEL);
+            if (typeof payload.intervalLabel === "string") updates.intervalLabel = sanitizeLabel(payload.intervalLabel, DEFAULT_INTERVAL_LABEL);
+            if (typeof payload.tabIcon === "string") updates.tabIcon = sanitizeLabel(payload.tabIcon, DEFAULT_TAB_ICON);
+            if (typeof payload.hideDcFromPlayers !== "undefined") updates.hideDcFromPlayers = Boolean(payload.hideDcFromPlayers);
+            if (typeof payload.showLockedChecksToPlayers !== "undefined") updates.showLockedChecksToPlayers = Boolean(payload.showLockedChecksToPlayers);
+            if (typeof payload.showPhasePlanToPlayers !== "undefined") updates.showPhasePlanToPlayers = Boolean(payload.showPhasePlanToPlayers);
+            if (typeof payload.showFlowRelationships !== "undefined") updates.showFlowRelationships = Boolean(payload.showFlowRelationships);
+            if (typeof payload.showFlowLines !== "undefined") updates.showFlowLines = Boolean(payload.showFlowLines);
+            if (Array.isArray(payload.restrictedActorUuids)) {
+              updates.restrictedActorUuids = parseRestrictedActorUuids(payload.restrictedActorUuids);
+            }
+            if (Object.keys(updates).length) {
+              updateTrackerSettings(trackerId, updates);
+            }
+            if (Array.isArray(payload.phaseConfig)) {
+              setTrackerPhaseConfig(trackerId, normalizePhaseConfig(payload.phaseConfig));
+            }
+            refreshSheetTabLabel();
+            rerenderCharacterSheets();
+            rerenderSettingsApps();
+            ui.notifications.info("Indy Downtime Tracker: tracker imported.");
+          },
+        }).render(true);
+        return;
+      }
+      if (action === "open-phase-config") {
         new DowntimeRepPhaseConfig({
           trackerId: getCurrentTrackerId(),
         }).render(true);
@@ -624,6 +687,20 @@ class DowntimeRepPhaseConfig extends HandlebarsApplicationMixin(ApplicationV2) {
     html.find(".drep-phase-tab").removeClass("active");
     html.find(`.drep-tab-button[data-tab='${initialTab}']`).addClass("active");
     html.find(`.drep-phase-tab[data-tab='${initialTab}']`).addClass("active");
+    html.find("[data-drep-action='phase-import-export']").on("click", (event) => {
+      event.preventDefault();
+      const phaseId = this._activeTab ?? this._phaseConfig[0]?.id ?? "phase1";
+      const dialog = new DowntimeRepPhaseConfigExport({
+        trackerId: this._trackerId,
+        phaseId,
+        onImport: () => {
+          this._phaseConfig = getPhaseConfig(this._trackerId);
+          this.render(true, { focus: false });
+        },
+      });
+      dialog.render(true);
+    });
+
     html.find(".drep-tab-button").on("click", (event) => {
       event.preventDefault();
       const tab = event.currentTarget?.dataset?.tab;
@@ -2423,159 +2500,183 @@ class DowntimeRepProgressState extends HandlebarsApplicationMixin(ApplicationV2)
   }
 }
 
-class DowntimeRepSettingsExport extends HandlebarsApplicationMixin(ApplicationV2) {
+
+
+class DowntimeRepImportExportDialog extends HandlebarsApplicationMixin(ApplicationV2) {
+  constructor(options = {}) {
+    super(options);
+    this._trackerId = options.trackerId ?? getCurrentTrackerId();
+    this._notes = options.notes ?? "";
+    this._filename = options.filename ?? "indy-downtime.json";
+    this._getPayload = typeof options.getPayload === "function" ? options.getPayload : null;
+    this._applyPayload = typeof options.applyPayload === "function" ? options.applyPayload : null;
+    this._title = options.title ?? "Import/Export";
+  }
+
   static DEFAULT_OPTIONS = {
-    id: "indy-downtime-settings-export",
+    id: "indy-downtime-import-export",
     classes: ["indy-downtime", "drep-settings", "drep-dialog"],
     window: {
+      title: "Indy Downtime Tracker: Import/Export",
+      icon: "fas fa-file-export",
+      contentClasses: ["standard-form"],
+      resizable: true,
+    },
+    position: {
+      width: 640,
+      height: "auto",
+    },
+  };
+
+  static PARTS = {
+    form: {
+      template: "modules/indy-downtime/templates/indy-downtime-import-export.hbs",
+    },
+  };
+
+  async _prepareContext(options) {
+    const context = await super._prepareContext(options);
+    return {
+      ...context,
+      jsonText: "",
+      notes: this._notes,
+    };
+  }
+
+  _onRender(context, options) {
+    super._onRender(context, options);
+    if (this._title) {
+      this.options.window.title = this._title;
+    }
+    const html = $(this.element);
+    const trackerIcon = getTabIcon(this._trackerId) || "fas fa-fire";
+    this.options.window.icon = trackerIcon;
+    const appRoot = html.closest(".app");
+    const headerIcon = appRoot.find(".window-header .window-title i").first();
+    if (headerIcon.length) {
+      headerIcon.attr("class", trackerIcon);
+    } else {
+      appRoot.find(".window-header .window-title").prepend(
+        `<i class="${trackerIcon}"></i> `
+      );
+    }
+    const windowIcon = appRoot.find(".window-header .window-icon");
+    if (windowIcon.length) {
+      windowIcon.html(`<i class="${trackerIcon}"></i>`);
+    }
+
+    const textarea = html.find("[data-drep-io='json']");
+    html.find("[data-drep-action='export']").on("click", (event) => {
+      event.preventDefault();
+      const payload = this._getPayload ? this._getPayload() : null;
+      if (!payload) return;
+      textarea.val(JSON.stringify(payload, null, 2));
+    });
+    html.find("[data-drep-action='download']").on("click", (event) => {
+      event.preventDefault();
+      const data = textarea.val() || JSON.stringify(this._getPayload ? this._getPayload() : {}, null, 2);
+      saveJsonToFile(data, this._filename);
+    });
+    html.find("[data-drep-action='import']").on("click", async (event) => {
+      event.preventDefault();
+      const raw = textarea.val();
+      if (!raw || !this._applyPayload) return;
+      const parsed = parseJsonPayload(raw);
+      if (!parsed) return;
+      await this._applyPayload(parsed);
+    });
+  }
+}
+
+class DowntimeRepPhaseConfigExport extends DowntimeRepImportExportDialog {
+  constructor(options = {}) {
+    const trackerId = options.trackerId ?? getCurrentTrackerId();
+    const phaseId = options.phaseId ?? getPhaseConfig(trackerId)[0]?.id ?? "phase1";
+    super({
+      ...options,
+      title: "Indy Downtime Tracker: Export/Import Phase",
+      notes: "Export or import the selected phase only.",
+      filename: `indy-downtime-phase-${phaseId}.json`,
+      getPayload: () => ({
+        module: MODULE_ID,
+        version: game.modules.get(MODULE_ID)?.version ?? "",
+        exportedAt: new Date().toISOString(),
+        phaseId,
+        phase: getPhaseConfig(trackerId).find((entry) => entry.id === phaseId) ?? null,
+      }),
+      applyPayload: async (parsed) => {
+        const incoming = parsed?.phase ?? parsed;
+        if (!incoming || typeof incoming !== "object") {
+          ui.notifications.error("Indy Downtime Tracker: invalid phase payload.");
+          return;
+        }
+        const config = getPhaseConfig(trackerId);
+        const index = config.findIndex((entry) => entry.id === phaseId);
+        if (index < 0) {
+          ui.notifications.error("Indy Downtime Tracker: selected phase not found.");
+          return;
+        }
+        const next = foundry.utils.deepClone(incoming);
+        next.id = phaseId;
+        config[index] = next;
+        setTrackerPhaseConfig(trackerId, normalizePhaseConfig(config));
+        rerenderCharacterSheets();
+        rerenderSettingsApps();
+        if (typeof options.onImport === "function") {
+          options.onImport();
+        } else if (options.settingsAppId && ui.windows[options.settingsAppId]) {
+          ui.windows[options.settingsAppId].render(true, { focus: false });
+        }
+        ui.notifications.info("Indy Downtime Tracker: phase imported.");
+      },
+    });
+  }
+}
+
+
+class DowntimeRepSettingsExport extends DowntimeRepImportExportDialog {
+  constructor(options = {}) {
+    super({
+      ...options,
       title: "Indy Downtime Tracker: Export/Import Settings",
-      icon: "fas fa-file-export",
-      contentClasses: ["standard-form"],
-      resizable: true,
-    },
-    position: {
-      width: 640,
-      height: "auto",
-    },
-  };
-
-  static PARTS = {
-    form: {
-      template: "modules/indy-downtime/templates/indy-downtime-settings-export.hbs",
-    },
-  };
-
-  async _prepareContext(options) {
-    const context = await super._prepareContext(options);
-    return {
-      ...context,
-      jsonText: "",
-    };
-  }
-
-  _onRender(context, options) {
-    super._onRender(context, options);
-    const html = $(this.element);
-    const trackerId = getCurrentTrackerId();
-    const trackerIcon = getTabIcon(trackerId) || "fas fa-fire";
-    this.options.window.icon = trackerIcon;
-    const appRoot = html.closest(".app");
-    const headerIcon = appRoot.find(".window-header .window-title i").first();
-    if (headerIcon.length) {
-      headerIcon.attr("class", trackerIcon);
-    } else {
-      appRoot.find(".window-header .window-title").prepend(
-        `<i class="${trackerIcon}"></i> `
-      );
-    }
-    const windowIcon = appRoot.find(".window-header .window-icon");
-    if (windowIcon.length) {
-      windowIcon.html(`<i class="${trackerIcon}"></i>`);
-    }
-
-    const textarea = html.find("[data-drep-io='json']");
-    html.find("[data-drep-action='export']").on("click", (event) => {
-      event.preventDefault();
-      textarea.val(JSON.stringify(getSettingsExportPayload(), null, 2));
-    });
-    html.find("[data-drep-action='download']").on("click", (event) => {
-      event.preventDefault();
-      const data = textarea.val() || JSON.stringify(getSettingsExportPayload(), null, 2);
-      saveJsonToFile(data, "indy-downtime-settings.json");
-    });
-    html.find("[data-drep-action='import']").on("click", async (event) => {
-      event.preventDefault();
-      const raw = textarea.val();
-      if (!raw) return;
-      const parsed = parseJsonPayload(raw);
-      if (!parsed) return;
-      await applySettingsImportPayload(parsed);
-      refreshSheetTabLabel();
-      rerenderCharacterSheets();
-      rerenderSettingsApps();
-      ui.notifications.info("Indy Downtime Tracker: settings imported.");
+      notes: "Export or import all Indy Downtime Tracker settings as JSON.",
+      filename: "indy-downtime-settings.json",
+      getPayload: () => getSettingsExportPayload(),
+      applyPayload: async (parsed) => {
+        await applySettingsImportPayload(parsed);
+        refreshSheetTabLabel();
+        rerenderCharacterSheets();
+        rerenderSettingsApps();
+        ui.notifications.info("Indy Downtime Tracker: settings imported.");
+      },
     });
   }
 }
 
-class DowntimeRepStateExport extends HandlebarsApplicationMixin(ApplicationV2) {
-  static DEFAULT_OPTIONS = {
-    id: "indy-downtime-state-export",
-    classes: ["indy-downtime", "drep-settings", "drep-dialog"],
-    window: {
+class DowntimeRepStateExport extends DowntimeRepImportExportDialog {
+  constructor(options = {}) {
+    super({
+      ...options,
       title: "Indy Downtime Tracker: Export/Import State",
-      icon: "fas fa-file-export",
-      contentClasses: ["standard-form"],
-      resizable: true,
-    },
-    position: {
-      width: 640,
-      height: "auto",
-    },
-  };
-
-  static PARTS = {
-    form: {
-      template: "modules/indy-downtime/templates/indy-downtime-state-export.hbs",
-    },
-  };
-
-  async _prepareContext(options) {
-    const context = await super._prepareContext(options);
-    return {
-      ...context,
-      jsonText: "",
-    };
-  }
-
-  _onRender(context, options) {
-    super._onRender(context, options);
-    const html = $(this.element);
-    const trackerId = getCurrentTrackerId();
-    const trackerIcon = getTabIcon(trackerId) || "fas fa-fire";
-    this.options.window.icon = trackerIcon;
-    const appRoot = html.closest(".app");
-    const headerIcon = appRoot.find(".window-header .window-title i").first();
-    if (headerIcon.length) {
-      headerIcon.attr("class", trackerIcon);
-    } else {
-      appRoot.find(".window-header .window-title").prepend(
-        `<i class="${trackerIcon}"></i> `
-      );
-    }
-    const windowIcon = appRoot.find(".window-header .window-icon");
-    if (windowIcon.length) {
-      windowIcon.html(`<i class="${trackerIcon}"></i>`);
-    }
-
-    const textarea = html.find("[data-drep-io='json']");
-    html.find("[data-drep-action='export']").on("click", (event) => {
-      event.preventDefault();
-      textarea.val(JSON.stringify(getStateExportPayload(), null, 2));
-    });
-    html.find("[data-drep-action='download']").on("click", (event) => {
-      event.preventDefault();
-      const data = textarea.val() || JSON.stringify(getStateExportPayload(), null, 2);
-      saveJsonToFile(data, "indy-downtime-state.json");
-    });
-    html.find("[data-drep-action='import']").on("click", async (event) => {
-      event.preventDefault();
-      const raw = textarea.val();
-      if (!raw) return;
-      const parsed = parseJsonPayload(raw);
-      if (!parsed) return;
-      await applyStateImportPayload(parsed);
-      rerenderCharacterSheets();
-      rerenderSettingsApps();
-      ui.notifications.info("Indy Downtime Tracker: state imported.");
+      notes: "Export or import all Indy Downtime Tracker state as JSON.",
+      filename: "indy-downtime-state.json",
+      getPayload: () => getStateExportPayload(),
+      applyPayload: async (parsed) => {
+        await applyStateImportPayload(parsed);
+        rerenderCharacterSheets();
+        rerenderSettingsApps();
+        ui.notifications.info("Indy Downtime Tracker: state imported.");
+      },
     });
   }
 }
+
 
 export {
   DowntimeRepSettings,
   DowntimeRepPhaseConfig,
   DowntimeRepProgressState,
+  DowntimeRepPhaseConfigExport,
   DowntimeRepSettingsExport,
   DowntimeRepStateExport,
 };

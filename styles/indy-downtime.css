@@ -194,6 +194,7 @@
   gap: 8px;
   align-items: center;
   flex-wrap: wrap;
+  padding-bottom: 8px;
 }
 
 .drep-tracker-row select {
@@ -993,6 +994,7 @@
 
 .drep-flow-add-group {
   font-size: smaller;
+  margin-left: auto;
 }
 
 .drep-flow-remove-group {

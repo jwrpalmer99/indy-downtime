@@ -1,0 +1,15 @@
+<div class="drep-settings drep-dialog">
+  {{#if notes}}<p class="notes">{{notes}}</p>{{/if}}
+  <textarea class="drep-json" rows="18" data-drep-io="json">{{jsonText}}</textarea>
+  <div class="drep-actions">
+    <button type="button" class="dialog-button" data-drep-action="export">
+      Export to Text
+    </button>
+    <button type="button" class="dialog-button" data-drep-action="download">
+      Download JSON
+    </button>
+    <button type="button" class="dialog-button" data-drep-action="import">
+      Import From Text
+    </button>
+  </div>
+</div>

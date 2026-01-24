@@ -17,6 +17,47 @@
     <p class="notes">Each tracker creates its own character sheet tab.</p>
   </div>
 
+
+
+  <details class="drep-panel drep-collapsible">
+    <summary><span class="drep-summary-toggle"><i class="fa-solid fa-angle-down drep-expand"></i><i class="fa-solid fa-angle-up drep-collapse"></i></span><span>Tracker Settings</span></summary>
+    <div class="form-group">
+      <label>Tracker Name</label>
+      <input type="text" name="trackerName" value="{{trackerName}}" />
+      <p class="notes">Used to identify this tracker in the settings list.</p>
+    </div>
+
+    <div class="form-group">
+      <label>Tab Icon</label>
+      <input type="text" name="tabIcon" value="{{trackerTabIcon}}" />
+      <p class="notes">Font Awesome class (for example: <code>fas fa-fire</code>).</p>
+    </div>
+
+    <div class="form-group">
+      <label>Header Label</label>
+      <input type="text" name="headerLabel" value="{{headerLabel}}" />
+      <p class="notes">Shown at the top of the downtime tracker panel.</p>
+    </div>
+
+    <div class="form-group">
+      <label>Tab Label</label>
+      <input type="text" name="tabLabel" value="{{tabLabel}}" />
+      <p class="notes">Shown in the character sheet tab bar.</p>
+    </div>
+
+    <div class="form-group">
+      <label>Interval Label</label>
+      <input type="text" name="intervalLabel" value="{{intervalLabel}}" />
+      <p class="notes">Controls labels like "Roll {Interval} Check".</p>
+    </div>
+
+    <div class="form-group">
+      <label>Restrict to Actor UUIDs</label>
+      <textarea name="restrictedActorUuids" rows="4" class="drep-json" data-drep-drop="actor-uuids">{{restrictedActorUuidsText}}</textarea>
+      <p class="notes">Optional. Drop actor sheets here or enter one UUID per line. When set, only these actors see the tab.</p>
+    </div>
+  </details>
+
   <details class="drep-panel drep-collapsible">
     <summary><span class="drep-summary-toggle"><i class="fa-solid fa-angle-down drep-expand"></i><i class="fa-solid fa-angle-up drep-collapse"></i></span><span>Player Permissions</span></summary>
     <div class="form-group">
@@ -62,46 +103,13 @@
 
 
 
-  <details class="drep-panel drep-collapsible">
-    <summary><span class="drep-summary-toggle"><i class="fa-solid fa-angle-down drep-expand"></i><i class="fa-solid fa-angle-up drep-collapse"></i></span><span>Tracker Settings</span></summary>
-    <div class="form-group">
-      <label>Tracker Name</label>
-      <input type="text" name="trackerName" value="{{trackerName}}" />
-      <p class="notes">Used to identify this tracker in the settings list.</p>
-    </div>
 
     <div class="form-group">
-      <label>Tab Icon</label>
-      <input type="text" name="tabIcon" value="{{trackerTabIcon}}" />
-      <p class="notes">Font Awesome class (for example: <code>fas fa-fire</code>).</p>
+      <button type="button" class="dialog-button" data-drep-action="tracker-import-export">
+        Import/Export Tracker
+      </button>
+      <p class="notes">Export or import only this tracker’s settings.</p>
     </div>
-
-    <div class="form-group">
-      <label>Header Label</label>
-      <input type="text" name="headerLabel" value="{{headerLabel}}" />
-      <p class="notes">Shown at the top of the downtime tracker panel.</p>
-    </div>
-
-    <div class="form-group">
-      <label>Tab Label</label>
-      <input type="text" name="tabLabel" value="{{tabLabel}}" />
-      <p class="notes">Shown in the character sheet tab bar.</p>
-    </div>
-
-    <div class="form-group">
-      <label>Interval Label</label>
-      <input type="text" name="intervalLabel" value="{{intervalLabel}}" />
-      <p class="notes">Controls labels like "Roll {Interval} Check".</p>
-    </div>
-
-    <div class="form-group">
-      <label>Restrict to Actor UUIDs</label>
-      <textarea name="restrictedActorUuids" rows="4" class="drep-json" data-drep-drop="actor-uuids">{{restrictedActorUuidsText}}</textarea>
-      <p class="notes">Optional. Drop actor sheets here or enter one UUID per line. When set, only these actors see the tab.</p>
-    </div>
-  </details>
-
-
   
 
   <fieldset class="drep-panel">

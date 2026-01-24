@@ -5,6 +5,7 @@
     Edit phase structure, checks, DCs, and narratives. Changes apply when you save.
   </p>
 
+
   <nav class="drep-phase-tabs">
     {{#each phases}}
       <button type="button" class="drep-tab-button" data-tab="{{this.id}}">
@@ -22,7 +23,7 @@
         <legend>Phase {{this.number}}: {{this.name}}</legend>
         <div class="drep-phase-actions">
           <button type="button" class="dialog-button flow" data-drep-action="view-flow" data-phase-id="{{this.id}}">
-            View Flow
+            Edit Flow
           </button>
           {{#unless this.isPhase1}}
             <button type="button" class="dialog-button" data-drep-action="remove-phase" data-phase-id="{{this.id}}">
@@ -80,134 +81,12 @@
           </label>
         </div>
 
-        <details class="drep-phase-section drep-collapsible" data-collapse-id="phase-{{this.id}}-groups">
-          <summary><span class="drep-summary-toggle"><i class="fa-solid fa-angle-down drep-expand"></i><i class="fa-solid fa-angle-up drep-collapse"></i></span><span>Groups</span></summary>
-          <div class="drep-phase-section-header">
-            <button type="button" class="dialog-button" data-drep-action="add-group" data-phase-id="{{this.id}}">
-              Add Group
-            </button>
-          </div>
-         
-          {{#each this.groups}}
-            <details class="drep-group-card drep-collapsible" data-group-id="{{this.id}}" data-collapse-id="phase-{{../id}}-group-{{this.id}}">
-              <summary class="drep-group-summary"><span class="drep-summary-toggle"><i class="fa-solid fa-angle-down drep-expand"></i><i class="fa-solid fa-angle-up drep-collapse"></i></span><span>Group: {{#if this.name}}{{this.name}}{{else}}Group{{/if}}</span></summary>
-              <div class="drep-group-header">
-                <div class="drep-group-title">
-                  <label>
-                    Group Name
-                    <input type="text" name="phases.{{../id}}.groups.{{this.id}}.name" value="{{this.name}}" />
-                  </label>
-                  <label class="drep-group-max">
-                    Maximum Checks
-                    <input type="number" min="0" name="phases.{{../id}}.groups.{{this.id}}.maxChecks" value="{{this.maxChecks}}" />
-                  </label>
-                </div>
-                <div class="drep-group-actions">
-                  <button type="button" class="dialog-button" data-drep-action="add-check" data-phase-id="{{../id}}" data-group-id="{{this.id}}">
-                    + Check
-                  </button>
-                  <button type="button" class="dialog-button" data-drep-action="remove-group" data-phase-id="{{../id}}" data-group-id="{{this.id}}">
-                    Remove Group
-                  </button>
-                </div>
-              </div>
+      <div class="drep-phase-import">
+        <button type="button" class="dialog-button" data-drep-action="phase-import-export">
+          Import/Export Phase Config
+        </button>
+      </div>
 
-              <details class="drep-checks-section drep-collapsible" data-collapse-id="phase-{{../../id}}-group-{{../id}}-checks">
-                <summary><span class="drep-summary-toggle"><i class="fa-solid fa-angle-down drep-expand"></i><i class="fa-solid fa-angle-up drep-collapse"></i></span><span>Checks</span></summary>
-                <div class="drep-check-list">
-                  {{#each this.checks}}
-                    <div class="drep-check-card" data-check-id="{{this.id}}">
-                      <div class="drep-check-fields">
-                        <div class="drep-check-header-row drep-field-full">
-                          <label class="drep-check-name">
-                            Check Name
-                            <input type="text" name="phases.{{../../id}}.groups.{{../id}}.checks.{{this.id}}.name" value="{{this.name}}" />
-                          </label>
-                          <button type="button" class="dialog-button drep-check-remove" data-drep-action="remove-check" data-phase-id="{{../../id}}" data-group-id="{{../id}}" data-check-id="{{this.id}}">
-                            Remove Check
-                          </button>
-                        </div>
-                        <label>
-                          Skill
-                          <select name="phases.{{../../id}}.groups.{{../id}}.checks.{{this.id}}.skill">
-                            {{#each @root.skillOptions}}
-                              <option value="{{this.key}}" {{#if (eq ../skill this.key)}}selected{{/if}}>{{this.label}}</option>
-                            {{/each}}
-                          </select>
-                        </label>
-                        <label class="drep-check-dc">
-                          DC
-                          <input type="number" class="drep-input-compact" name="phases.{{../../id}}.groups.{{../id}}.checks.{{this.id}}.dc" value="{{this.dc}}" min="0" />
-                        </label>
-                        <label class="drep-field-full">
-                          Description
-                          <input type="text" name="phases.{{../../id}}.groups.{{../id}}.checks.{{this.id}}.description" value="{{this.description}}" />
-                        </label>
-                      </div>
-                      <input type="hidden" class="drep-deps-input-checks" name="phases.{{../../id}}.groups.{{../id}}.checks.{{this.id}}.dependsOn" value="{{this.dependsOnValue}}" />
-                    </div>
-                  {{/each}}
-                  {{#unless this.checks.length}}
-                    <div class="drep-muted">No checks in this group yet.</div>
-                  {{/unless}}
-                </div>
-              </details>
-            </details>
-          {{/each}}
-          {{#unless this.groups.length}}
-            <div class="drep-muted">No check groups yet. Add one to start.</div>
-          {{/unless}}
-        </details>
-
-        <details class="drep-phase-section drep-collapsible" data-collapse-id="phase-{{this.id}}-success">
-          <summary><span class="drep-summary-toggle"><i class="fa-solid fa-angle-down drep-expand"></i><i class="fa-solid fa-angle-up drep-collapse"></i></span><span>Success Lines</span></summary>
-          <div class="drep-phase-section-header">
-            <h3>Success Lines</h3>
-            <button type="button" class="dialog-button" data-drep-action="add-success-line" data-phase-id="{{this.id}}">
-              Add Line
-            </button>
-          </div>
-          {{#each this.successLines}}
-            <div class="drep-line-card card-success">
-              <textarea name="phases.{{../id}}.successLines.{{this.id}}.text" rows="2">{{this.text}}</textarea>
-              <input type="hidden" class="drep-deps-input-checks" name="phases.{{../id}}.successLines.{{this.id}}.dependsOnChecks" value="{{this.dependsOnChecksValue}}" />
-              <input type="hidden" class="drep-deps-input-groups" name="phases.{{../id}}.successLines.{{this.id}}.dependsOnGroups" value="{{this.dependsOnGroupsValue}}" />
-              <div class="drep-line-actions">
-                <button type="button" class="dialog-button" data-drep-action="remove-line" data-phase-id="{{../id}}" data-line-type="success" data-line-id="{{this.id}}">
-                  Remove
-                </button>
-              </div>
-            </div>
-          {{/each}}
-          {{#unless this.successLines.length}}
-            <div class="drep-muted">No success lines yet.</div>
-          {{/unless}}
-        </details>
-
-        <details class="drep-phase-section drep-collapsible" data-collapse-id="phase-{{this.id}}-failure">
-          <summary><span class="drep-summary-toggle"><i class="fa-solid fa-angle-down drep-expand"></i><i class="fa-solid fa-angle-up drep-collapse"></i></span><span>Failure Lines</span></summary>
-          <div class="drep-phase-section-header">
-            <h3>Failure Lines</h3>
-            <button type="button" class="dialog-button" data-drep-action="add-failure-line" data-phase-id="{{this.id}}">
-              Add Line
-            </button>
-          </div>
-          {{#each this.failureLines}}
-            <div class="drep-line-card card-failure">
-              <textarea name="phases.{{../id}}.failureLines.{{this.id}}.text" rows="2">{{this.text}}</textarea>
-              <input type="hidden" class="drep-deps-input-checks" name="phases.{{../id}}.failureLines.{{this.id}}.dependsOnChecks" value="{{this.dependsOnChecksValue}}" />
-              <input type="hidden" class="drep-deps-input-groups" name="phases.{{../id}}.failureLines.{{this.id}}.dependsOnGroups" value="{{this.dependsOnGroupsValue}}" />
-              <div class="drep-line-actions">
-                <button type="button" class="dialog-button" data-drep-action="remove-line" data-phase-id="{{../id}}" data-line-type="failure" data-line-id="{{this.id}}">
-                  Remove
-                </button>
-              </div>
-            </div>
-          {{/each}}
-          {{#unless this.failureLines.length}}
-            <div class="drep-muted">No failure lines yet.</div>
-          {{/unless}}
-        </details>
       </fieldset>
     </section>
   {{/each}}
