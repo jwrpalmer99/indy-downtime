@@ -1,6 +1,6 @@
 # Indy Downtime Tracker
 
-Indy Downtime Tracker is a Foundry VTT v13 module for 5e/p2fe that models (downtime) projects as multi-phase progress trackers. Each tracker gets its own character sheet tab (shared amongst players) with progress, check selection, and roll controls.
+Indy Downtime Tracker is a Foundry VTT v13 module for 5e/p2fe that models (downtime) projects with flexible multi-phase progress trackers and plans. Each tracker gets its own character sheet tab (shared amongst players) with progress, check selection, and roll controls.
 
 Character Sheet:
 
