@@ -5,6 +5,7 @@
     <div class="form-fields">
       <select name="depType">
         <option value="block" {{#if (eq depType "block")}}selected{{/if}}>Block until completed</option>
+        <option value="prevents" {{#if (eq depType "prevents")}}selected{{/if}}>Block when completed</option>
         <option value="harder" {{#if (eq depType "harder")}}selected{{/if}}>Harder until completed (+DC)</option>
         <option value="advantage" {{#if (eq depType "advantage")}}selected{{/if}}>Advantage when completed</option>
         <option value="disadvantage" {{#if (eq depType "disadvantage")}}selected{{/if}}>Disadvantage until completed</option>

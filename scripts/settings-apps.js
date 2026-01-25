@@ -1203,6 +1203,7 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
         const penalty = Number.isFinite(dep?.dcPenalty) && dep.dcPenalty > 0 ? dep.dcPenalty : 1;
         return `Harder until completed (+${penalty} DC)`;
       }
+      if (type === "prevents") return "Blocks when completed";
       if (type === "advantage") return "Advantage when completed";
       if (type === "disadvantage") return "Disadvantage until completed";
       if (type === "override") {
@@ -1219,6 +1220,7 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
       const base = dep.kind === "group" ? (groupLabels[dep.id] || dep.id) : (checkLabels[dep.id] || dep.id);
       const type = dep?.type ?? "block";
       if (type === "block") return base;
+      if (type === "prevents") return `${base} (Blocks when completed)`;
       if (type === "harder") {
         const penalty = Number.isFinite(dep?.dcPenalty) && dep.dcPenalty > 0 ? dep.dcPenalty : 1;
         return `${base} (DC +${penalty})`;
@@ -1857,6 +1859,7 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
       const group = (phase.groups ?? []).find((entry) => entry.id === groupId);
       if (!group) return;
       const current = Number.isFinite(Number(group.maxChecks)) ? Number(group.maxChecks) : 0;
+      const currentDisplay = current > 0 ? String(current) : "";
 
       const value = await new Promise((resolve) => {
         let resolved = false;
@@ -1868,7 +1871,7 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
         let dialogRef = null;
         const dialog = new foundry.applications.api.DialogV2({
           window: { title: "Set Max Success" },
-          content: `<div class="drep-input-row"><label>Max checks for this group</label><input type="number" min="0" step="1" value="${current}" data-drep-max-input></div>`,
+          content: `<div class="drep-input-row"><label>Max checks for this group</label><input type="number" min="1" step="1" value="${currentDisplay}" data-drep-max-input></div>`,
           buttons: [
             {
               action: "save",
@@ -1891,8 +1894,17 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
         dialog.render(true);
       });
       if (value === null) return;
-      const maxValue = Number(value);
-      group.maxChecks = Number.isFinite(maxValue) && maxValue >= 0 ? maxValue : 0;
+      const trimmed = String(value ?? "").trim();
+      if (!trimmed) {
+        group.maxChecks = 0;
+      } else {
+        const maxValue = Number(trimmed);
+        if (!Number.isInteger(maxValue) || maxValue <= 0) {
+          ui.notifications.warn("Indy Downtime Tracker: max checks must be a positive integer or left blank.");
+          return;
+        }
+        group.maxChecks = maxValue;
+      }
 
       if (this._onUpdate) {
         this._onUpdate({

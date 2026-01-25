@@ -7,6 +7,7 @@ const DEFAULT_CHECK_TARGET = 1;
 const DEFAULT_CHECK_DC = 13;
 const DEPENDENCY_TYPES = new Set([
   "block",
+  "prevents",
   "harder",
   "advantage",
   "disadvantage",
@@ -606,8 +607,14 @@ function getCheckRollData(phase, check, checkProgress) {
 function isCheckUnlocked(phase, check, checkProgress) {
   const deps = getCheckDependencies(check);
   const blockers = deps.filter((dep) => dep.type === "block");
-  if (!blockers.length) return true;
-  return blockers.every((dep) => isDependencyComplete(phase, dep, checkProgress));
+  if (blockers.length && !blockers.every((dep) => isDependencyComplete(phase, dep, checkProgress))) {
+    return false;
+  }
+  const lockouts = deps.filter((dep) => dep.type === "prevents");
+  if (lockouts.some((dep) => isDependencyComplete(phase, dep, checkProgress))) {
+    return false;
+  }
+  return true;
 }
 
 function getPhaseDc(phase, checkId) {
