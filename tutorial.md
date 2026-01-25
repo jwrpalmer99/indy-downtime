@@ -1,94 +1,109 @@
-# Indy Downtime Manager - Tutorial
+# Indy Downtime Tracker Tutorial
 
-This document will walk you through creating a 2 phase activity of making and serving delicious soup!
+This walkthrough builds a two-phase downtime project for making and serving soup. It uses DnD5e skills, but you can swap in any system-appropriate skills.
 
-We will create the following structure:
-
-- Phase 1: Make Soup
+Project overview:
+- Phase 1: Make Soup (6 checks)
   - Group: Preparation
-    - Check: Gather ingredients (Nature: DC 12)
-    - Check: Prepare ingredients (Sleight of Hand: DC 12)
-    - Check: Light a fire (Survival: DC 12)
+    - Gather ingredients (Nature DC 12)
+    - Prepare ingredients (Sleight of Hand DC 12)
+    - Light a fire (Survival DC 12)
   - Group: Cooking
-    - Check: Brown meat (Survival: DC 12)
-    - Check: Cook soup (Survival: DC 12)
-    - Check: Flavour soup (Insight: DC 14)
+    - Brown meat (Survival DC 12)
+    - Cook soup (Survival DC 12)
+    - Flavor soup (Insight DC 14)
+- Phase 2: Serve the Soup (3 checks)
+  - Group: Invite Guests
+    - Convince everyone to come (Persuasion DC 13)
+  - Group: Serving
+    - Set the table (Performance DC 12)
+    - Serve soup (Sleight of Hand DC 12)
 
-- Phase 2: Serve the Soup
-    - Group: Invite Guests
-        - Check: Convince everyone to come (Persuassion: DC 13)
-    - Group: Serving
-        - Check: Set the table (Performance: DC 12)
-        - Check: Serve soup (Sleight of Hand: DC 12)
+## 1) Create a tracker
+1. Open Game Settings -> Module Settings -> Indy Downtime Tracker: Configure Tracker.
+2. Click Add and name the tracker Soup.
+3. Set labels as desired:
+   - Header Label: Make and Serve Soup
+   - Tab Label: Soup
+   - Interval Label: Weekly (or any cadence)
+   - Tab Icon: fas fa-utensils (any Font Awesome class)
+4. Optional: restrict the tracker to specific actors using Restrict to Actor UUIDs.
 
-> some of these skill checks will depend on previous ones being carried out (for example you can't [Prepare ingredients] until you have completed [Gather ingredients]) and some can be done independtly (You can [Set the table] before or after you [Convince everyone to come])
+## 2) Set up phases
+1. Click Edit Phase Configuration.
+2. Phase 1:
+   - Rename to Make Soup.
+   - Set Phase Target to 6 (one per check).
+   - Optional: enable Allow critical bonus.
+3. Add Phase:
+   - Rename to Serve the Soup.
+   - Set Phase Target to 3.
+4. For each phase, click Edit Flow to build groups and checks.
 
-> the instructions mention skills from D&D5e, if you are using another system pick appropriate replacements
+## 3) Build Phase 1 in Edit Flow
+1. Click Edit Flow for Make Soup.
+2. Add two groups:
+   - Preparation
+   - Cooking
+3. Add checks to Preparation:
+   - Gather ingredients (Nature DC 12)
+   - Prepare ingredients (Sleight of Hand DC 12)
+   - Light a fire (Survival DC 12)
+4. Add checks to Cooking:
+   - Brown meat (Survival DC 12)
+   - Cook soup (Survival DC 12)
+   - Flavor soup (Insight DC 14)
+5. To edit a check, double click its name, skill, DC, or description.
 
-## **Let's get started!**
+## 4) Build Phase 2 in Edit Flow
+1. Click Edit Flow for Serve the Soup.
+2. Add two groups:
+   - Invite Guests
+   - Serving
+3. Add checks:
+   - Invite Guests: Convince everyone to come (Persuasion DC 13)
+   - Serving: Set the table (Performance DC 12), Serve soup (Sleight of Hand DC 12)
 
-### Create a New Tracker
-- [ ] Open the Indy Downtime Manager from the Tools menu in Foundry VTT.
-- [ ] Click `Add Tracker` and name your new tracker `Soup`
-- [ ] Set the Tab-Icon, Header Label, Tab Label and Interval Label as you like (eg `fa-duotone fa-solid fa-fork-knife`, `Make & Serve Soup`, `Soup`, `Skill`)
+## 5) Add dependencies
+In the Flow view, drag a check onto another check to add a dependency.
+- Gather ingredients -> Prepare ingredients
+- Light a fire -> Brown meat
+- Brown meat -> Cook soup
+- Cook soup -> Flavor soup
+- Set the table -> Serve soup
 
-### Create a New Phase
-- [ ] Click `Edit Phase Configuration
-- [ ] An empty Phase 1 is already created - rename it `Make Soup` and set the Phase Target to 6 (this is how many checks must succeed for the phase to be complete)
-- [ ] Inside the `Make Soup` phase, expand `Groups` and click `Add Group` to create a group named `Preparation`.
-- [ ] Within the `Preparation` group, click `Add Check` three times to create the following checks:
-   - Gather ingredients (Nature: DC 12)
-   - Prepare ingredients (Sleight of Hand: DC 12)
-   - Light a fire (Survival: DC 12)
-- [ ] Next, scroll back up and create another group named `Cooking` in the same phase.
-- [ ] Within the `Cooking` group, add three checks:
-   - Brown meat (Survival: DC 12)
-   - Cook soup (Survival: DC 12)
-   - Flavour soup (Insight: DC 14)
+Right click a dependency chip to change its type (block, harder, advantage, disadvantage, or override).
 
-### Add Phase 2
-- [ ] Now, add a second phase by clicking `Add Phase` at the top of the dialog; Name this phase `Serve the Soup`.
-- [ ] Set the Phase Target to 5.
-- [ ] Create a group named `Invite Guests`.
-- [ ] Within the `Invite Guests` group, add a check named `Convince everyone to come` (Persuasion: DC 13).
-- [ ] Next, create another group named `Serving`.
-- [ ] Within the `Serve the Soup` group, add two checks:
-    - Set the table (Performance: DC 12)
-    - Serve the Soup! (Sleight of Hand: DC 12)
-- [ ] Press the `Flow View` button to open the Flow View where we can set dependencies (and assign success/failure lines to checks/groups)
+## 6) Add narrative lines (optional)
+1. In Flow, click + Line under Unassigned Success Lines and Unassigned Failure Lines.
+2. Double click a line to edit its text.
+3. Drag lines onto a check or group to assign them. Unassigned lines act as fallbacks.
 
-### Set Up Flow
-- [ ] Now, let's set up dependencies
-    - In the `Preparation` group, drag `Gather ingredients` to`Prepare ingredients`
-    - Drag `Light a fire` from the `Cooking` group to `Brown meat` in the `Preparation` group.
-    - Drag `Brown meat` to `Cook soup` and  then `Cook soup` to `Flavour soup`.
-    - In the `Serve the Soup` phase, drag `Set the table` to `Serve the soup!`.
-- [ ] Review your downtime activity to ensure everything is set up correctly.
+## 7) Save and test
+1. Save your changes in each dialog.
+2. Open a character sheet and select the Soup tab.
+3. Choose a check and click Roll Weekly Check.
+4. Review the Recent Activity log and the chat summary.
 
-### Save and Test
-- [ ] Save your downtime activity.
-- [ ] Open a character sheet, you will see a new tab called "Soup" that shows the activity progress
+## Optional enhancements
+- Phase image: add a photo in Phase Configuration to display on the tracker tab.
+- Failure events: enable Failures trigger events and paste a RollTable UUID.
+- Phase completion macro: add a macro UUID that runs when a phase completes.
+- Player permissions: hide DCs, hide locked checks, or allow View Phase Plan.
 
-## Optionally:
-- add an appropriate image for each phase
-- add failure/success message for checks (create the messages in phase configuration dialog then drag them to groups/checks in Flow View)
-- add a macro on phase completion - this can be used (for example) to gift the player some delicious soup!
+### Macro example (phase completion)
+This macro grants a soup item to the actor who completed the phase.
 
-    macro example: (create a `Delicious Soup` item in your world first) then create a script macro:
+```js
+const data = args?.[0] ?? {};
+const actor = data.actor ?? game.actors.get(data.actorId);
+const item = game.items.getName("Delicious Soup");
+if (!actor || !item) {
+  ui.notifications.error("Missing actor or item.");
+  return;
+}
+await actor.createEmbeddedDocuments("Item", [item.toObject()]);
+ui.notifications.info(`Granted ${item.name} to ${actor.name}.`);
+```
 
-        const itemName = `Delicious Soup`; 
-        const actorname = scope.actorName; //passed in from Indy Downtime Manager
-        const actor = game.actors.getName(actorname);
-
-        const itemToGrant = game.items.getName(itemName);
-
-        if (!itemToGrant) {
-            ui.notifications.error(`Item `${itemName}` not found.`);
-        } else {
-            //grant item to actor
-            await actor.createEmbeddedDocuments(`Item`, [itemToGrant.toObject()]);
-            console.log(`Granted ${itemName} to ${actor.name}`);
-            ui.notifications.info(`Granted ${itemName} to ${actor.name}`);
-        }
-
-    Congratulations! You have successfully created a 2 phase downtime activity for making and serving soup using the Indy Downtime Manager. Enjoy your delicious creation!
+Done. You now have a two-phase downtime tracker with dependencies, progress, and narrative flavor.
