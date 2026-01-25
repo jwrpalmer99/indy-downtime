@@ -21,13 +21,15 @@ Project overview:
 
 ## 1) Create a tracker
 1. Open Game Settings -> Module Settings -> Indy Downtime Tracker: Configure Tracker.
-2. Click Add and name the tracker Soup.
-3. Set labels as desired:
+2. Click Add and then select the new tracker in the dropdown
+3. Expand Tracker Settings - name the tracker Soup.
+4. Set labels as desired:
    - Header Label: Make and Serve Soup
    - Tab Label: Soup
    - Interval Label: Soup - this is just a label not necessarily a cadence.
    - Tab Icon: fas fa-utensils (any Font Awesome class)
-4. Optional: restrict the tracker to specific actors using Restrict to Actor UUIDs and configure player permissions.
+5. Optional: restrict the tracker to specific actors using Restrict to Actor UUIDs
+6. Optional: expand and configure Player Permissions.
 
 ## 2) Set up phases
 1. Click Edit Phase Configuration.
@@ -35,25 +37,30 @@ Project overview:
    - Rename to Make Soup.
    - Set Phase Target to 6 (one per check).
    - Optional: enable Allow critical bonus.
-3. Add Phase:
-   - Rename to Serve the Soup.
+3. Click + Add Phase:
+   - Rename Pahase 2 to Serve the Soup.
    - Set Phase Target to 3.
 4. For each phase, click Edit Flow to build groups and checks.
 
 ## 3) Build Phase 1 in Edit Flow
+> [Note]
+> Double click anything (names/skills/text etc) in Phase Flow window to edit it
 1. Click Edit Flow for Make Soup.
-2. Add two groups:
+2. Click + Group - add two groups and rename them to
    - Preparation
    - Cooking
-3. Add checks to Preparation:
+3. Use + Check to add checks to Preparation:
    - Gather ingredients (Nature DC 12)
    - Prepare ingredients (Sleight of Hand DC 12)
-   - Light a fire (Survival DC 12)
-4. Add checks to Cooking:
+   - Light a fire (Survival DC 12)    
+5. Add checks to Cooking:
    - Brown meat (Survival DC 12)
    - Cook soup (Survival DC 12)
    - Flavor soup (Insight DC 14)
-5. To edit a check, double click its name, skill, DC, or description.
+
+> [Tip]
+> Your Phase Flow should look like this now
+<img width="279" alt="soup_p1_a" src="https://github.com/user-attachments/assets/ee24b8af-0f6d-4b9f-b562-867c92946611" />
 
 ## 4) Build Phase 2 in Edit Flow
 1. Click Edit Flow for Serve the Soup.
