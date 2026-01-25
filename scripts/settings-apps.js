@@ -1574,7 +1574,7 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
         input = $('<textarea rows="2" class="drep-inline-edit"></textarea>');
         input.val(config.value || "");
       } else if (config.type === "number") {
-        input = $('<input type="number" min="0" class="drep-inline-edit" />');
+        input = $('<input type="number" min="1" step="1" inputmode="numeric" class="drep-inline-edit" />');
         input.val(config.value ?? "");
       } else {
         input = $('<input type="text" class="drep-inline-edit" />');
@@ -1612,8 +1612,14 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
         }
         if (config.edit === "check-dc") {
           const dcValue = Number(newValue);
+          if (!Number.isInteger(dcValue) || dcValue <= 0) {
+            ui.notifications.warn("Indy Downtime Tracker: DC must be a positive integer.");
+            $el.text(originalDisplay);
+            $el.data("editing", false);
+            return;
+          }
           debugLog("Inline edit save", { edit: config.edit, checkId: config.checkId, value: dcValue });
-          if (updateCheckField(phase, config.checkId, { dc: Number.isFinite(dcValue) ? dcValue : 0 })) {
+          if (updateCheckField(phase, config.checkId, { dc: dcValue })) {
             savePhaseConfig(phase);
           }
           return;

@@ -36,6 +36,8 @@ Project overview:
 5. Optional: restrict the tracker to specific actors using Restrict to Actor UUIDs
 6. Optional: expand and configure Player Permissions (maybe you want to give players access to a read only Plan View)
 
+> Remember to Save
+
 ## 2) Set up phases
 1. Click Edit Phase Configuration.
 2. Phase 1:
@@ -46,6 +48,8 @@ Project overview:
    - Rename Pahase 2 to Serve the Soup.
    - Set Phase Target to 3.
 4. For each phase, click Edit Flow to build groups and checks.
+
+> Remember to Save
 
 ## 3) Build Phase 1 in Edit Flow
 > [Note]
@@ -67,6 +71,7 @@ Project overview:
 > Your Phase Flow should look like this now
 <img width="555" alt="soup_p1_a" src="https://github.com/user-attachments/assets/d0ff0208-26a1-47b4-aef5-6fe16e17671b" />
 
+> Remember to Save
 
 ## 4) Build Phase 2 in Edit Flow
 1. Open Phase Configuration again, switch to Phase 2, click Edit Flow for Serve the Soup.
