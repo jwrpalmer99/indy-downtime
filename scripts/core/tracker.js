@@ -101,6 +101,7 @@ function normalizeTrackers(trackers) {
       hideDcFromPlayers: Boolean(tracker?.hideDcFromPlayers),
       showLockedChecksToPlayers: tracker?.showLockedChecksToPlayers !== false,
       showPhasePlanToPlayers: Boolean(tracker?.showPhasePlanToPlayers),
+      showCheckTooltipsToPlayers: Boolean(tracker?.showCheckTooltipsToPlayers),
       showFlowRelationships: tracker?.showFlowRelationships !== false,
       showFlowLines: tracker?.showFlowLines !== false,
       restrictedActorUuids: parseRestrictedActorUuids(
@@ -156,6 +157,7 @@ function addTracker() {
     hideDcFromPlayers: false,
     showLockedChecksToPlayers: true,
     showPhasePlanToPlayers: false,
+    showCheckTooltipsToPlayers: false,
     showFlowRelationships: true,
     showFlowLines: true,
     restrictedActorUuids: [],
@@ -207,6 +209,7 @@ function buildDefaultTrackerFromLegacy() {
     hideDcFromPlayers: false,
     showLockedChecksToPlayers: true,
     showPhasePlanToPlayers: false,
+    showCheckTooltipsToPlayers: false,
     showFlowRelationships: true,
     showFlowLines: true,
     restrictedActorUuids: parseRestrictedActorUuids(

@@ -26,6 +26,7 @@ import {
   getPhaseNumber,
   getPhaseChecks,
   getCheckRollData,
+  getPhaseDc,
   isCheckUnlocked,
   isCheckComplete,
   isDependencyComplete,
@@ -53,6 +54,7 @@ import {
   setTrackerPhaseConfig,
   setWorldState,
   shouldHideDc,
+  shouldShowCheckTooltips,
   shouldShowLockedChecks,
   getActorCheckBonus,
   getCheckSuccessChance,
@@ -97,8 +99,55 @@ const formatSignedNumber = (value) => {
   return numeric >= 0 ? `+${numeric}` : `${numeric}`;
 };
 
-const buildDcTooltip = ({ actor, rollData, baseDc, redacted }) => {
-  if (!actor || !rollData || !rollData.skill || redacted) return "";
+const buildPotentialRollData = (phase, check, checkProgress) => {
+  const deps = normalizeCheckDependencies(check?.dependsOn ?? []);
+  if (!deps.length) return null;
+  const hasIncomplete = deps.some((dep) => !isDependencyComplete(phase, dep, checkProgress));
+  if (!hasIncomplete) return null;
+  let advantage = false;
+  let disadvantage = false;
+  let overrideSkill = "";
+  let overrideDc = null;
+  let dcPenalty = 0;
+  for (const dep of deps) {
+    switch (dep.type) {
+      case "harder":
+        break;
+      case "advantage":
+        advantage = true;
+        break;
+      case "disadvantage":
+        break;
+      case "override":
+        if (dep.overrideSkill) overrideSkill = dep.overrideSkill;
+        if (Number.isFinite(dep.overrideDc)) overrideDc = dep.overrideDc;
+        break;
+      default:
+        break;
+    }
+  }
+  if (advantage && disadvantage) {
+    advantage = false;
+    disadvantage = false;
+  }
+  const baseDc = getPhaseDc(phase, check);
+  let dc = Number.isFinite(overrideDc) ? overrideDc : baseDc;
+  if (dcPenalty) {
+    dc += dcPenalty;
+  }
+  return {
+    skill: overrideSkill || check?.skill || "",
+    dc,
+    advantage,
+    disadvantage,
+    dcPenalty,
+    overrideSkill,
+    overrideDc,
+  };
+};
+
+const buildDcTooltip = ({ actor, rollData, baseDc, redacted, potentialRollData, allowTooltip }) => {
+  if (!allowTooltip || !actor || !rollData || !rollData.skill || redacted) return "";
   const bonus = getActorCheckBonus(actor, rollData.skill);
   if (!Number.isFinite(bonus)) return "";
   const chance = getCheckSuccessChance({
@@ -128,6 +177,39 @@ const buildDcTooltip = ({ actor, rollData, baseDc, redacted }) => {
   lines.push(`Success: ${Math.round(chance * 100)}%`);
   if (rollData.advantage) lines.push("Advantage");
   if (rollData.disadvantage) lines.push("Disadvantage");
+  if (potentialRollData?.skill) {
+    const potentialBonus = getActorCheckBonus(actor, potentialRollData.skill);
+    const potentialChance = getCheckSuccessChance({
+      dc: potentialRollData.dc,
+      bonus: potentialBonus,
+      advantage: potentialRollData.advantage,
+      disadvantage: potentialRollData.disadvantage,
+    });
+    if (Number.isFinite(potentialChance)) {
+      const currentPercent = Math.round(chance * 100);
+      const potentialPercent = Math.round(potentialChance * 100);
+      if (potentialPercent !== currentPercent) {
+        const details = [];
+        if (potentialRollData.skill !== rollData.skill || potentialBonus !== bonus) {
+          const potentialSkillLabel = getSkillLabel(potentialRollData.skill);
+          const potentialBonusText = formatSignedNumber(potentialBonus);
+          if (potentialSkillLabel) {
+            details.push(`${potentialSkillLabel}${potentialBonusText ? ` ${potentialBonusText}` : ""}`);
+          } else if (potentialBonusText) {
+            details.push(`Bonus ${potentialBonusText}`);
+          }
+        }
+        if (Number.isFinite(potentialRollData.dc) && potentialRollData.dc !== rollData.dc) {
+          details.push(`DC ${potentialRollData.dc}`);
+        }
+        if (potentialRollData.advantage && !rollData.advantage) details.push("Advantage");
+        if (potentialRollData.disadvantage && !rollData.disadvantage) details.push("Disadvantage");
+        if (!potentialRollData.disadvantage && rollData.disadvantage) details.push("No Disadvantage");
+        const detailText = details.length ? ` (${details.join(", ")})` : "";
+        lines.push(`If deps complete: ${potentialPercent}%${detailText}`);
+      }
+    }
+  }
   return lines.join("\n");
 };
 
@@ -182,6 +264,7 @@ class DowntimeRepSettings extends HandlebarsApplicationMixin(ApplicationV2) {
       hideDcFromPlayers: Boolean(tracker?.hideDcFromPlayers),
       showLockedChecksToPlayers: tracker?.showLockedChecksToPlayers !== false,
       showPhasePlanToPlayers: Boolean(tracker?.showPhasePlanToPlayers),
+      showCheckTooltipsToPlayers: Boolean(tracker?.showCheckTooltipsToPlayers),
       showFlowRelationships: tracker?.showFlowRelationships !== false,
       showFlowLines: tracker?.showFlowLines !== false,
       isSingleTracker: trackerOptions.length <= 1,
@@ -300,6 +383,7 @@ class DowntimeRepSettings extends HandlebarsApplicationMixin(ApplicationV2) {
               hideDcFromPlayers: tracker?.hideDcFromPlayers,
               showLockedChecksToPlayers: tracker?.showLockedChecksToPlayers,
               showPhasePlanToPlayers: tracker?.showPhasePlanToPlayers,
+              showCheckTooltipsToPlayers: tracker?.showCheckTooltipsToPlayers,
               showFlowRelationships: tracker?.showFlowRelationships,
               showFlowLines: tracker?.showFlowLines,
               restrictedActorUuids: tracker?.restrictedActorUuids ?? [],
@@ -321,6 +405,7 @@ class DowntimeRepSettings extends HandlebarsApplicationMixin(ApplicationV2) {
             if (typeof payload.hideDcFromPlayers !== "undefined") updates.hideDcFromPlayers = Boolean(payload.hideDcFromPlayers);
             if (typeof payload.showLockedChecksToPlayers !== "undefined") updates.showLockedChecksToPlayers = Boolean(payload.showLockedChecksToPlayers);
             if (typeof payload.showPhasePlanToPlayers !== "undefined") updates.showPhasePlanToPlayers = Boolean(payload.showPhasePlanToPlayers);
+            if (typeof payload.showCheckTooltipsToPlayers !== "undefined") updates.showCheckTooltipsToPlayers = Boolean(payload.showCheckTooltipsToPlayers);
             if (typeof payload.showFlowRelationships !== "undefined") updates.showFlowRelationships = Boolean(payload.showFlowRelationships);
             if (typeof payload.showFlowLines !== "undefined") updates.showFlowLines = Boolean(payload.showFlowLines);
             if (Array.isArray(payload.restrictedActorUuids)) {
@@ -398,6 +483,7 @@ class DowntimeRepSettings extends HandlebarsApplicationMixin(ApplicationV2) {
       hideDcFromPlayers: Boolean(formData.hideDcFromPlayers),
       showLockedChecksToPlayers: Boolean(formData.showLockedChecksToPlayers),
       showPhasePlanToPlayers: Boolean(formData.showPhasePlanToPlayers),
+      showCheckTooltipsToPlayers: Boolean(formData.showCheckTooltipsToPlayers),
       showFlowRelationships: Boolean(formData.showFlowRelationships),
       showFlowLines: Boolean(formData.showFlowLines),
       restrictedActorUuids: parseRestrictedActorUuids(
@@ -1216,6 +1302,7 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
     const phaseNumber = phase ? getPhaseNumber(phase.id, this._trackerId) : 1;
     const phaseName = phase?.name ?? "Phase";
     const actor = this._actor ?? null;
+    const allowTooltips = game.user?.isGM || shouldShowCheckTooltips(this._trackerId);
 
     const state = getWorldState(this._trackerId);
     const phaseState = state?.phases?.[phase?.id] ?? {};
@@ -1341,11 +1428,14 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
         const displayName = shouldRedact ? "???" : name;
         const displaySkillLabel = shouldRedact ? "???" : skillLabel;
         const displayDescription = shouldRedact ? "???" : rawDescription;
+        const potentialRollData = buildPotentialRollData(phase, check, checkProgress);
         const dcTooltip = buildDcTooltip({
           actor,
           rollData,
           baseDc: check.dc,
           redacted: shouldRedact,
+          potentialRollData,
+          allowTooltip: allowTooltips,
         });
         checkLabels[check.id] = displayName;
         return {

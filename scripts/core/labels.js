@@ -105,6 +105,11 @@ function shouldShowPhasePlan(trackerId) {
   return Boolean(tracker?.showPhasePlanToPlayers);
 }
 
+function shouldShowCheckTooltips(trackerId) {
+  const tracker = trackerId ? getTrackerById(trackerId) : getCurrentTracker();
+  return Boolean(tracker?.showCheckTooltipsToPlayers);
+}
+
 
 
 
@@ -229,6 +234,7 @@ export {
   shouldHideDc,
   shouldShowLockedChecks,
   shouldShowPhasePlan,
+  shouldShowCheckTooltips,
   getRestrictedActorUuids,
   parseRestrictedActorUuids,
   getLastSkillChoice,

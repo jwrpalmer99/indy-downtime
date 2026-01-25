@@ -35,6 +35,7 @@ function getSettingsExportPayload() {
     hideDcFromPlayers: tracker.hideDcFromPlayers,
     showLockedChecksToPlayers: tracker.showLockedChecksToPlayers,
     showPhasePlanToPlayers: tracker.showPhasePlanToPlayers,
+    showCheckTooltipsToPlayers: tracker.showCheckTooltipsToPlayers,
     showFlowRelationships: tracker.showFlowRelationships,
     showFlowLines: tracker.showFlowLines,
     restrictedActorUuids: tracker.restrictedActorUuids ?? [],
@@ -102,6 +103,7 @@ async function applySettingsImportPayload(payload) {
         hideDcFromPlayers: Boolean(tracker?.hideDcFromPlayers),
         showLockedChecksToPlayers: tracker?.showLockedChecksToPlayers !== false,
         showPhasePlanToPlayers: Boolean(tracker?.showPhasePlanToPlayers),
+        showCheckTooltipsToPlayers: Boolean(tracker?.showCheckTooltipsToPlayers),
         showFlowRelationships: tracker?.showFlowRelationships !== false,
         showFlowLines: tracker?.showFlowLines !== false,
         restrictedActorUuids: parseRestrictedActorUuids(
@@ -141,6 +143,9 @@ async function applySettingsImportPayload(payload) {
     }
     if (typeof settings.showPhasePlanToPlayers !== "undefined") {
       updates.showPhasePlanToPlayers = Boolean(settings.showPhasePlanToPlayers);
+    }
+    if (typeof settings.showCheckTooltipsToPlayers !== "undefined") {
+      updates.showCheckTooltipsToPlayers = Boolean(settings.showCheckTooltipsToPlayers);
     }
     if (typeof settings.showFlowRelationships !== "undefined") {
       updates.showFlowRelationships = Boolean(settings.showFlowRelationships);
