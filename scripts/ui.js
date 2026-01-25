@@ -611,6 +611,7 @@ function buildTrackerData({
 
     intervalLabel: getIntervalLabel(resolvedTrackerId),
     showPhasePlan: game.user?.isGM || shouldShowPhasePlan(resolvedTrackerId),
+    showEditPlan: game.user?.isGM,
 
     selectedCheckLabel,
 
@@ -656,8 +657,11 @@ function attachTrackerListeners(html, { render, actor, app } = {}) {
     rollButtons: scope.find("[data-drep-action='roll-interval']").length,
   });
 
-  scope.find("[data-drep-action='view-phase-plan']").on("click", (event) => {
-    event.preventDefault();
+  const openPhasePlanFlow = (readOnly) => {
+    if (!readOnly && !game.user?.isGM) {
+      ui.notifications.warn("Indy Downtime Tracker: only a GM can edit the phase plan.");
+      return;
+    }
     const phaseConfig = getPhaseConfig(trackerId);
     const state = getWorldState(trackerId);
     const activePhase = getActivePhase(state, trackerId);
@@ -668,7 +672,17 @@ function attachTrackerListeners(html, { render, actor, app } = {}) {
       ui.notifications.warn("Indy Downtime Tracker: phase plan view is unavailable.");
       return;
     }
-    new FlowClass({ trackerId, phaseId: phase.id, phase, readOnly: true }).render(true);
+    new FlowClass({ trackerId, phaseId: phase.id, phase, readOnly }).render(true);
+  };
+
+  scope.find("[data-drep-action='view-phase-plan']").on("click", (event) => {
+    event.preventDefault();
+    openPhasePlanFlow(true);
+  });
+
+  scope.find("[data-drep-action='edit-phase-plan']").on("click", (event) => {
+    event.preventDefault();
+    openPhasePlanFlow(false);
   });
 
   scope.find("[data-drep-action='roll-interval']").on("click", (event) => {

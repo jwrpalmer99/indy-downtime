@@ -216,6 +216,24 @@
   margin: 0 0 10px;
 }
 
+.drep-panel-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.drep-panel-title {
+  margin: 0;
+}
+
+.drep-panel-actions {
+  margin-left: auto;
+  display: inline-flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .drep-collapsible summary {
   cursor: pointer;
   font-weight: 600;

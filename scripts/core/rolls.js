@@ -179,14 +179,14 @@ async function rollAbility(actor, abilityKey, advantage, disadvantage) {
     if (game.user?.isGM && actor?.hasPlayerOwner) {
       return await rollAbilityDirect(actor, abilityKey, advantage, disadvantage);
     }
-    // let roll = null;
-    // roll = await tryRoll(actor?.rollAbilityTest, abilityKey, options);
-    // if (!roll) roll = await tryRoll(actor?.rollAbilityTest, abilityOptions);
-    // if (!roll) roll = await tryRoll(actor?.rollAbilityCheck, abilityKey, options);
-    // if (!roll) roll = await tryRoll(actor?.rollAbilityCheck, abilityOptions);
-    // if (!roll) roll = await tryRoll(actor?.rollAbility, abilityKey, options);
-    // if (!roll) roll = await tryRoll(actor?.rollAbility, abilityOptions);
-    // if (roll) return roll;
+    let roll = null;
+    roll = await tryRoll(actor?.rollAbilityTest, abilityKey, options);
+    if (!roll) roll = await tryRoll(actor?.rollAbilityTest, abilityOptions);
+    if (!roll) roll = await tryRoll(actor?.rollAbilityCheck, abilityKey, options);
+    if (!roll) roll = await tryRoll(actor?.rollAbilityCheck, abilityOptions);
+    if (!roll) roll = await tryRoll(actor?.rollAbility, abilityKey, options);
+    if (!roll) roll = await tryRoll(actor?.rollAbility, abilityOptions);
+    if (roll) return roll;
     return await rollAbilityDirect(actor, abilityKey, advantage, disadvantage);
   } catch (error) {
     console.error(error ?? lastError);

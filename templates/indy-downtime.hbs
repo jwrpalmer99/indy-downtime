@@ -44,9 +44,17 @@
   </section>
 
   <section class="drep-panel">
-    <div style="display: inline-flex; width: 100%">
-    <h2>{{intervalLabel}} Check</h2> {{#if showPhasePlan}}
-      <button type="button" class="drep-button drep-button-secondary" data-drep-action="view-phase-plan" style="margin-left: auto;">View Phase Plan</button>
+    <div class="drep-panel-header">
+    <h2 class="drep-panel-title">{{intervalLabel}} Check</h2>
+    {{#if (or showPhasePlan showEditPlan)}}
+      <div class="drep-panel-actions">
+        {{#if showPhasePlan}}
+          <button type="button" class="drep-button drep-button-secondary" data-drep-action="view-phase-plan">View Phase Plan</button>
+        {{/if}}
+        {{#if showEditPlan}}
+          <button type="button" class="drep-button drep-button-secondary" data-drep-action="edit-phase-plan">Edit Plan</button>
+        {{/if}}
+      </div>
     {{/if}}
     </div>
     {{#if canRoll}}
