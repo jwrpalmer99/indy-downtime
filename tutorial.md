@@ -19,6 +19,9 @@ Project overview:
     - Set the table (Performance DC 12)
     - Serve soup (Sleight of Hand DC 12)
 
+> [Note]
+> Be sure to Save as you go!
+
 ## 1) Create a tracker
 1. Open Game Settings -> Module Settings -> Indy Downtime Tracker: Configure Tracker.
 2. Click Add and then select the new tracker in the dropdown
@@ -29,7 +32,7 @@ Project overview:
    - Interval Label: Soup - this is just a label not necessarily a cadence.
    - Tab Icon: fas fa-utensils (any Font Awesome class)
 5. Optional: restrict the tracker to specific actors using Restrict to Actor UUIDs
-6. Optional: expand and configure Player Permissions.
+6. Optional: expand and configure Player Permissions (maybe you want to give players access to a read only Plan View)
 
 ## 2) Set up phases
 1. Click Edit Phase Configuration.
@@ -60,7 +63,8 @@ Project overview:
 
 > [Tip]
 > Your Phase Flow should look like this now
-<img width="444" alt="soup_p1_a" src="https://github.com/user-attachments/assets/ee24b8af-0f6d-4b9f-b562-867c92946611" />
+<img width="555" alt="soup_p1_a" src="https://github.com/user-attachments/assets/d0ff0208-26a1-47b4-aef5-6fe16e17671b" />
+
 
 ## 4) Build Phase 2 in Edit Flow
 1. Open Phase Configuration again, switch to Phase 2, click Edit Flow for Serve the Soup.
@@ -74,18 +78,25 @@ Project overview:
 
 > [Tip]
 > Your Phase Flow should look like this now
-<img width="444" height="452" alt="soup_p2_a" src="https://github.com/user-attachments/assets/3a252b08-5944-42d3-a2c9-71b99a43afa2" />
-
+<img width="555" alt="soup_p2_a" src="https://github.com/user-attachments/assets/3a252b08-5944-42d3-a2c9-71b99a43afa2" />
 
 ## 5) Add dependencies
-In the Flow view, drag a check onto another check to add a dependency.
+
+> [Tip]
+> Right click a dependency chip to change its type (block, harder, advantage, disadvantage, or override).
+
+In the Flow view drag a check (or a group) onto another check to add a dependency.
+   
 - Gather ingredients -> Prepare ingredients
 - Light a fire -> Brown meat
 - Brown meat -> Cook soup
-- Cook soup -> Flavor soup
-- Set the table -> Serve soup
+- Cook soup -> Flavor soup  
+- Set the table -> Serve soup > in Phase 2
 
-Right click a dependency chip to change its type (block, harder, advantage, disadvantage, or override).
+> [Tip]
+> Your Phase Flows should look like this now
+<img width="666" alt="soup_c" src="https://github.com/user-attachments/assets/2ed20487-9299-41ec-ac4b-607ffdbe18e2" />
+
 
 ## 6) Add narrative lines (optional)
 1. In Flow, click + Line under Unassigned Success Lines and Unassigned Failure Lines.
