@@ -60,16 +60,22 @@ Project overview:
 
 > [Tip]
 > Your Phase Flow should look like this now
-<img width="279" alt="soup_p1_a" src="https://github.com/user-attachments/assets/ee24b8af-0f6d-4b9f-b562-867c92946611" />
+<img width="444" alt="soup_p1_a" src="https://github.com/user-attachments/assets/ee24b8af-0f6d-4b9f-b562-867c92946611" />
 
 ## 4) Build Phase 2 in Edit Flow
-1. Click Edit Flow for Serve the Soup.
-2. Add two groups:
+1. Open Phase Configuration again, switch to Phase 2, click Edit Flow for Serve the Soup.
+2. If placeholder groups/checks have been created remove them (remove checks first then group once it's empty)
+3. Add two groups:
    - Invite Guests
    - Serving
-3. Add checks:
+4. Add checks:
    - Invite Guests: Convince everyone to come (Persuasion DC 13)
-   - Serving: Set the table (Performance DC 12), Serve soup (Sleight of Hand DC 12)
+   - Serving: Set the Table (Performance DC 12), Serve soup (Sleight of Hand DC 12)
+
+> [Tip]
+> Your Phase Flow should look like this now
+<img width="444" height="452" alt="soup_p2_a" src="https://github.com/user-attachments/assets/3a252b08-5944-42d3-a2c9-71b99a43afa2" />
+
 
 ## 5) Add dependencies
 In the Flow view, drag a check onto another check to add a dependency.
