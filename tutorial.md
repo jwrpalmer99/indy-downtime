@@ -2,6 +2,8 @@
 
 This walkthrough builds a two-phase downtime project for making and serving soup. It uses DnD5e skills, but you can swap in any system-appropriate skills.
 
+<img width="593" height="557" alt="soup_s" src="https://github.com/user-attachments/assets/eda445a6-4399-4b73-88cc-0eb08448813e" />
+
 Project overview:
 - Phase 1: Make Soup (6 checks)
   - Group: Preparation
