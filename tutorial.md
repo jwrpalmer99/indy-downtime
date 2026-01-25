@@ -25,9 +25,9 @@ Project overview:
 3. Set labels as desired:
    - Header Label: Make and Serve Soup
    - Tab Label: Soup
-   - Interval Label: Weekly (or any cadence)
+   - Interval Label: Soup - this is just a label not necessarily a cadence.
    - Tab Icon: fas fa-utensils (any Font Awesome class)
-4. Optional: restrict the tracker to specific actors using Restrict to Actor UUIDs.
+4. Optional: restrict the tracker to specific actors using Restrict to Actor UUIDs and configure player permissions.
 
 ## 2) Set up phases
 1. Click Edit Phase Configuration.
