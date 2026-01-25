@@ -25,9 +25,11 @@ Building the Plan:
 - Import/export for a tracker, a phase, all settings, or all state.
 - Compatible with default DnD5e sheets, Tidy5e, and PF2e character sheets.
 
-for tutorial see https://github.com/jwrpalmer99/indy-downtime/blob/main/tutorial.md
+> [!TIP]
+> for tutorial see https://github.com/jwrpalmer99/indy-downtime/blob/main/tutorial.md
 
-for detailed settings guide see https://github.com/jwrpalmer99/indy-downtime/blob/main/settings.md
+> [!TIP]
+> for detailed settings guide see https://github.com/jwrpalmer99/indy-downtime/blob/main/settings.md
 
 ## Quick Start
 1. Enable the module.
