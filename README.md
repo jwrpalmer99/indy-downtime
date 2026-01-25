@@ -1,18 +1,22 @@
 # Indy Downtime Tracker
 
-Indy Downtime Tracker is a Foundry VTT v13 module that models downtime projects as multi-phase progress trackers. Each tracker gets its own character sheet tab with progress, check selection, and roll controls.
+Indy Downtime Tracker is a Foundry VTT v13 module for 5e/p2fe that models (downtime) projects as multi-phase progress trackers. Each tracker gets its own character sheet tab (shared amongst players) with progress, check selection, and roll controls.
+
+<img width="715" height="682" alt="charsheet_phase1" src="https://github.com/user-attachments/assets/9b2c13bc-0b62-460e-a6e3-0deec5da29b2" />
+
+<img width="991" height="728" alt="boldrei_p1_flow" src="https://github.com/user-attachments/assets/d269e219-ff38-4b12-8d2d-b145288a19a8" />
 
 ## Highlights
 - Multiple trackers per world, each with its own sheet tab and state.
 - Phase-based structure with auto-advance when a phase completes.
-- Phase Flow editor to add groups and checks, set DCs, and manage dependencies.
+- Phase Flow editor to add groups and skill/ability checks, set DCs, and manage dependencies.
 - Dependency effects: block, harder (DC penalty), advantage, disadvantage, and override skill/DC.
 - Group max successes to cap progress in a group.
 - Success and failure narrative lines tied to checks, groups, or left unassigned as fallbacks.
-- Player permissions: hide DCs, hide locked checks, allow Phase Plan view, show/hide relationships and lines in the plan.
+- Player permissions: hide DCs, hide locked checks, allow Phase Plan view, show/hide relationships and narrative lines in the plan.
 - Per-tracker labels and icon: header, tab label, interval label, Font Awesome icon.
-- Restrict tracker visibility to specific actor UUIDs.
-- Roll summaries in chat, activity log, and manual progress editing.
+- Restrict a trackers visibility to specific actor UUIDs.
+- Roll summaries in chat, activity log, and manual progress editing/maintenance.
 - Import/export for a tracker, a phase, all settings, or all state.
 - Compatible with default DnD5e sheets, Tidy5e, and PF2e character sheets.
 
