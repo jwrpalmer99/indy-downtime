@@ -3,7 +3,7 @@
 This guide covers every menu, dialog, and option in the current UI.
 
 ## Module Settings Entries
-Open Game Settings -> Module Settings -> Indy Downtime Tracker. You will see:
+Open Game Settings -> Module Settings -> Indy Downtime Tracker **as GM**. You will see:
 - Configure Tracker (main settings dialog)
 - Export/Import Settings (all tracker configuration)
 - Export/Import State (all tracker progress and state)
@@ -80,14 +80,14 @@ Use this dialog to manage phase metadata and open the Flow editor.
 The Phase Flow editor is where you add and edit groups, checks, dependencies, and narrative lines.
 
 ### Groups
-- + Group: create a new group lane.
+- `+ Group`: create a new group lane.
 - Drag a group header to reorder groups.
 - Double click a group name to edit it.
 - Max: set a maximum number of successful checks that can count in the group.
 - Remove group: only available if the group has no checks.
 
 ### Checks
-- + Check: create a new check in a group.
+- `+ Check`: create a new check in a group.
 - Drag checks to reorder within a group.
 - Double click to edit check name, skill, DC, or description.
 - The skill picker includes system skills plus ability checks.
@@ -108,7 +108,7 @@ Dependency types and effects:
 - Change skill/DC when completed.
 
 ### Success and Failure Lines
-- + Line: add unassigned success or failure lines.
+- `+ Line`: add unassigned success or failure lines.
 - Drag a line onto a group or check to assign it.
 - Unassigned lines act as a fallback when no specific line matches.
 - Double click a line to edit its text.
