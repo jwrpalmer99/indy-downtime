@@ -20,6 +20,10 @@ Indy Downtime Tracker is a Foundry VTT v13 module for 5e/p2fe that models (downt
 - Import/export for a tracker, a phase, all settings, or all state.
 - Compatible with default DnD5e sheets, Tidy5e, and PF2e character sheets.
 
+for tutorial see https://github.com/jwrpalmer99/indy-downtime/blob/main/tutorial.md
+
+for detailed settings guide see https://github.com/jwrpalmer99/indy-downtime/blob/main/settings.md
+
 ## Quick Start
 1. Enable the module.
 2. Open Game Settings -> Module Settings -> Indy Downtime Tracker: Configure Tracker.
