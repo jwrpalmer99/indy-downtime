@@ -25,6 +25,7 @@ import {
   getPhaseGroups,
   getPhaseNumber,
   getPhaseChecks,
+  getCheckRollData,
   isCheckUnlocked,
   isCheckComplete,
   isDependencyComplete,
@@ -53,6 +54,8 @@ import {
   setWorldState,
   shouldHideDc,
   shouldShowLockedChecks,
+  getActorCheckBonus,
+  getCheckSuccessChance,
   updateTrackerSettings,
   getSettingsExportPayload,
   getStateExportPayload,
@@ -87,6 +90,46 @@ const confirmDialogV2 = ({ title, content, yesLabel = "Yes", noLabel = "Cancel" 
     });
     dialog.render(true);
   });
+
+const formatSignedNumber = (value) => {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return "";
+  return numeric >= 0 ? `+${numeric}` : `${numeric}`;
+};
+
+const buildDcTooltip = ({ actor, rollData, baseDc, redacted }) => {
+  if (!actor || !rollData || !rollData.skill || redacted) return "";
+  const bonus = getActorCheckBonus(actor, rollData.skill);
+  if (!Number.isFinite(bonus)) return "";
+  const chance = getCheckSuccessChance({
+    dc: rollData.dc,
+    bonus,
+    advantage: rollData.advantage,
+    disadvantage: rollData.disadvantage,
+  });
+  if (!Number.isFinite(chance)) return "";
+  const lines = [];
+  const skillLabel = getSkillLabel(rollData.skill);
+  const bonusText = formatSignedNumber(bonus);
+  if (skillLabel) {
+    lines.push(`Skill: ${skillLabel}${bonusText ? ` (${bonusText})` : ""}`);
+  } else if (bonusText) {
+    lines.push(`Bonus: ${bonusText}`);
+  }
+  const dcValue = Number(rollData.dc);
+  const baseValue = Number(baseDc);
+  if (Number.isFinite(dcValue)) {
+    if (Number.isFinite(baseValue) && baseValue && baseValue !== dcValue) {
+      lines.push(`DC: ${dcValue} (base ${baseValue})`);
+    } else {
+      lines.push(`DC: ${dcValue}`);
+    }
+  }
+  lines.push(`Success: ${Math.round(chance * 100)}%`);
+  if (rollData.advantage) lines.push("Advantage");
+  if (rollData.disadvantage) lines.push("Disadvantage");
+  return lines.join("\n");
+};
 
 class DowntimeRepSettings extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
@@ -1139,6 +1182,7 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
     this._trackerId = options.trackerId ?? getCurrentTrackerId();
     this._phaseId = options.phaseId ?? null;
     this._phase = options.phase ?? null;
+    this._actor = options.actor ?? null;
     this._onUpdate = typeof options.onUpdate === "function" ? options.onUpdate : null;
     this._readOnly = Boolean(options.readOnly);
     this._openedFromSettings = Boolean(options.openedFromSettings);
@@ -1171,6 +1215,7 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
     const phase = phaseConfig.find((entry) => entry.id === this._phaseId) ?? phaseConfig[0];
     const phaseNumber = phase ? getPhaseNumber(phase.id, this._trackerId) : 1;
     const phaseName = phase?.name ?? "Phase";
+    const actor = this._actor ?? null;
 
     const state = getWorldState(this._trackerId);
     const phaseState = state?.phases?.[phase?.id] ?? {};
@@ -1279,6 +1324,7 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
 
     const groups = getPhaseGroups(phase).map((group) => {
       const checks = (group.checks ?? []).map((check) => {
+        const rollData = getCheckRollData(phase, check, checkProgress);
         const skillLabel = check.skill ? getSkillLabel(check.skill) : "";
         const name = check.name || skillLabel || "Check";
         const rawName = check.name || "";
@@ -1291,9 +1337,16 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
         const groupAvailable = !groupLimit || groupUsed < groupLimit;
         const groupMaxed = Boolean(groupLimit) && !groupAvailable;
         const isLocked = !unlocked || complete || groupMaxed;
-        const displayName = redactLockedChecks && isLocked && !complete ? "???" : name;
-        const displaySkillLabel = redactLockedChecks && isLocked && !complete ? "???" : skillLabel;
-        const displayDescription = redactLockedChecks && isLocked && !complete ? "???" : rawDescription;
+        const shouldRedact = redactLockedChecks && isLocked && !complete;
+        const displayName = shouldRedact ? "???" : name;
+        const displaySkillLabel = shouldRedact ? "???" : skillLabel;
+        const displayDescription = shouldRedact ? "???" : rawDescription;
+        const dcTooltip = buildDcTooltip({
+          actor,
+          rollData,
+          baseDc: check.dc,
+          redacted: shouldRedact,
+        });
         checkLabels[check.id] = displayName;
         return {
           id: check.id,
@@ -1307,6 +1360,7 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
           locked: isLocked,
           groupMaxed: groupMaxed && !complete,
           dc: Number(check.dc ?? 0),
+          dcTooltip,
           dependsOn: normalizeCheckDependencies(check.dependsOn ?? []),
           successLines: successByCheck[check.id] ?? [],
           failureLines: failureByCheck[check.id] ?? [],

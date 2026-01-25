@@ -28,6 +28,75 @@ function getAbilityKey(skillKey) {
   if (typeof skillKey !== "string") return "";
   return skillKey.split(":")[1] ?? "";
 }
+function resolveSkillStatistic(skills, skillKey) {
+  if (!skills || !skillKey) return null;
+  if (skills instanceof Map) {
+    if (skills.has(skillKey)) return skills.get(skillKey);
+    const values = Array.from(skills.values());
+    for (const entry of values) {
+      if (!entry) continue;
+      if (entry.slug === skillKey || entry.id === skillKey || entry.key === skillKey) {
+        return entry;
+      }
+    }
+    return null;
+  }
+  if (typeof skills === "object") {
+    if (Object.prototype.hasOwnProperty.call(skills, skillKey)) {
+      return skills[skillKey];
+    }
+    for (const entry of Object.values(skills)) {
+      if (!entry) continue;
+      if (entry.slug === skillKey || entry.id === skillKey || entry.key === skillKey) {
+        return entry;
+      }
+    }
+  }
+  return null;
+}
+function getActorCheckBonus(actor, skillKey) {
+  if (!actor || !skillKey) return null;
+  if (isAbilityKey(skillKey)) {
+    const abilityKey = getAbilityKey(skillKey);
+    if (!abilityKey) return null;
+    const abilities = actor.system?.abilities ?? actor.abilities ?? {};
+    const abilityKeyLower = abilityKey.toLowerCase();
+    const abilityKeyUpper = abilityKey.toUpperCase();
+    const abilityData =
+      abilities?.[abilityKey] ??
+      abilities?.[abilityKeyLower] ??
+      abilities?.[abilityKeyUpper] ??
+      null;
+    const raw = abilityData?.mod ?? abilityData?.value ?? abilityData?.check?.mod ?? abilityData?.check?.modifier?.value;
+    const bonus = Number(raw);
+    return Number.isFinite(bonus) ? bonus : null;
+  }
+  const skills = actor.system?.skills ?? actor.skills ?? null;
+  const skillData = resolveSkillStatistic(skills, skillKey);
+  const raw = skillData?.total
+    ?? skillData?.mod
+    ?? skillData?.value
+    ?? skillData?.check?.mod
+    ?? skillData?.check?.modifier?.value
+    ?? skillData?.modifier?.value;
+  const bonus = Number(raw);
+  return Number.isFinite(bonus) ? bonus : null;
+}
+function getCheckSuccessChance({ dc, bonus, advantage, disadvantage } = {}) {
+  const dcValue = Number(dc);
+  const bonusValue = Number(bonus);
+  if (!Number.isFinite(dcValue) || !Number.isFinite(bonusValue)) return null;
+  const target = dcValue - bonusValue;
+  let chance = (21 - target) / 20;
+  chance = Math.max(0, Math.min(1, chance));
+  if (advantage && !disadvantage) {
+    return 1 - Math.pow(1 - chance, 2);
+  }
+  if (disadvantage && !advantage) {
+    return Math.pow(chance, 2);
+  }
+  return chance;
+}
 async function rollPf2eSkill(actor, skillKey, advantage, disadvantage) {
   if (!actor || !skillKey) return null;
   const skills = actor.skills ?? actor.system?.skills ?? null;
@@ -551,6 +620,8 @@ async function rollFailureEventTable(phase, actor) {
   }
 }
 export {
+  getActorCheckBonus,
+  getCheckSuccessChance,
   runIntervalRoll,
   runPhaseCompleteMacro,
 };

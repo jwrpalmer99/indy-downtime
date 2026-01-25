@@ -672,7 +672,7 @@ function attachTrackerListeners(html, { render, actor, app } = {}) {
       ui.notifications.warn("Indy Downtime Tracker: phase plan view is unavailable.");
       return;
     }
-    new FlowClass({ trackerId, phaseId: phase.id, phase, readOnly }).render(true);
+    new FlowClass({ trackerId, phaseId: phase.id, phase, readOnly, actor }).render(true);
   };
 
   scope.find("[data-drep-action='view-phase-plan']").on("click", (event) => {

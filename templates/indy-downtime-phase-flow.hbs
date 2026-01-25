@@ -61,7 +61,7 @@
                 <div class="drep-flow-check-meta">
                   <span class="drep-flow-check-skill drep-flow-editable" data-edit="check-skill" data-check-id="{{this.id}}" data-skill="{{this.skill}}" data-value="{{this.skill}}">{{this.skillLabel}}</span>
                   {{#if (and this.dc (not @root.hideDc))}}
-                    <span class="drep-flow-check-dc drep-flow-editable" data-edit="check-dc" data-check-id="{{this.id}}" data-dc="{{this.dc}}">DC {{this.dc}}</span>
+                    <span class="drep-flow-check-dc drep-flow-editable" data-edit="check-dc" data-check-id="{{this.id}}" data-dc="{{this.dc}}"{{#if this.dcTooltip}} title="{{this.dcTooltip}}"{{/if}}>DC {{this.dc}}</span>
                   {{/if}}
                 </div>
                 {{#if (or this.description (not @root.readOnly))}}
