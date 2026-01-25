@@ -1330,6 +1330,7 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
           label: formatDependencyLabel(dep),
           detail: formatDependencyDetail(dep),
           type: dep.type ?? "block",
+          kind: dep.kind ?? "check",
           dcPenalty: dep.dcPenalty ?? 0,
           overrideSkill: dep.overrideSkill ?? "",
           overrideDc: dep.overrideDc ?? null,
@@ -1429,6 +1430,25 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
       html.find(".drep-flow-zoom-label").text(`${clamped}%`);
     };
 
+    const clearFlowDepHighlight = () => {
+      html.find(".drep-flow-related").removeClass("drep-flow-related");
+    };
+
+    const setFlowDepHighlight = (dep) => {
+      clearFlowDepHighlight();
+      if (!dep) return;
+      const lanesEl = html.find(".drep-flow-lanes").first()[0] ?? null;
+      if (!lanesEl) return;
+      const selector =
+        dep.kind === "group"
+          ? `[data-drep-group-id="${dep.id}"]`
+          : `[data-drep-check-id="${dep.id}"]`;
+      const target = lanesEl.querySelector(selector);
+      if (target) {
+        target.classList.add("drep-flow-related");
+      }
+    };
+
     applyFlowZoom(Number.isFinite(this._flowZoom) ? this._flowZoom : 100);
     if (this._flowWheelHandler && html[0]) {
       html[0].removeEventListener("wheel", this._flowWheelHandler);
@@ -1488,6 +1508,19 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
     html.on("click.drepFlow", "[data-drep-action=\"flow-zoom-reset\"]", (event) => {
       event.preventDefault();
       applyFlowZoom(100);
+    });
+
+    html.on("mouseenter.drepFlow", ".drep-flow-dep", (event) => {
+      const chip = event.currentTarget;
+      const dep = {
+        id: chip?.dataset?.depId ?? "",
+        kind: chip?.dataset?.depKind ?? "check",
+      };
+      setFlowDepHighlight(dep);
+    });
+
+    html.on("mouseleave.drepFlow", ".drep-flow-dep", (event) => {
+      clearFlowDepHighlight();
     });
 
 

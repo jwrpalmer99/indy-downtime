@@ -1036,6 +1036,11 @@
   min-height: 120px;
 }
 
+.drep-flow-lane.drep-flow-related,
+.drep-flow-check.drep-flow-related {
+  box-shadow: 0 0 0 2px rgba(255, 209, 102, 0.8);
+}
+
 .drep-flow-lane.is-drop-target {
   border-color: rgba(255, 209, 102, 0.9);
   box-shadow: 0 0 0 1px rgba(255, 209, 102, 0.6);

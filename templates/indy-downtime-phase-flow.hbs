@@ -74,7 +74,7 @@
                   <div class="drep-flow-deps">
                     <span class="drep-flow-deps-label">Depends on</span>
                     {{#each this.dependsOnEntries}}
-                      <span class="drep-flow-dep {{#if (and this.complete (not ../locked) (not ../complete))}}is-complete{{/if}}" data-dep-id="{{this.id}}" data-target-check-id="{{../id}}" data-dep-type="{{this.type}}" title="{{this.detail}}">{{this.label}}{{#unless @root.readOnly}}<button type="button" class="drep-flow-dep-remove" title="Remove">x</button>{{/unless}}</span>
+                      <span class="drep-flow-dep {{#if (and this.complete (not ../locked) (not ../complete))}}is-complete{{/if}}" data-dep-id="{{this.id}}" data-dep-kind="{{this.kind}}" data-target-check-id="{{../id}}" data-dep-type="{{this.type}}" title="{{this.detail}}">{{this.label}}{{#unless @root.readOnly}}<button type="button" class="drep-flow-dep-remove" title="Remove">x</button>{{/unless}}</span>
                     {{/each}}
                   </div>
                 {{/if}}
