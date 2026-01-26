@@ -156,9 +156,6 @@ function getSheetTabContainer($html, tabNav, group) {
 function ensureGenericSheetTab($html, tracker, tabNav) {
   if (!tabNav?.length || !tracker) return null;
   const tabId = getTrackerTabId(tracker.id);
-  let root = $html.find(`.tab[data-tab='${tabId}']`).first();
-  if (root.length) return root;
-
   const tabLabel = tracker.tabLabel || DEFAULT_TAB_LABEL;
   const tabIcon = tracker.tabIcon || DEFAULT_TAB_ICON;
   const tabIconHtml = tabIcon ? `<i class=\"${tabIcon}\"></i>` : tabLabel;
@@ -209,6 +206,9 @@ function ensureGenericSheetTab($html, tracker, tabNav) {
     .attr("data-tooltip", tabLabel)
     .attr("aria-label", tabLabel)
     .html(tabIconHtml);
+
+  let root = $html.find(`.tab[data-tab='${tabId}']`).first();
+  if (root.length) return root;
 
   const container = getSheetTabContainer($html, tabNav, group);
   root = $(`<section class=\"tab indy-downtime\" data-tab=\"${tabId}\"></section>`);
@@ -263,6 +263,10 @@ async function renderDowntimeSheet(app, html, { allowInsert = false } = {}) {
     }
 
     const tabId = getTrackerTabId(tracker.id);
+    const tabContent = $html.find(`.tab[data-tab='${tabId}']`).first();
+    if (canInsert && tabNav?.length && tabContent.length) {
+      ensureGenericSheetTab($html, tracker, tabNav);
+    }
     let root = $html.find(`.tab[data-tab='${tabId}']`).first();
     if (!root.length) {
       root = $html
@@ -617,7 +621,7 @@ Hooks.once("init", () => {
 
     type: Boolean,
 
-    default: !isSystemAgnostic,
+    default: true,
 
     onChange: (value) => {
 

@@ -23,9 +23,22 @@ function getPhaseConfig(trackerId) {
   return normalizePhaseConfig(stored);
 }
 
+function getDefaultPhaseTemplate(id) {
+  if (Array.isArray(DEFAULT_PHASE_CONFIG) && DEFAULT_PHASE_CONFIG.length) {
+    if (id) {
+      return DEFAULT_PHASE_CONFIG.find((phase) => phase.id === id)
+        ?? DEFAULT_PHASE_CONFIG[1]
+        ?? DEFAULT_PHASE_CONFIG[0];
+    }
+    return DEFAULT_PHASE_CONFIG[0];
+  }
+  return buildEmptyPhase1();
+}
+
 function normalizePhaseConfig(config) {
   const normalizePhaseEntry = (entry, fallback) => {
-    const merged = foundry.utils.mergeObject(fallback, entry ?? {}, {
+    const base = fallback && typeof fallback === "object" ? fallback : buildEmptyPhase1();
+    const merged = foundry.utils.mergeObject(base, entry ?? {}, {
       inplace: false,
       overwrite: true,
     });
@@ -35,14 +48,14 @@ function normalizePhaseConfig(config) {
     merged.failureEventTable =
       typeof merged.failureEventTable === "string"
         ? merged.failureEventTable
-        : fallback.failureEventTable ?? "";
+        : base.failureEventTable ?? "";
 
-    merged.groups = normalizePhaseGroups(merged, fallback);
+    merged.groups = normalizePhaseGroups(merged, base);
     merged.successLines = normalizePhaseLines(
-      merged.successLines ?? fallback.successLines
+      merged.successLines ?? base.successLines
     );
     merged.failureLines = normalizePhaseLines(
-      merged.failureLines ?? fallback.failureLines
+      merged.failureLines ?? base.failureLines
     );
 
     const totalTarget = getPhaseTotalTarget(merged);
@@ -55,9 +68,13 @@ function normalizePhaseConfig(config) {
   };
 
   if (!Array.isArray(config) || !config.length) {
-    return DEFAULT_PHASE_CONFIG.map((phase) =>
-      normalizePhaseEntry(phase, phase)
-    );
+    if (Array.isArray(DEFAULT_PHASE_CONFIG) && DEFAULT_PHASE_CONFIG.length) {
+      return DEFAULT_PHASE_CONFIG.map((phase) =>
+        normalizePhaseEntry(phase, phase)
+      );
+    }
+    const fallback = buildEmptyPhase1();
+    return [normalizePhaseEntry(fallback, fallback)];
   }
 
   const output = [];
@@ -68,10 +85,7 @@ function normalizePhaseConfig(config) {
       typeof entry.id === "string" && entry.id.trim()
         ? entry.id.trim()
         : "";
-    const fallback =
-      DEFAULT_PHASE_CONFIG.find((phase) => phase.id === id) ??
-      DEFAULT_PHASE_CONFIG[1] ??
-      DEFAULT_PHASE_CONFIG[0];
+    const fallback = getDefaultPhaseTemplate(id);
     const merged = normalizePhaseEntry(entry, fallback);
     merged.id = id || merged.id || `phase${output.length + 1}`;
     existingIds.add(merged.id);
@@ -79,7 +93,8 @@ function normalizePhaseConfig(config) {
   }
 
   if (!existingIds.has("phase1")) {
-    output.unshift(foundry.utils.deepClone(DEFAULT_PHASE_CONFIG[0]));
+    const fallback = getDefaultPhaseTemplate("phase1");
+    output.unshift(normalizePhaseEntry(fallback, fallback));
   }
   return output;
 }
@@ -336,9 +351,10 @@ function ensureUniqueId(raw, used) {
 }
 
 function getActivePhase(state, trackerId) {
-  const definition = getPhaseDefinition(state.activePhaseId, trackerId) ?? {
-    ...DEFAULT_PHASE_CONFIG[0],
-  };
+  const fallback = DEFAULT_PHASE_CONFIG[0]
+    ? foundry.utils.deepClone(DEFAULT_PHASE_CONFIG[0])
+    : buildEmptyPhase1();
+  const definition = getPhaseDefinition(state.activePhaseId, trackerId) ?? fallback;
   const phaseState = state.phases[definition.id] ?? {
     progress: 0,
     completed: false,
@@ -383,7 +399,10 @@ function getFirstPhaseId(trackerId, phaseConfig) {
 }
 
 function getDefaultSkills() {
-  return DEFAULT_PHASE_CONFIG[0]?.groups?.[0]?.checks?.map((check) => check.skill).filter(Boolean) ?? ["insight", "persuasion", "religion"];
+  const skills = DEFAULT_PHASE_CONFIG[0]?.groups?.[0]?.checks
+    ?.map((check) => check.skill)
+    .filter(Boolean);
+  return Array.isArray(skills) ? skills : [];
 }
 
 function getPhaseGroups(phase) {
@@ -746,6 +765,8 @@ function buildEmptyPhase1() {
     failureEvents: false,
     failureEventTable: "",
     image: "",
+    phaseCompleteMessage: "",
+    phaseCompleteMacro: "",
     groups: [],
     successLines: [],
     failureLines: [],
@@ -753,7 +774,7 @@ function buildEmptyPhase1() {
 }
 
 function buildNewPhase(baseIndex) {
-  const template = DEFAULT_PHASE_CONFIG[1] ?? DEFAULT_PHASE_CONFIG[0];
+  const template = getDefaultPhaseTemplate();
   const id = `phase${baseIndex}`;
   return foundry.utils.mergeObject(
     template,
