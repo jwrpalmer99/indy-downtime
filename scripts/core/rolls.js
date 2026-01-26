@@ -161,6 +161,19 @@ async function rollPf2eSkill(actor, skillKey, advantage, disadvantage) {
   }
   return null;
 }
+
+function resolveActorMethod(actor, methodName) {
+  if (typeof actor?.[methodName] === "function") {
+    return actor[methodName].bind(actor);
+  }
+
+  if (typeof Actor?.prototype?.[methodName] === "function") {
+    return Actor.prototype[methodName].bind(actor);
+  }
+
+  return null;
+}
+
 async function rollSkill(actor, skillKey, advantage, disadvantage) {
   if (advantage && disadvantage) {
     advantage = false;
@@ -169,14 +182,23 @@ async function rollSkill(actor, skillKey, advantage, disadvantage) {
   if (isAbilityKey(skillKey)) {
     return rollAbility(actor, getAbilityKey(skillKey), advantage, disadvantage);
   }
-  if (!actor?.rollSkill) {
+  let rollSkillFn = resolveActorMethod(actor, "rollSkill");
+
+  if (!rollSkillFn) {
     if (game.system?.id === "pf2e") {
       const pf2eRoll = await rollPf2eSkill(actor, skillKey, advantage, disadvantage);
       if (pf2eRoll) return pf2eRoll;
+    } else {
+      rollSkillFn = resolveActorMethod(actor, "setupSkillTest");
     }
-    ui.notifications.error("Indy Downtime Tracker: actor cannot roll skills. Set Indy Downtime Tracker to use manual results or use a compatible system.");
-    return null;
   }
+
+  if (!rollSkillFn) {
+    ui.notifications.error(
+      "Indy Downtime Tracker: actor cannot roll skills. Set Indy Downtime Tracker to use manual results or use a compatible system."
+    );
+    return null;
+  } 
   try {
     if (game.user?.isGM && actor.hasPlayerOwner) {
       return await rollSkillDirect(actor, skillKey, advantage, disadvantage);
@@ -184,31 +206,41 @@ async function rollSkill(actor, skillKey, advantage, disadvantage) {
     // Detect Midi-QOL (works in v13)
     const hasMidi = !!game.modules.get("midi-qol")?.active;
     // Base config works for both
-    const rollConfig = { skill: "Persuasion", trait: "Persuasion" };
-    // Put adv/dis in the right place depending on Midi-QOL
-    if (hasMidi) {
-      rollConfig.midiOptions = {
-        advantage: !!advantage,
-        disadvantage: !!disadvantage
-      };
-    } else {
-      // dnd5e native path
-      if (advantage && !disadvantage) rollConfig.advantage = true;
-      if (disadvantage && !advantage) rollConfig.disadvantage = true;
+     if (game.system?.id == "dnd5e")
+    {
+      const rollConfig = { skill: skillKey };
+      // Put adv/dis in the right place depending on Midi-QOL
+      if (hasMidi) {
+        rollConfig.midiOptions = {
+          advantage: !!advantage,
+          disadvantage: !!disadvantage
+        };
+      } else {
+        // dnd5e native path
+        if (advantage && !disadvantage) rollConfig.advantage = true;
+        if (disadvantage && !advantage) rollConfig.disadvantage = true;
+      }
+      // Fast-forward + modifier-keys (safe for both; mostly matters for Midi)
+      const event =
+        advantage && !disadvantage ? { altKey: true } :
+        disadvantage && !advantage ? { ctrlKey: true } :
+        {};
+      const rolls = await rollSkillFn.call(actor, rollConfig, {
+        fastForward: true,
+        event
+      });
+   
+      if (Array.isArray(rolls)) {
+        return rolls[0] ?? null;
+      }
     }
-    // Fast-forward + modifier-keys (safe for both; mostly matters for Midi)
-    const event =
-      advantage && !disadvantage ? { altKey: true } :
-      disadvantage && !advantage ? { ctrlKey: true } :
-      {};
-    const rolls = await actor.rollSkill(rollConfig, {
-      fastForward: true,
-      event
-    });
-    if (Array.isArray(rolls)) {
-      return rolls[0] ?? null;
+    else 
+    {
+      //system agnostic
+      let skillString = skillKey.toString();
+      const rolls = await rollSkillFn.call(actor, skillString, {});        
+      return rolls ?? null;
     }
-    return rolls ?? null;
   } catch (error) {
     console.error(error);
     if (game.user?.isGM && actor.hasPlayerOwner) {
@@ -348,7 +380,7 @@ async function runIntervalRoll({ actor, checkChoice, trackerId }) {
     rollData.disadvantage
   );
   if (!roll) return;
-  const total = roll.total ?? roll._total ?? 0;
+  const total = roll.total > 0 ? roll.total : roll._total ?? (roll.roll.total > 0 ? roll.roll.total : roll.roll._total ?? 0);
   let success = false;
   let dcLabel = Number.isFinite(dc) ? String(dc) : "";
   let dcLabelType = "DC";
