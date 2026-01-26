@@ -27,6 +27,7 @@ Open Game Settings -> Module Settings -> Indy Downtime Tracker **as GM**. You wi
 - Hide DCs from players: hides DCs in the tracker tab and Phase Plan view.
 - Show locked checks to players: if disabled, locked checks are removed from the dropdown and redacted in the Phase Plan.
 - View Phase Plan: allows players to open the read-only Phase Plan view from the tracker tab.
+- Show check chance tooltips: allows players to see success chance tooltips on DC labels in the Phase Plan (default off).
 - Show relationships on phase flow view: toggles dependency chips in the read-only Phase Plan.
 - Show success/failure lines on phase flow view: toggles narrative lines in the read-only Phase Plan.
 
@@ -102,6 +103,7 @@ The Phase Flow editor is where you add and edit groups, checks, dependencies, an
 
 Dependency types and effects:
 - Block until completed.
+- Prevents when completed (blocks the check once the dependency is complete).
 - Harder until completed (DC penalty).
 - Advantage when completed.
 - Disadvantage until completed.
@@ -120,10 +122,12 @@ Dependency types and effects:
 ### Phase Plan (Read Only)
 - The tracker tab button View Phase Plan opens a read-only Flow view.
 - Player visibility is controlled by the permissions listed above.
+- Hover DC labels to see success chance tooltips (GM always, players if permitted).
 
 ## Dependency Editor Dialog
 Open by right clicking a dependency chip in Phase Flow.
-- Link Type: block, harder, advantage, disadvantage, or override.
+- Link Type: block, prevents, harder, advantage, disadvantage, or override.
+- Prevents blocks the check once the dependency completes.
 - DC penalty: used for harder links.
 - Override skill and override DC: used for override links.
 

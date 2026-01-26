@@ -15,10 +15,10 @@ Building the Plan:
 - Multiple trackers per world, each with its own sheet tab and state.
 - Phase-based structure with auto-advance when a phase completes.
 - Phase Flow editor to add groups and skill/ability checks, set DCs, and manage dependencies.
-- Dependency effects: block, harder (DC penalty), advantage, disadvantage, and override skill/DC.
+- Dependency effects: block, prevents (blocks when completed), harder (DC penalty), advantage, disadvantage, and override skill/DC.
 - Group max successes to cap progress in a group.
 - Success and failure narrative lines tied to checks, groups, or left unassigned as fallbacks.
-- Player permissions: hide DCs, hide locked checks, allow Phase Plan view, show/hide relationships and narrative lines in the plan.
+- Player permissions: hide DCs, hide locked checks, allow Phase Plan view, show/hide relationships and narrative lines in the plan, and show success chance tooltips (GM-only by default).
 - Per-tracker labels and icon: header, tab label, interval label, Font Awesome icon.
 - Restrict a trackers visibility to specific actor UUIDs.
 - Roll summaries in chat, activity log, and manual progress editing/maintenance.
