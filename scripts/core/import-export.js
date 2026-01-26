@@ -7,7 +7,8 @@ import {
   DEFAULT_TRACKER_NAME,
   MODULE_ID,
   TRACKERS_SETTING,
-  DEFAULT_TAB_ICON
+  DEFAULT_TAB_ICON,
+  MANUAL_SKILL_OVERRIDES_SETTING,
 } from "../constants.js";
 import {
   parseRestrictedActorUuids,
@@ -39,6 +40,8 @@ function getSettingsExportPayload() {
     showFlowRelationships: tracker.showFlowRelationships,
     showFlowLines: tracker.showFlowLines,
     restrictedActorUuids: tracker.restrictedActorUuids ?? [],
+    injectIntoSheet: tracker.injectIntoSheet,
+    manualRollEnabled: tracker.manualRollEnabled,
     phaseConfig: tracker.phaseConfig ?? [],
   }));
   return {
@@ -47,6 +50,7 @@ function getSettingsExportPayload() {
     exportedAt: new Date().toISOString(),
     settings: {
       trackers,
+      manualSkillOverrides: game.settings.get(MODULE_ID, MANUAL_SKILL_OVERRIDES_SETTING) ?? { skills: {}, abilities: {} },
     },
   };
 }
@@ -76,6 +80,9 @@ async function applySettingsImportPayload(payload) {
     const existingStates = new Map(
       getTrackers().map((tracker) => [tracker.id, tracker.state])
     );
+    if (settings.manualSkillOverrides && typeof settings.manualSkillOverrides === "object") {
+      await game.settings.set(MODULE_ID, MANUAL_SKILL_OVERRIDES_SETTING, settings.manualSkillOverrides);
+    }
     const nextTrackers = settings.trackers.map((tracker, index) => {
       const id =
         typeof tracker?.id === "string" && tracker.id.trim()
@@ -109,6 +116,10 @@ async function applySettingsImportPayload(payload) {
         restrictedActorUuids: parseRestrictedActorUuids(
           tracker?.restrictedActorUuids
         ),
+        injectIntoSheet: Object.prototype.hasOwnProperty.call(tracker ?? {}, "injectIntoSheet")
+          ? Boolean(tracker.injectIntoSheet)
+          : (game.system?.id === "dnd5e" || game.system?.id === "pf2e"),
+        manualRollEnabled: Boolean(tracker?.manualRollEnabled),
         phaseConfig,
         state,
       };
@@ -152,6 +163,15 @@ async function applySettingsImportPayload(payload) {
     }
     if (typeof settings.showFlowLines !== "undefined") {
       updates.showFlowLines = Boolean(settings.showFlowLines);
+    }
+    if (typeof settings.injectIntoSheet !== "undefined") {
+      updates.injectIntoSheet = Boolean(settings.injectIntoSheet);
+    }
+    if (typeof settings.manualRollEnabled !== "undefined") {
+      updates.manualRollEnabled = Boolean(settings.manualRollEnabled);
+    }
+    if (settings.manualSkillOverrides && typeof settings.manualSkillOverrides === "object") {
+      await game.settings.set(MODULE_ID, MANUAL_SKILL_OVERRIDES_SETTING, settings.manualSkillOverrides);
     }
     if (Array.isArray(settings.restrictedActorUuids)) {
       updates.restrictedActorUuids = parseRestrictedActorUuids(

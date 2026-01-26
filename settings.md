@@ -7,6 +7,7 @@ Open Game Settings -> Module Settings -> Indy Downtime Tracker **as GM**. You wi
 - Configure Tracker (main settings dialog)
 - Export/Import Settings (all tracker configuration)
 - Export/Import State (all tracker progress and state)
+- Manual Skill/Ability Overrides (system-agnostic only)
 
 ## Configure Tracker (Main Dialog)
 
@@ -31,6 +32,11 @@ Open Game Settings -> Module Settings -> Indy Downtime Tracker **as GM**. You wi
 - Show relationships on phase flow view: toggles dependency chips in the read-only Phase Plan.
 - Show success/failure lines on phase flow view: toggles narrative lines in the read-only Phase Plan.
 
+### Sheet Integration
+- Inject into Character Sheet: when enabled, the tracker appears as a character sheet tab. When disabled, use the Token Controls button to open the tracker dialog.
+- Use manual failure/success (system-agnostic only): replaces automatic rolls with a prompt so players can mark success or failure manually.
+- Manual Skill/Ability Overrides (system-agnostic only): opens the override editor for non-dnd5e/pf2e systems.
+
 ### Import/Export Tracker
 - Import/Export Tracker: open a dialog to export or import the current tracker only.
 
@@ -52,6 +58,12 @@ Open Game Settings -> Module Settings -> Indy Downtime Tracker **as GM**. You wi
 
 ### Save Settings
 - Save Settings commits changes to the current tracker.
+
+## Manual Skill/Ability Overrides
+Use this menu on system-agnostic worlds to override the detected skill/ability list.
+- Skills: one per line, `key` or `key: Label`.
+- Abilities: one per line, `key` or `key: Label`.
+- Leave empty to fall back to detected system values.
 
 ## Phase Configuration Dialog
 Use this dialog to manage phase metadata and open the Flow editor.
@@ -158,6 +170,7 @@ Available targets:
 - Roll button using the interval label.
 - Recent Activity log with success/failure lines and event results.
 - View Phase Plan button (if enabled).
+- If sheet injection is disabled, open the tracker from Token Controls instead.
 
 ## Roll and Log Behavior
 - Success advances progress and may trigger a success line.

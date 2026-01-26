@@ -6,6 +6,7 @@ import {
   DEFAULT_TAB_ICON,
   DEFAULT_TRACKER_NAME,
   MODULE_ID,
+  MANUAL_SKILL_OVERRIDES_SETTING,
   DEFAULT_PHASE_CONFIG,
 } from "./constants.js";
 import {
@@ -53,6 +54,7 @@ import {
   setCurrentTrackerId,
   setTrackerPhaseConfig,
   setWorldState,
+  normalizeManualSkillOverrides,
   shouldHideDc,
   shouldShowCheckTooltips,
   shouldShowLockedChecks,
@@ -92,6 +94,39 @@ const confirmDialogV2 = ({ title, content, yesLabel = "Yes", noLabel = "Cancel" 
     });
     dialog.render(true);
   });
+
+const serializeOverrideLines = (map = {}) =>
+  Object.entries(map)
+    .map(([key, label]) => {
+      const cleanKey = String(key ?? "").trim();
+      if (!cleanKey) return "";
+      const cleanLabel = typeof label === "string" ? label.trim() : "";
+      if (cleanLabel && cleanLabel !== cleanKey) {
+        return `${cleanKey}: ${cleanLabel}`;
+      }
+      return cleanKey;
+    })
+    .filter(Boolean)
+    .join("\n");
+
+const parseOverrideLines = (raw, { stripAbilityPrefix = false } = {}) => {
+  const output = {};
+  if (!raw) return output;
+  for (const line of String(raw).split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    const [left, ...rest] = trimmed.split(":");
+    let key = left.trim();
+    let label = rest.join(":").trim();
+    if (stripAbilityPrefix && key.startsWith("ability:")) {
+      key = key.slice("ability:".length);
+    }
+    if (!key) continue;
+    if (!label) label = key;
+    output[key] = label;
+  }
+  return output;
+};
 
 const formatSignedNumber = (value) => {
   const numeric = Number(value);
@@ -250,6 +285,7 @@ class DowntimeRepSettings extends HandlebarsApplicationMixin(ApplicationV2) {
     const tabLabel = getTabLabel(trackerId);
     const intervalLabel = getIntervalLabel(trackerId);
     const restrictedActorUuids = getRestrictedActorUuids(trackerId);
+    const isSystemAgnostic = game.system?.id !== "dnd5e" && game.system?.id !== "pf2e";
     const trackerOptions = getTrackers().map((entry, index) => ({
       id: entry.id,
       label: entry.name ? `${entry.name}` : `Tracker ${index + 1}`,
@@ -267,6 +303,8 @@ class DowntimeRepSettings extends HandlebarsApplicationMixin(ApplicationV2) {
       showCheckTooltipsToPlayers: Boolean(tracker?.showCheckTooltipsToPlayers),
       showFlowRelationships: tracker?.showFlowRelationships !== false,
       showFlowLines: tracker?.showFlowLines !== false,
+      injectIntoSheet: tracker?.injectIntoSheet,
+      manualRollEnabled: tracker?.manualRollEnabled,
       isSingleTracker: trackerOptions.length <= 1,
       state,
       criticalBonusEnabled: state.criticalBonusEnabled,
@@ -274,6 +312,7 @@ class DowntimeRepSettings extends HandlebarsApplicationMixin(ApplicationV2) {
       tabLabel,
       intervalLabel,
       restrictedActorUuidsText: restrictedActorUuids.join("\n"),
+      isSystemAgnostic,
     };
   }
 
@@ -360,6 +399,10 @@ class DowntimeRepSettings extends HandlebarsApplicationMixin(ApplicationV2) {
         this.render();
         return;
       }
+      if (action === "open-skill-overrides") {
+        new DowntimeRepSkillOverrides().render(true);
+        return;
+      }
   
       if (action === "tracker-import-export") {
         const tracker = getCurrentTracker();
@@ -384,6 +427,8 @@ class DowntimeRepSettings extends HandlebarsApplicationMixin(ApplicationV2) {
               showLockedChecksToPlayers: tracker?.showLockedChecksToPlayers,
               showPhasePlanToPlayers: tracker?.showPhasePlanToPlayers,
               showCheckTooltipsToPlayers: tracker?.showCheckTooltipsToPlayers,
+              injectIntoSheet: tracker?.injectIntoSheet,
+              manualRollEnabled: tracker?.manualRollEnabled,
               showFlowRelationships: tracker?.showFlowRelationships,
               showFlowLines: tracker?.showFlowLines,
               restrictedActorUuids: tracker?.restrictedActorUuids ?? [],
@@ -408,8 +453,13 @@ class DowntimeRepSettings extends HandlebarsApplicationMixin(ApplicationV2) {
             if (typeof payload.showCheckTooltipsToPlayers !== "undefined") updates.showCheckTooltipsToPlayers = Boolean(payload.showCheckTooltipsToPlayers);
             if (typeof payload.showFlowRelationships !== "undefined") updates.showFlowRelationships = Boolean(payload.showFlowRelationships);
             if (typeof payload.showFlowLines !== "undefined") updates.showFlowLines = Boolean(payload.showFlowLines);
+            if (typeof payload.injectIntoSheet !== "undefined") updates.injectIntoSheet = Boolean(payload.injectIntoSheet);
+            if (typeof payload.manualRollEnabled !== "undefined") updates.manualRollEnabled = Boolean(payload.manualRollEnabled);
             if (Array.isArray(payload.restrictedActorUuids)) {
               updates.restrictedActorUuids = parseRestrictedActorUuids(payload.restrictedActorUuids);
+            }
+            if (payload.manualSkillOverrides && typeof payload.manualSkillOverrides === "object") {
+              await game.settings.set(MODULE_ID, MANUAL_SKILL_OVERRIDES_SETTING, payload.manualSkillOverrides);
             }
             if (Object.keys(updates).length) {
               updateTrackerSettings(trackerId, updates);
@@ -484,6 +534,8 @@ class DowntimeRepSettings extends HandlebarsApplicationMixin(ApplicationV2) {
       showLockedChecksToPlayers: Boolean(formData.showLockedChecksToPlayers),
       showPhasePlanToPlayers: Boolean(formData.showPhasePlanToPlayers),
       showCheckTooltipsToPlayers: Boolean(formData.showCheckTooltipsToPlayers),
+      injectIntoSheet: Boolean(formData.injectIntoSheet),
+      manualRollEnabled: Boolean(formData.manualRollEnabled),
       showFlowRelationships: Boolean(formData.showFlowRelationships),
       showFlowLines: Boolean(formData.showFlowLines),
       restrictedActorUuids: parseRestrictedActorUuids(
@@ -602,6 +654,59 @@ class DowntimeRepSettings extends HandlebarsApplicationMixin(ApplicationV2) {
     await setWorldState(recalculated, trackerId);
     this.render();
     ui.notifications.info("Indy Downtime Tracker: progress recalculated.");
+  }
+}
+
+class DowntimeRepSkillOverrides extends HandlebarsApplicationMixin(ApplicationV2) {
+  static DEFAULT_OPTIONS = {
+    id: "indy-downtime-skill-overrides",
+    tag: "form",
+    classes: ["indy-downtime", "drep-settings", "drep-dialog"],
+    window: {
+      title: "Manual Skill/Ability Overrides",
+      icon: "fas fa-list",
+      contentClasses: ["standard-form"],
+      resizable: true,
+    },
+    position: {
+      width: 520,
+      height: "auto",
+    },
+    form: {
+      handler: DowntimeRepSkillOverrides._onSubmit,
+      closeOnSubmit: true,
+      submitOnChange: false,
+    },
+  };
+
+  static PARTS = {
+    form: {
+      template: "modules/indy-downtime/templates/indy-downtime-skill-overrides.hbs",
+    },
+  };
+
+  async _prepareContext(options) {
+    const context = await super._prepareContext(options);
+    const overrides = normalizeManualSkillOverrides(
+      game.settings.get(MODULE_ID, MANUAL_SKILL_OVERRIDES_SETTING) ?? {}
+    );
+    return {
+      ...context,
+      skillsText: serializeOverrideLines(overrides.skills),
+      abilitiesText: serializeOverrideLines(overrides.abilities),
+    };
+  }
+
+  static async _onSubmit(event, form, formData) {
+    const data = foundry.utils.expandObject(formData.object ?? {});
+    const overrides = {
+      skills: parseOverrideLines(data.skillsText),
+      abilities: parseOverrideLines(data.abilitiesText, { stripAbilityPrefix: true }),
+    };
+    await game.settings.set(MODULE_ID, MANUAL_SKILL_OVERRIDES_SETTING, overrides);
+    rerenderCharacterSheets();
+    rerenderSettingsApps();
+    ui.notifications.info("Indy Downtime Tracker: manual overrides saved.");
   }
 }
 
@@ -3018,6 +3123,7 @@ class DowntimeRepStateExport extends DowntimeRepImportExportDialog {
 
 export {
   DowntimeRepSettings,
+  DowntimeRepSkillOverrides,
   DowntimeRepSettingsExport,
   DowntimeRepStateExport,
 };

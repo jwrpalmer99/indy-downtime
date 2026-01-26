@@ -1,4 +1,8 @@
 import {
+  ApplicationV2,
+  HandlebarsApplicationMixin,
+} from "./foundry-app.js";
+import {
 
   DEFAULT_STATE,
 
@@ -44,12 +48,16 @@ import {
 
   getPhaseCheckChoices,
   getPhaseCheckById,
+  getPhaseAvailableChecks,
   getCheckDependencyDetails,
+  getCheckRollData,
+  getPhaseCheckLabel,
 
   getPhaseCheckTarget,
 
   getRestrictedActorUuids,
 
+  getSkillLabel,
   getTrackers,
 
   getTrackerById,
@@ -57,6 +65,7 @@ import {
   getWorldState,
 
   runIntervalRoll,
+  runManualIntervalResult,
 
   runPhaseCompleteMacro,
 
@@ -67,6 +76,8 @@ import {
   setWorldState,
 
   shouldHideDc,
+  shouldInjectIntoSheet,
+  shouldUseManualRolls,
 
   shouldShowLockedChecks,
   shouldShowPhasePlan,
@@ -82,6 +93,10 @@ let pendingTidyCleanupTabIds = new Set();
 let lastKnownTrackerIds = new Set();
 
 const pendingTabRestore = new WeakMap();
+
+function getInjectedTrackers() {
+  return getTrackers().filter((tracker) => shouldInjectIntoSheet(tracker.id));
+}
 
 function requestTabRestore(app, tabId) {
   if (!app || !tabId) return;
@@ -778,17 +793,51 @@ async function handleRoll(root, { render, actorOverride, trackerId, app } = {}) 
     requestTabRestore(app, activeTabId);
   }
 
-
-
-  await runIntervalRoll({
-
-    actor,
-
-    checkChoice,
-
-    trackerId: resolvedTrackerId,
-
-  });
+  if (shouldUseManualRolls(resolvedTrackerId)) {
+    const availableChecks = getPhaseAvailableChecks(
+      activePhase,
+      activePhase.checkProgress
+    );
+    if (!availableChecks.length) {
+      ui.notifications.warn("Indy Downtime Tracker: configure checks before rolling.");
+      return;
+    }
+    let selectedCheck = checkChoice
+      ? getPhaseCheckById(activePhase, checkChoice)
+      : null;
+    if (!selectedCheck || !availableChecks.find((check) => check.id === selectedCheck.id)) {
+      selectedCheck = availableChecks[0] ?? null;
+    }
+    if (!selectedCheck) return;
+    const rollData = getCheckRollData(
+      activePhase,
+      selectedCheck,
+      activePhase.checkProgress
+    );
+    const checkLabel = getPhaseCheckLabel(selectedCheck);
+    const skillLabel = rollData.skill ? getSkillLabel(rollData.skill) : selectedCheck.skill;
+    const outcome = await promptManualRoll({
+      checkLabel,
+      skillLabel,
+      dc: rollData.dc,
+      advantage: rollData.advantage,
+      disadvantage: rollData.disadvantage,
+    });
+    if (outcome === null) return;
+    await runManualIntervalResult({
+      actor,
+      checkId: selectedCheck.id,
+      checkChoice,
+      trackerId: resolvedTrackerId,
+      success: outcome,
+    });
+  } else {
+    await runIntervalRoll({
+      actor,
+      checkChoice,
+      trackerId: resolvedTrackerId,
+    });
+  }
 
 
 
@@ -867,6 +916,119 @@ function resolveActorFromContext(context) {
 }
 
 
+
+function promptManualRoll({ checkLabel, skillLabel, dc, advantage, disadvantage }) {
+  const rollHint = advantage
+    ? "Roll with advantage."
+    : (disadvantage ? "Roll with disadvantage." : "Roll normally.");
+  const skillText = skillLabel ? `${skillLabel} check` : "the check";
+  const content = `
+      <div class="drep-manual-roll">
+        <p><strong>${checkLabel}</strong></p>
+        <p>Roll ${skillText} vs DC ${dc}.</p>
+        <p>${rollHint}</p>
+        <p>Then choose the outcome below.</p>
+      </div>`;
+  return new Promise((resolve) => {
+    const dialog = new foundry.applications.api.DialogV2({
+      window: { title: "Manual Check" },
+      content,
+      buttons: [
+        {
+          action: "success",
+          label: "Mark Success",
+          default: true,
+          callback: () => resolve(true),
+        },
+        {
+          action: "failure",
+          label: "Mark Failure",
+          callback: () => resolve(false),
+        },
+      ],
+      close: () => resolve(null),
+    });
+    dialog.render(true);
+  });
+}
+
+function getDowntimeDialogId(trackerId) {
+  const safeId = trackerId ? String(trackerId) : "tracker";
+  return `indy-downtime-dialog-${safeId}`;
+}
+
+class DowntimeRepTrackerDialog extends HandlebarsApplicationMixin(ApplicationV2) {
+  constructor(options = {}) {
+    const trackerId = options.trackerId ?? getCurrentTrackerId();
+    if (trackerId && !options.id) {
+      options.id = getDowntimeDialogId(trackerId);
+    }
+    super(options);
+    this._trackerId = trackerId;
+    this._actorId = options.actorId ?? "";
+  }
+
+  static DEFAULT_OPTIONS = {
+    id: "indy-downtime-dialog",
+    tag: "section",
+    classes: ["indy-downtime", "drep-dialog"],
+    window: {
+      title: "Indy Downtime Tracker",
+      icon: DEFAULT_TAB_ICON,
+      contentClasses: ["standard-form"],
+      resizable: true,
+    },
+    position: {
+      width: 720,
+      height: "auto",
+    },
+  };
+
+  static PARTS = {
+    form: {
+      template: "modules/indy-downtime/templates/indy-downtime.hbs",
+    },
+  };
+
+  async _prepareContext(options) {
+    const context = await super._prepareContext(options);
+    const trackerId = this._trackerId ?? getCurrentTrackerId();
+    const tracker = getTrackerById(trackerId);
+    const actor = this._actorId ? game.actors.get(this._actorId) : null;
+    const data = buildTrackerData({
+      actor,
+      showActorSelect: true,
+      embedded: true,
+      trackerId,
+    });
+    if (actor?.id) data.lastActorId = actor.id;
+    this.options.window.title = getHeaderLabel(trackerId);
+    this.options.window.icon = tracker?.tabIcon || DEFAULT_TAB_ICON;
+    return {
+      ...context,
+      ...data,
+    };
+  }
+
+  _onRender(context, options) {
+    super._onRender(context, options);
+    const html = $(this.element);
+    const trackerId = this._trackerId ?? getCurrentTrackerId();
+    const trackerIcon = getTrackerById(trackerId)?.tabIcon || DEFAULT_TAB_ICON;
+    this.options.window.icon = trackerIcon;
+    const appRoot = html.closest(".application").length ? html.closest(".application") : html;
+    appRoot.find(".window-header .window-title i").remove();
+    const windowIcon = appRoot.find(".window-header .window-icon").first();
+    if (windowIcon.length) {
+      windowIcon.attr("class", `window-icon fa-fw ${trackerIcon}`);
+    } else {
+      appRoot.find(".window-header").prepend(
+        `<i class=\"window-icon fa-fw ${trackerIcon}\" inert></i>`
+      );
+    }
+    attachTrackerListeners(html, { render: () => this.render(), app: this });
+  }
+}
 
 function registerSheetTab() {
 
@@ -961,7 +1123,7 @@ function registerSheetTab() {
 
     }
 
-    for (const tracker of getTrackers()) {
+      for (const tracker of getInjectedTrackers()) {
 
       const tabId = getTrackerTabId(tracker.id);
 
@@ -1019,7 +1181,7 @@ function registerSheetTab() {
 
   if (updatedAny) {
 
-    debugLog("Registered downtime tabs", { count: getTrackers().length });
+    debugLog("Registered downtime tabs", { count: getInjectedTrackers().length });
 
   } else {
 
@@ -1195,7 +1357,7 @@ function updateSheetTabLabel() {
 
 
 
-  const trackers = getTrackers();
+  const trackers = getInjectedTrackers();
 
   let changed = false;
 
@@ -1282,7 +1444,7 @@ function pruneTidySelectedTabs(removedTrackerIds) {
       ? removedTrackerIds.map((id) => getTrackerTabId(id))
       : []
   );
-  const activeTabIds = new Set(getTrackers().map((tracker) => getTrackerTabId(tracker.id)));
+  const activeTabIds = new Set(getInjectedTrackers().map((tracker) => getTrackerTabId(tracker.id)));
   const shouldRemoveTabId = (tabId) => {
     if (!tabId || typeof tabId !== "string") return false;
     if (removedTabIds.has(tabId)) return true;
@@ -1409,7 +1571,7 @@ function pruneTidySelectedTabs(removedTrackerIds) {
 
 function stripStaleTidyTabs(context) {
   if (!context) return;
-  const activeTabIds = new Set(getTrackers().map((tracker) => getTrackerTabId(tracker.id)));
+  const activeTabIds = new Set(getInjectedTrackers().map((tracker) => getTrackerTabId(tracker.id)));
   const shouldKeep = (tab) => {
     const tabId = tab?.id;
     if (!tabId || typeof tabId !== "string") return true;
@@ -1587,7 +1749,7 @@ function createTidyTab(api, tracker) {
 function updateTidyTabLabel() {
   if (!game?.modules?.get("tidy5e-sheet")?.active) return;
 
-  const trackers = getTrackers();
+  const trackers = getInjectedTrackers();
 
   const nextIds = new Set(trackers.map((tracker) => tracker.id));
   const removedIds = Array.from(lastKnownTrackerIds).filter(
@@ -1788,6 +1950,54 @@ function forceRenderApp(app, { focus = false } = {}) {
 
 
 
+function openDowntimeDialog({ trackerId, actorId } = {}) {
+  const resolvedTrackerId = trackerId ?? getCurrentTrackerId();
+  const appId = getDowntimeDialogId(resolvedTrackerId);
+  const existing = getOpenApps().find((app) => {
+    const id = String(app?.id ?? app?.options?.id ?? "");
+    return id === appId;
+  });
+  if (existing) {
+    if (existing instanceof DowntimeRepTrackerDialog) {
+      existing._trackerId = resolvedTrackerId;
+      existing._actorId = actorId ?? "";
+    }
+    forceRenderApp(existing, { focus: true });
+    return existing;
+  }
+  const dialog = new DowntimeRepTrackerDialog({
+    id: appId,
+    trackerId: resolvedTrackerId,
+    actorId,
+  });
+  dialog.render(true);
+  return dialog;
+}
+
+function refreshSceneControls() {
+  const controls = ui?.controls;
+  if (!controls) return;
+  if (typeof controls.render === "function") {
+    const activeControl = controls.activeControl ?? controls._activeControl ?? controls.control ?? null;
+    const activeTool = controls.activeTool ?? controls._activeTool ?? null;
+    try {
+      controls.render({ force: true, controls: activeControl, tool: activeTool });
+      return;
+    } catch (error) {
+      // fall through
+    }
+    try {
+      controls.render(true);
+      return;
+    } catch (error) {
+      // fall through
+    }
+  }
+  if (typeof controls.initialize === "function") {
+    controls.initialize();
+  }
+}
+
 function registerTidyTab() {
 
   Hooks.once("tidy5e-sheet.ready", (api) => {
@@ -1803,7 +2013,7 @@ function registerTidyTab() {
 
 
     tidyApi = api;
-    const trackers = getTrackers();
+    const trackers = getInjectedTrackers();
 
     for (const tracker of trackers) {
 
@@ -1902,6 +2112,8 @@ export {
   handleSocketMessage,
   hideDowntimeTab,
   isActorAllowed,
+  openDowntimeDialog,
+  refreshSceneControls,
   registerSheetTab,
   registerTidyTab,
   refreshSheetTabLabel,

@@ -155,7 +155,7 @@ async function rollSkill(actor, skillKey, advantage, disadvantage) {
       const pf2eRoll = await rollPf2eSkill(actor, skillKey, advantage, disadvantage);
       if (pf2eRoll) return pf2eRoll;
     }
-    ui.notifications.error("Indy Downtime Tracker: actor cannot roll skills.");
+    ui.notifications.error("Indy Downtime Tracker: actor cannot roll skills. Set Indy Downtime Tracker to use manual results or use a compatible system.");
     return null;
   }
   try {
@@ -165,7 +165,7 @@ async function rollSkill(actor, skillKey, advantage, disadvantage) {
     // Detect Midi-QOL (works in v13)
     const hasMidi = !!game.modules.get("midi-qol")?.active;
     // Base config works for both
-    const rollConfig = { skill: skillKey };
+    const rollConfig = { skill: "Persuasion", trait: "Persuasion" };
     // Put adv/dis in the right place depending on Midi-QOL
     if (hasMidi) {
       rollConfig.midiOptions = {
@@ -441,6 +441,158 @@ async function runIntervalRoll({ actor, checkChoice, trackerId }) {
     trackerId: resolvedTrackerId,
   });
 }
+async function runManualIntervalResult({ actor, checkId, checkChoice, trackerId, success }) {
+  const resolvedTrackerId = trackerId ?? getCurrentTrackerId();
+  const state = getWorldState(resolvedTrackerId);
+  const activePhase = getActivePhase(state, resolvedTrackerId);
+  if (activePhase.completed) return;
+  const availableChecks = getPhaseAvailableChecks(
+    activePhase,
+    activePhase.checkProgress
+  );
+  if (!availableChecks.length) {
+    ui.notifications.warn("Indy Downtime Tracker: configure checks before rolling.");
+    return;
+  }
+  let selectedCheck = null;
+  if (checkId) {
+    selectedCheck =
+      availableChecks.find((check) => check.id === checkId) ||
+      getPhaseCheckById(activePhase, checkId);
+  }
+  if (!selectedCheck && checkChoice) {
+    selectedCheck = getPhaseCheckById(activePhase, checkChoice);
+  }
+  if (!selectedCheck || !availableChecks.find((check) => check.id === selectedCheck.id)) {
+    selectedCheck = availableChecks[0];
+  }
+  if (!selectedCheck) return;
+  debugLog("Manual check result", {
+    trackerId: resolvedTrackerId,
+    checkId: selectedCheck.id,
+    checkName: getPhaseCheckLabel(selectedCheck),
+    checkProgress: { ...activePhase.checkProgress },
+  });
+  const checkLabel = getPhaseCheckLabel(selectedCheck);
+  const rollData = getCheckRollData(
+    activePhase,
+    selectedCheck,
+    activePhase.checkProgress
+  );
+  const skillKey = rollData.skill;
+  const skillLabel = skillKey ? getSkillLabel(skillKey) : selectedCheck.skill;
+  const dc = rollData.dc;
+  const isSuccess = Boolean(success);
+  const total = "Manual";
+  const formula = "manual";
+  state.checkCount = Number.isFinite(state.checkCount) ? state.checkCount + 1 : 1;
+  let progressGained = 0;
+  let criticalBonusApplied = false;
+  let successLine = "";
+  let failureLine = "";
+  const beforeGroupComplete = isGroupComplete(
+    activePhase,
+    selectedCheck.groupId,
+    activePhase.checkProgress
+  );
+  if (isSuccess) {
+    const currentValue = Number(activePhase.checkProgress?.[selectedCheck.id] ?? 0);
+    const target = getPhaseCheckTarget(selectedCheck);
+    if (currentValue < target) {
+      progressGained = 1;
+      const nextValue = Math.min(currentValue + 1, target);
+      activePhase.checkProgress[selectedCheck.id] = nextValue;
+    }
+    activePhase.progress = getPhaseProgress(activePhase, activePhase.checkProgress);
+    activePhase.completed = isPhaseComplete({ ...activePhase, progress: activePhase.progress });
+    activePhase.failuresInRow = 0;
+    const afterGroupComplete = isGroupComplete(
+      activePhase,
+      selectedCheck.groupId,
+      activePhase.checkProgress
+    );
+    if (!beforeGroupComplete && afterGroupComplete) {
+      successLine = pickLineForGroup(activePhase.successLines, selectedCheck.groupId);
+    }
+    if (!successLine) {
+      successLine = pickLineForCheck(
+        activePhase.successLines,
+        selectedCheck.id,
+        selectedCheck.groupId,
+        { allowGroup: false }
+      );
+    }
+  } else {
+    activePhase.failuresInRow = Number(activePhase.failuresInRow ?? 0) + 1;
+    failureLine = pickLineForCheck(
+      activePhase.failureLines,
+      selectedCheck.id,
+      selectedCheck.groupId
+    );
+  }
+  const failureEvent = Boolean(!isSuccess && activePhase.failureEvents);
+  let failureEventResult = "";
+  if (!isSuccess && failureEvent) {
+    failureEventResult = await rollFailureEventTable(activePhase, actor);
+  }
+  debugLog("Updated progress (manual)", {
+    trackerId: resolvedTrackerId,
+    checkId: selectedCheck.id,
+    checkProgress: { ...activePhase.checkProgress },
+  });
+  state.phases[activePhase.id] = {
+    progress: activePhase.progress,
+    completed: activePhase.completed,
+    failuresInRow: activePhase.failuresInRow,
+    checkProgress: activePhase.checkProgress ?? {},
+  };
+  if (isPhaseComplete(activePhase)) {
+    state.phases[activePhase.id].completed = true;
+    await handleCompletion(state, activePhase, actor, resolvedTrackerId);
+  }
+  state.log.unshift({
+    checkNumber: state.checkCount,
+    phaseId: activePhase.id,
+    phaseName: activePhase.name,
+    actorId: actor.id,
+    actorName: actor.name,
+    checkId: selectedCheck.id,
+    checkName: checkLabel,
+    groupId: selectedCheck.groupId,
+    groupName: selectedCheck.groupName,
+    skillChoice: skillKey,
+    skillKey,
+    skillLabel,
+    dc,
+    total,
+    success: isSuccess,
+    progressGained,
+    criticalBonusApplied,
+    successLine,
+    failureLine,
+    failureEvent,
+    failureEventResult,
+    manual: true,
+    timestamp: Date.now(),
+  });
+  state.log = state.log.slice(0, 50);
+  await setWorldState(state, resolvedTrackerId);
+  await postManualSummaryMessage({
+    actor,
+    checkLabel,
+    skillLabel,
+    dc,
+    success: isSuccess,
+    progress: state.phases[activePhase.id].progress,
+    progressTarget: activePhase.target,
+    progressGained,
+    successLine,
+    failureLine,
+    failureEvent,
+    failureEventResult,
+    trackerId: resolvedTrackerId,
+  });
+}
 async function postSummaryMessage({
   actor,
   checkLabel,
@@ -488,6 +640,55 @@ async function postSummaryMessage({
         <p><strong>Result:</strong> ${total} [${formula}] (${outcome})</p>
         ${progressLine}
         ${criticalLine}
+        ${successBlock}
+        ${failureBlock}
+        ${failureEventBlock}
+      </div>`;
+  await ChatMessage.create({
+    speaker: ChatMessage.getSpeaker({ actor }),
+    content,
+  });
+}
+async function postManualSummaryMessage({
+  actor,
+  checkLabel,
+  skillLabel,
+  dc,
+  success,
+  progress,
+  progressTarget,
+  progressGained,
+  successLine,
+  failureLine,
+  failureEvent,
+  failureEventResult,
+  trackerId,
+}) {
+  const outcome = success ? "Success" : "Failure";
+  const progressLine = success
+    ? `<p><strong>Progress:</strong> ${progress} / ${progressTarget}${
+        progressGained ? ` (+${progressGained})` : ""
+      }</p>`
+    : `<p><strong>Progress:</strong> ${progress} / ${progressTarget}</p>`;
+  const successBlock = successLine
+    ? `<div class="narrative"><strong>Success:</strong> ${successLine}</div>`
+    : "";
+  const failureBlock = failureLine
+    ? `<div class="narrative"><strong>${
+        failureEvent ? "Event" : "Strain"
+      }:</strong> ${failureLine}</div>`
+    : "";
+  const failureEventBlock = failureEventResult
+    ? `<div class="narrative"><strong>Event Table:</strong> ${failureEventResult}</div>`
+    : "";
+  const content = `
+      <div class="drep-chat">
+        <h4>${getIntervalLabel(trackerId)} Check: ${checkLabel}</h4>
+        <p><strong>Actor:</strong> ${actor.name}</p>
+        <p><strong>Skill:</strong> ${skillLabel}</p>
+        <p><strong>DC:</strong> ${dc}</p>
+        <p><strong>Result:</strong> ${outcome} (Manual)</p>
+        ${progressLine}
         ${successBlock}
         ${failureBlock}
         ${failureEventBlock}
@@ -623,5 +824,6 @@ export {
   getActorCheckBonus,
   getCheckSuccessChance,
   runIntervalRoll,
+  runManualIntervalResult,
   runPhaseCompleteMacro,
 };

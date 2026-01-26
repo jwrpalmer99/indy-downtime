@@ -6,10 +6,11 @@ import {
   DEFAULT_TAB_LABEL,
   LAST_ACTOR_IDS_SETTING,
   LAST_SKILL_CHOICES_SETTING,
+  MANUAL_SKILL_OVERRIDES_SETTING,
   MODULE_ID,
   RESTRICTED_ACTORS_SETTING,
 } from "../constants.js";
-import { getCurrentTracker, getTrackerById } from "./tracker.js";
+import { getCurrentTracker, getTrackerById, normalizeManualSkillOverrides } from "./tracker.js";
 
 function getLegacySetting(key) {
   const settingKey = `${MODULE_ID}.${key}`;
@@ -110,6 +111,26 @@ function shouldShowCheckTooltips(trackerId) {
   return Boolean(tracker?.showCheckTooltipsToPlayers);
 }
 
+function shouldInjectIntoSheet(trackerId) {
+  const tracker = trackerId ? getTrackerById(trackerId) : getCurrentTracker();
+  if (!tracker) {
+    return game.system?.id === "dnd5e" || game.system?.id === "pf2e";
+  }
+  if (Object.prototype.hasOwnProperty.call(tracker, "injectIntoSheet")) {
+    return Boolean(tracker.injectIntoSheet);
+  }
+  return game.system?.id === "dnd5e" || game.system?.id === "pf2e";
+}
+
+function shouldUseManualRolls(trackerId) {
+  if (game.system?.id === "dnd5e" || game.system?.id === "pf2e") return false;
+  const tracker = trackerId ? getTrackerById(trackerId) : getCurrentTracker();
+  if (tracker && Object.prototype.hasOwnProperty.call(tracker, "manualRollEnabled")) {
+    return Boolean(tracker.manualRollEnabled);
+  }
+  return true;
+}
+
 
 
 
@@ -163,13 +184,227 @@ function setLastActorId(trackerId, value) {
 }
 
 
+function normalizeOverrideMap(raw) {
+  const output = {};
+  if (!raw || typeof raw !== "object") return output;
+  for (const [key, value] of Object.entries(raw)) {
+    const trimmed = String(key ?? "").trim();
+    if (!trimmed) continue;
+    const label = typeof value === "string" && value.trim() ? value.trim() : trimmed;
+    output[trimmed] = label;
+  }
+  return output;
+}
+
+function getManualSkillOverrides(trackerId) {
+  const stored = game.settings.get(MODULE_ID, MANUAL_SKILL_OVERRIDES_SETTING) ?? {};
+  const normalized = normalizeManualSkillOverrides(stored);
+  if (Object.keys(normalized.skills).length || Object.keys(normalized.abilities).length) {
+    return normalized;
+  }
+  const tracker = trackerId ? getTrackerById(trackerId) : getCurrentTracker();
+  const legacy = normalizeManualSkillOverrides(tracker?.manualSkillOverrides ?? {});
+  return legacy;
+}
+
+function normalizeSkillMap(raw) {
+  const output = {};
+  if (!raw) return output;
+  if (raw instanceof Map) {
+    for (const [key, value] of raw.entries()) {
+      if (!key) continue;
+      output[String(key)] = value;
+    }
+    return output;
+  }
+  if (Array.isArray(raw)) {
+    for (const entry of raw) {
+      if (!entry) continue;
+      const key = entry.key ?? entry.id ?? entry.value ?? entry.slug;
+      if (!key) continue;
+      const label = entry.label ?? entry.name ?? entry.title ?? entry;
+      output[String(key)] = label;
+    }
+    return output;
+  }
+  if (typeof raw === "object") {
+    for (const [key, value] of Object.entries(raw)) {
+      if (!key) continue;
+      output[key] = value;
+    }
+  }
+  return output;
+}
+
+function getConfiguredSkillMap() {
+  const sources = [
+    CONFIG.PF2E?.skills,
+    CONFIG.DND5E?.skills,
+    CONFIG.skills,
+    game.system?.config?.skills,
+  ];
+  for (const source of sources) {
+    const normalized = normalizeSkillMap(source);
+    if (Object.keys(normalized).length) return normalized;
+  }
+  return {};
+}
+
+function getConfiguredAbilityMap() {
+  const sources = [
+    CONFIG.PF2E?.abilities,
+    CONFIG.PF2E?.abilityAbbreviations,
+    CONFIG.DND5E?.abilities,
+    CONFIG.abilities,
+    game.system?.config?.abilities,
+  ];
+  for (const source of sources) {
+    const normalized = normalizeSkillMap(source);
+    if (Object.keys(normalized).length) return normalized;
+  }
+  return {};
+}
+
+function findFallbackActor() {
+  const actors = game?.actors ? Array.from(game.actors) : [];
+  let actor = actors.find((entry) => entry?.type === "character");
+  if (!actor) {
+    actor = actors.find((entry) => entry?.system?.skills || entry?.skills || entry?.system?.abilities || entry?.abilities);
+  }
+  return actor ?? null;
+}
+
+function normalizeActorEntries(raw) {
+  const output = {};
+  if (!raw) return output;
+  if (raw instanceof Map) {
+    for (const [key, value] of raw.entries()) {
+      if (!key) continue;
+      output[String(key)] = normalizeActorEntryValue(key, value);
+    }
+    return output;
+  }
+  if (typeof raw === "object") {
+    for (const [key, value] of Object.entries(raw)) {
+      if (!key) continue;
+      output[key] = normalizeActorEntryValue(key, value);
+    }
+  }
+  return output;
+}
+
+function normalizeActorEntryValue(key, value) {
+  if (typeof value === "string") return value;
+  if (typeof value === "number") return String(value);
+  if (typeof value === "object" && value !== null) {
+    const label =
+      value.label ??
+      value.name ??
+      value.title ??
+      value.value ??
+      value.long ??
+      value.short ??
+      value.abbreviation ??
+      "";
+    if (typeof label === "string" && label.trim()) return label.trim();
+  }
+  return key;
+}
+
+function extractSystemSkills(actor) {
+  const sys = actor?.system ?? {};
+  const direct = sys.skills;
+  if (direct && typeof direct === "object" && Object.keys(direct).length) {
+    return { entries: normalizeActorEntries(direct), source: "skills" };
+  }
+  const attrSkills = sys.attributes?.skills;
+  if (attrSkills && typeof attrSkills === "object" && Object.keys(attrSkills).length) {
+    return { entries: normalizeActorEntries(attrSkills), source: "attributes.skills" };
+  }
+  const attributes = sys.attributes;
+  if (attributes && typeof attributes === "object" && Object.keys(attributes).length) {
+    return { entries: normalizeActorEntries(attributes), source: "attributes" };
+  }
+  return { entries: {}, source: "" };
+}
+
+function extractItemSkills(actor) {
+  const output = {};
+  const rawItems = actor?.items;
+  const items = rawItems?.values
+    ? Array.from(rawItems.values())
+    : (Array.isArray(rawItems) ? rawItems : []);
+  for (const item of items) {
+    if (!item || item.type !== "skill") continue;
+    const key =
+      item.system?.key ??
+      item.system?.slug ??
+      item.system?.id ??
+      item.id ??
+      item.name;
+    if (!key) continue;
+    output[String(key)] = item.name ?? key;
+  }
+  return output;
+}
+
+function getFallbackSkillMaps() {
+  const actor = findFallbackActor();
+  const skillsRaw =
+    actor?.system?.skills ??
+    actor?.system?.attributes?.skills ??
+    actor?.skills ??
+    actor?.attributes?.skills ??
+    null;
+  const { entries: skillsFromSystem, source: skillsSource } = extractSystemSkills(actor);
+  const skillsFromItems = extractItemSkills(actor);
+  const abilitiesRaw =
+    actor?.system?.abilities ??
+    actor?.system?.attributes?.abilities ??
+    actor?.abilities ??
+    actor?.attributes?.abilities ??
+    null;
+  let abilities = normalizeActorEntries(abilitiesRaw);
+  let systemSkills = skillsFromSystem;
+  if (!Object.keys(abilities).length && skillsSource === "attributes") {
+    abilities = skillsFromSystem;
+    systemSkills = {};
+  }
+  return {
+    skills: {
+      ...(normalizeActorEntries(skillsRaw)),
+      ...systemSkills,
+      ...skillsFromItems,
+    },
+    abilities,
+  };
+}
+
+function getResolvedSkillMaps() {
+  const overrides = getManualSkillOverrides();
+  const overrideSkills = normalizeOverrideMap(overrides.skills);
+  const overrideAbilities = normalizeOverrideMap(overrides.abilities);
+  const configuredSkills = getConfiguredSkillMap();
+  const configuredAbilities = getConfiguredAbilityMap();
+  if (Object.keys(configuredSkills).length && Object.keys(configuredAbilities).length) {
+    return {
+      skills: Object.keys(overrideSkills).length ? overrideSkills : configuredSkills,
+      abilities: Object.keys(overrideAbilities).length ? overrideAbilities : configuredAbilities,
+    };
+  }
+  const fallback = getFallbackSkillMaps();
+  return {
+    skills: Object.keys(overrideSkills).length
+      ? overrideSkills
+      : (Object.keys(configuredSkills).length ? configuredSkills : fallback.skills),
+    abilities: Object.keys(overrideAbilities).length
+      ? overrideAbilities
+      : (Object.keys(configuredAbilities).length ? configuredAbilities : fallback.abilities),
+  };
+}
+
 function getSkillOptions() {
-  const skills = CONFIG.PF2E?.skills ?? CONFIG.DND5E?.skills ?? {};
-  const abilities =
-    CONFIG.PF2E?.abilities ??
-    CONFIG.PF2E?.abilityAbbreviations ??
-    CONFIG.DND5E?.abilities ??
-    {};
+  const { skills, abilities } = getResolvedSkillMaps();
 
   const skillOptions = Object.entries(skills).map(([key, labelKey]) => ({
     key,
@@ -188,17 +423,12 @@ function getSkillOptions() {
 
 
 function getSkillLabel(skillKey) {
+  const { skills, abilities } = getResolvedSkillMaps();
   if (typeof skillKey === "string" && skillKey.startsWith("ability:")) {
     const abilityKey = skillKey.split(":")[1] ?? "";
-    const abilities =
-      CONFIG.PF2E?.abilities ??
-      CONFIG.PF2E?.abilityAbbreviations ??
-      CONFIG.DND5E?.abilities ??
-      {};
     const labelKey = abilities[abilityKey];
     return localizeSkillLabel(labelKey, abilityKey);
   }
-  const skills = CONFIG.PF2E?.skills ?? CONFIG.DND5E?.skills ?? {};
   const labelKey = skills[skillKey];
   return localizeSkillLabel(labelKey, skillKey);
 }
@@ -235,6 +465,8 @@ export {
   shouldShowLockedChecks,
   shouldShowPhasePlan,
   shouldShowCheckTooltips,
+  shouldInjectIntoSheet,
+  shouldUseManualRolls,
   getRestrictedActorUuids,
   parseRestrictedActorUuids,
   getLastSkillChoice,

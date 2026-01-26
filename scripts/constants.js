@@ -12,10 +12,12 @@ export const SOCKET_EVENT_REQUEST = "state-request";
 export const RESTRICTED_ACTORS_SETTING = "restrictedActorUuids";
 export const SETTINGS_EXPORT_MENU = "settingsExport";
 export const STATE_EXPORT_MENU = "stateExport";
+export const SKILL_OVERRIDES_MENU = "skillOverrides";
 export const TRACKERS_SETTING = "trackers";
 export const ACTIVE_TRACKER_SETTING = "activeTrackerId";
 export const LAST_SKILL_CHOICES_SETTING = "lastSkillChoices";
 export const LAST_ACTOR_IDS_SETTING = "lastActorIds";
+export const MANUAL_SKILL_OVERRIDES_SETTING = "manualSkillOverrides";
 
 export const DEFAULT_PHASE_CONFIG = [
   {

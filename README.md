@@ -22,6 +22,7 @@ Building the Plan:
 - Per-tracker labels and icon: header, tab label, interval label, Font Awesome icon.
 - Restrict a trackers visibility to specific actor UUIDs.
 - Roll summaries in chat, activity log, and manual progress editing/maintenance.
+- Optional sheet injection toggle; when disabled, open the tracker from Token Controls.
 - Import/export for a tracker, a phase, all settings, or all state.
 - Compatible with default DnD5e sheets, Tidy5e, and PF2e character sheets.
 
