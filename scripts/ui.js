@@ -54,6 +54,7 @@ import {
   getPhaseCheckLabel,
 
   getPhaseCheckTarget,
+  getDifficultyLabel,
 
   getRestrictedActorUuids,
 
@@ -78,6 +79,7 @@ import {
   shouldHideDc,
   shouldInjectIntoSheet,
   shouldUseManualRolls,
+  getCheckRollMode,
 
   shouldShowLockedChecks,
   shouldShowPhasePlan,
@@ -144,7 +146,16 @@ function formatCheckOptionLabel(choice, showDc) {
 
   const skill = choice.skillLabel && choice.skillLabel !== name ? choice.skillLabel : "";
 
-  const dcText = showDc ? `DC ${choice.dc}` : "";
+  let dcText = "";
+  if (showDc) {
+    if (choice.difficultyLabel) {
+      dcText = `Difficulty: ${choice.difficultyLabel}`;
+    } else if (choice.dcLabel) {
+      dcText = choice.dcLabel;
+    } else if (Number.isFinite(choice.dc)) {
+      dcText = `DC ${choice.dc}`;
+    }
+  }
 
   if (skill) {
 
@@ -379,8 +390,29 @@ function buildTrackerData({
   const showDc = game.user?.isGM || !shouldHideDc(resolvedTrackerId);
 
   const showLockedChecks = game.user?.isGM || shouldShowLockedChecks(resolvedTrackerId);
+  const rollMode = getCheckRollMode();
 
   const groupCounts = getGroupCheckCounts(state.log, activePhase.id);
+
+  const displayLog = (state.log ?? []).map((entry) => {
+    if (!entry || entry.type === "phase-complete") return entry;
+    if (entry.dcLabel && entry.dcLabelType) return entry;
+    if (rollMode === "d100") {
+      const difficultyLabel = entry.difficulty
+        ? getDifficultyLabel(entry.difficulty)
+        : (entry.dcLabel ?? "");
+      return {
+        ...entry,
+        dcLabel: difficultyLabel,
+        dcLabelType: "Difficulty",
+      };
+    }
+    return {
+      ...entry,
+      dcLabel: entry.dcLabel ?? (Number.isFinite(entry.dc) ? String(entry.dc) : ""),
+      dcLabelType: entry.dcLabelType ?? "DC",
+    };
+  });
 
 
   const checkChoices = getPhaseCheckChoices(
@@ -477,6 +509,10 @@ function buildTrackerData({
         const isLocked = isGroup ? !detail.complete : (Boolean(status?.locked) && !status?.complete);
         const displaySource = (!showLockedChecks && isLocked) ? "???" : detail.source;
         if (detail.type === "harder") {
+          if (rollMode === "d100") {
+            const steps = Number.isFinite(detail.dcPenalty) ? Math.max(1, Math.round(detail.dcPenalty)) : 1;
+            return `Increase Difficulty${steps > 1 ? ` (+${steps})` : ""} (from ${displaySource})`;
+          }
           return `+${detail.dcPenalty} DC (from ${displaySource})`;
         }
         if (detail.type === "advantage") {
@@ -587,7 +623,10 @@ function buildTrackerData({
 
     trackerId: resolvedTrackerId,
 
-    state,
+    state: {
+      ...state,
+      log: displayLog,
+    },
 
     activePhase,
 
@@ -822,12 +861,19 @@ async function handleRoll(root, { render, actorOverride, trackerId, app } = {}) 
       selectedCheck,
       activePhase.checkProgress
     );
+    const rollMode = getCheckRollMode();
     const checkLabel = getPhaseCheckLabel(selectedCheck);
     const skillLabel = rollData.skill ? getSkillLabel(rollData.skill) : selectedCheck.skill;
+    const dcLabel = rollMode === "d100"
+      ? (rollData.difficultyLabel ?? "")
+      : (Number.isFinite(rollData.dc) ? String(rollData.dc) : "");
+    const dcLabelType = rollMode === "d100" ? "Difficulty" : "DC";
     const outcome = await promptManualRoll({
       checkLabel,
       skillLabel,
       dc: rollData.dc,
+      dcLabel,
+      dcLabelType,
       advantage: rollData.advantage,
       disadvantage: rollData.disadvantage,
     });
@@ -925,15 +971,20 @@ function resolveActorFromContext(context) {
 
 
 
-function promptManualRoll({ checkLabel, skillLabel, dc, advantage, disadvantage }) {
+function promptManualRoll({ checkLabel, skillLabel, dc, dcLabel, dcLabelType, advantage, disadvantage }) {
   const rollHint = advantage
     ? "Roll with advantage."
     : (disadvantage ? "Roll with disadvantage." : "Roll normally.");
   const skillText = skillLabel ? `${skillLabel} check` : "the check";
+  const targetLabel = dcLabel ?? (Number.isFinite(dc) ? String(dc) : "");
+  const targetType = dcLabelType || "DC";
+  const targetLine = targetLabel
+    ? `Roll ${skillText} vs ${targetType} ${targetLabel}.`
+    : `Roll ${skillText}.`;
   const content = `
       <div class="drep-manual-roll">
         <p><strong>${checkLabel}</strong></p>
-        <p>Roll ${skillText} vs DC ${dc}.</p>
+        <p>${targetLine}</p>
         <p>${rollHint}</p>
         <p>Then choose the outcome below.</p>
       </div>`;

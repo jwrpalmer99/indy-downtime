@@ -131,7 +131,7 @@
             {{else}}
               <div class="drep-log-main">
                 <strong>Check {{#if this.checkNumber}}{{this.checkNumber}}{{else}}{{this.windowDay}}{{/if}}:</strong>
-                {{this.actorName}} rolled {{#if this.checkName}}{{this.checkName}} ({{this.skillLabel}}){{else}}{{this.skillLabel}}{{/if}}{{#if ../showDc}} vs DC {{this.dc}}{{/if}}.
+                {{this.actorName}} rolled {{#if this.checkName}}{{this.checkName}} ({{this.skillLabel}}){{else}}{{this.skillLabel}}{{/if}}{{#if ../showDc}}{{#if this.dcLabel}} vs {{this.dcLabelType}} {{this.dcLabel}}{{else}} vs DC {{this.dc}}{{/if}}{{/if}}.
                 Result: {{this.total}} ({{#if this.success}}Success{{else}}Failure{{/if}})
                 {{#if this.progressGained}}
                   | Progress +{{this.progressGained}}{{#if this.criticalBonusApplied}} (critical){{/if}}

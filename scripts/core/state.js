@@ -5,7 +5,7 @@ import {
   SOCKET_EVENT_REQUEST,
   SOCKET_EVENT_STATE,
 } from "../constants.js";
-import { clampNumber, getSkillLabel } from "./labels.js";
+import { clampNumber, getSkillLabel, getCheckRollMode } from "./labels.js";
 import {
   buildCheckProgressMap,
   getFirstPhaseId,
@@ -14,6 +14,7 @@ import {
   getPhaseCheckTarget,
   getPhaseConfig,
   getPhaseDc,
+  getDifficultyLabel,
   getPhaseProgress,
   getPhaseChecks,
   isGroupComplete,
@@ -226,7 +227,18 @@ function applyLogEntryToState(entry, state, phaseConfig) {
   const skillKey = check?.skill ?? entry.skillKey ?? entry.skillChoice ?? "";
   const skillLabel = skillKey ? getSkillLabel(skillKey) : "";
   const success = Boolean(entry.success);
+  const rollMode = getCheckRollMode();
   const dc = getPhaseDc(phase, check);
+  const difficulty = entry.difficulty ?? check?.difficulty ?? "";
+  let dcLabel = entry.dcLabel ?? "";
+  let dcLabelType = entry.dcLabelType ?? "";
+  if (rollMode === "d100") {
+    dcLabel = dcLabel || (difficulty ? getDifficultyLabel(difficulty) : "");
+    dcLabelType = "Difficulty";
+  } else {
+    dcLabel = dcLabel || (Number.isFinite(dc) ? String(dc) : "");
+    dcLabelType = dcLabelType || "DC";
+  }
 
   let progressGained = 0;
   let criticalBonusApplied = Boolean(entry.criticalBonusApplied);
@@ -280,6 +292,9 @@ function applyLogEntryToState(entry, state, phaseConfig) {
     skillKey,
     skillLabel,
     dc,
+    dcLabel,
+    dcLabelType,
+    difficulty,
     success,
     progressGained,
     criticalBonusApplied,

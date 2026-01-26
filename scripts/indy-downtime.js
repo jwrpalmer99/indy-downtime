@@ -6,6 +6,8 @@ import {
 
   INJECT_INTO_SHEET_SETTING,
 
+  CHECK_ROLL_MODE_SETTING,
+
   DEFAULT_HEADER_LABEL,
 
   DEFAULT_INTERVAL_LABEL,
@@ -653,6 +655,35 @@ Hooks.once("init", () => {
     type: Boolean,
 
     default: isSystemAgnostic,
+
+    onChange: () => {
+
+      rerenderCharacterSheets();
+
+      rerenderSettingsApps();
+
+    },
+
+  });
+
+  game.settings.register(MODULE_ID, CHECK_ROLL_MODE_SETTING, {
+
+    name: "Ability Check Mode",
+
+    hint: "Choose between d20 (5e style) or d100 (CoC style) check difficulties.",
+
+    scope: "world",
+
+    config: true,
+
+    type: String,
+
+    choices: {
+      d20: "d20 (5e style)",
+      d100: "d100 (CoC style)",
+    },
+
+    default: "d20",
 
     onChange: () => {
 

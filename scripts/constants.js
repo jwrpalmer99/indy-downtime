@@ -8,6 +8,7 @@ export const DEFAULT_TAB_ICON = "fas fa-fire";
 export const DEBUG_SETTING = "debugLogging";
 export const INJECT_INTO_SHEET_SETTING = "injectIntoSheet";
 export const MANUAL_ROLL_SETTING = "manualRollEnabled";
+export const CHECK_ROLL_MODE_SETTING = "checkRollMode";
 export const TIDY_TEMPLATE_PATH = "modules/indy-downtime/templates/indy-downtime.hbs";
 export const SOCKET_EVENT_STATE = "state-updated";
 export const SOCKET_EVENT_REQUEST = "state-request";

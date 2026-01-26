@@ -5,6 +5,7 @@ import {
   DEFAULT_STATE,
   DEFAULT_TAB_LABEL,
   DEFAULT_TRACKER_NAME,
+  CHECK_ROLL_MODE_SETTING,
   INJECT_INTO_SHEET_SETTING,
   MANUAL_ROLL_SETTING,
   MODULE_ID,
@@ -51,6 +52,7 @@ function getSettingsExportPayload() {
     settings: {
       injectIntoSheet: game.settings.get(MODULE_ID, INJECT_INTO_SHEET_SETTING),
       manualRollEnabled: game.settings.get(MODULE_ID, MANUAL_ROLL_SETTING),
+      checkRollMode: game.settings.get(MODULE_ID, CHECK_ROLL_MODE_SETTING),
       trackers,
       manualSkillOverrides: game.settings.get(MODULE_ID, MANUAL_SKILL_OVERRIDES_SETTING) ?? { skills: {}, abilities: {} },
     },
@@ -103,6 +105,13 @@ async function applySettingsImportPayload(payload) {
       MODULE_ID,
       MANUAL_ROLL_SETTING,
       Boolean(manualRollSetting)
+    );
+  }
+  if (typeof settings.checkRollMode === "string") {
+    await game.settings.set(
+      MODULE_ID,
+      CHECK_ROLL_MODE_SETTING,
+      settings.checkRollMode
     );
   }
   if (Array.isArray(settings.trackers)) {

@@ -1,10 +1,21 @@
 import { DEFAULT_PHASE_CONFIG } from "../constants.js";
 import { parseList } from "./parse.js";
-import { getSkillLabel, clampNumber } from "./labels.js";
+import { getSkillLabel, clampNumber, getCheckRollMode } from "./labels.js";
 import { getCurrentTracker, getTrackerById } from "./tracker.js";
 
 const DEFAULT_CHECK_TARGET = 1;
 const DEFAULT_CHECK_DC = 13;
+const D100_DIFFICULTY_LEVELS = ["easy", "regular", "difficult", "extreme"];
+const D100_DIFFICULTY_LABELS = {
+  easy: "Easy",
+  regular: "Regular",
+  difficult: "Difficult",
+  extreme: "Extreme",
+};
+const D100_DIFFICULTY_ALIASES = {
+  hard: "difficult",
+  normal: "regular",
+};
 const DEPENDENCY_TYPES = new Set([
   "block",
   "prevents",
@@ -21,6 +32,47 @@ function getPhaseConfig(trackerId) {
     return normalizePhaseConfig(DEFAULT_PHASE_CONFIG);
   }
   return normalizePhaseConfig(stored);
+}
+
+function normalizeDifficulty(raw) {
+  const value = typeof raw === "string" ? raw.trim().toLowerCase() : "";
+  if (!value) return "regular";
+  if (D100_DIFFICULTY_ALIASES[value]) return D100_DIFFICULTY_ALIASES[value];
+  if (D100_DIFFICULTY_LEVELS.includes(value)) return value;
+  return "regular";
+}
+
+function getDifficultyLabel(raw) {
+  const normalized = normalizeDifficulty(raw);
+  return D100_DIFFICULTY_LABELS[normalized] ?? "Regular";
+}
+
+function getDifficultyIndex(raw) {
+  const normalized = normalizeDifficulty(raw);
+  return D100_DIFFICULTY_LEVELS.indexOf(normalized);
+}
+
+function getDifficultyByIndex(index) {
+  if (!Number.isFinite(index)) return "regular";
+  const clamped = Math.min(
+    Math.max(0, Math.round(index)),
+    D100_DIFFICULTY_LEVELS.length - 1
+  );
+  return D100_DIFFICULTY_LEVELS[clamped] ?? "regular";
+}
+
+function shiftDifficulty(raw, steps = 0) {
+  if (!steps) return normalizeDifficulty(raw);
+  const start = getDifficultyIndex(raw);
+  const next = Number.isFinite(start) ? start + steps : steps;
+  return getDifficultyByIndex(next);
+}
+
+function getDifficultyOptions() {
+  return D100_DIFFICULTY_LEVELS.map((value) => ({
+    value,
+    label: getDifficultyLabel(value),
+  }));
 }
 
 function getDefaultPhaseTemplate(id) {
@@ -158,6 +210,7 @@ function normalizeChecks(checks, groupId, usedCheckIds) {
       skill,
       description,
       dc: Number.isFinite(dc) ? dc : DEFAULT_CHECK_DC,
+      difficulty: normalizeDifficulty(check?.difficulty ?? check?.difficultyLevel ?? ""),
       target,
       dependsOn,
       groupId,
@@ -194,8 +247,17 @@ function normalizeCheckDependencies(raw) {
     const dcPenalty = Number.isFinite(dcPenaltyRaw) ? dcPenaltyRaw : 0;
     const overrideSkill =
       typeof entry.overrideSkill === "string" ? entry.overrideSkill.trim() : "";
-    const overrideDcRaw = Number(entry.overrideDc);
-    const overrideDc = Number.isFinite(overrideDcRaw) ? overrideDcRaw : null;
+    let overrideDc = null;
+    if (typeof entry.overrideDc === "string") {
+      const raw = entry.overrideDc.trim();
+      if (raw) {
+        const numeric = Number(raw);
+        overrideDc = Number.isFinite(numeric) ? numeric : normalizeDifficulty(raw);
+      }
+    } else {
+      const overrideDcRaw = Number(entry.overrideDc);
+      overrideDc = Number.isFinite(overrideDcRaw) ? overrideDcRaw : null;
+    }
     output.push({
       id,
       type,
@@ -542,7 +604,9 @@ function getCheckDependencyEffects(phase, check, checkProgress) {
       case "override":
         if (complete) {
           if (dep.overrideSkill) overrideSkill = dep.overrideSkill;
-          if (Number.isFinite(dep.overrideDc)) overrideDc = dep.overrideDc;
+          if (typeof dep.overrideDc !== "undefined" && dep.overrideDc !== null) {
+            overrideDc = dep.overrideDc;
+          }
         }
         break;
       case "block":
@@ -603,6 +667,30 @@ function getCheckDependencyDetails(phase, check, checkProgress) {
 
 function getCheckRollData(phase, check, checkProgress) {
   const effects = getCheckDependencyEffects(phase, check, checkProgress);
+  const skill = effects.overrideSkill || check?.skill || "";
+  const rollMode = getCheckRollMode();
+  if (rollMode === "d100") {
+    let difficulty = normalizeDifficulty(check?.difficulty ?? "");
+    if (typeof effects.overrideDc === "string") {
+      difficulty = normalizeDifficulty(effects.overrideDc);
+    }
+    const penaltySteps = Number.isFinite(effects.dcPenalty)
+      ? Math.max(0, Math.round(effects.dcPenalty))
+      : 0;
+    if (penaltySteps) {
+      difficulty = shiftDifficulty(difficulty, penaltySteps);
+    }
+    return {
+      skill,
+      difficulty,
+      difficultyLabel: getDifficultyLabel(difficulty),
+      advantage: effects.advantage,
+      disadvantage: effects.disadvantage,
+      dcPenalty: effects.dcPenalty,
+      overrideSkill: effects.overrideSkill,
+      overrideDc: effects.overrideDc,
+    };
+  }
   const baseDc = getPhaseDc(phase, check);
   let dc = baseDc;
   if (Number.isFinite(effects.overrideDc)) {
@@ -611,7 +699,6 @@ function getCheckRollData(phase, check, checkProgress) {
   if (effects.dcPenalty) {
     dc += effects.dcPenalty;
   }
-  const skill = effects.overrideSkill || check?.skill || "";
   return {
     skill,
     dc,
@@ -645,6 +732,7 @@ function getPhaseDc(phase, checkId) {
 
 function getPhaseCheckChoices(phase, checkProgress, options = {}) {
   const groupCounts = options.groupCounts ?? {};
+  const rollMode = getCheckRollMode();
   return getPhaseChecks(phase).map((check) => {
     const complete = isCheckComplete(check, checkProgress);
     const unlocked = isCheckUnlocked(phase, check, checkProgress);
@@ -654,6 +742,10 @@ function getPhaseCheckChoices(phase, checkProgress, options = {}) {
     const groupAvailable = !groupLimit || groupUsed < groupLimit;
     const rollData = getCheckRollData(phase, check, checkProgress);
     const skillLabel = rollData.skill ? getSkillLabel(rollData.skill) : "";
+    const difficultyLabel = rollMode === "d100" ? getDifficultyLabel(rollData.difficulty) : "";
+    const dcLabel = rollMode === "d100"
+      ? difficultyLabel
+      : (Number.isFinite(rollData.dc) ? `DC ${rollData.dc}` : "");
     return {
       key: check.id,
       label: getPhaseCheckLabel(check),
@@ -661,6 +753,9 @@ function getPhaseCheckChoices(phase, checkProgress, options = {}) {
       skill: rollData.skill,
       skillLabel,
       dc: rollData.dc,
+      dcLabel,
+      difficulty: rollMode === "d100" ? rollData.difficulty : "",
+      difficultyLabel,
       groupId: check.groupId,
       groupName: check.groupName,
       complete,
@@ -750,6 +845,10 @@ export {
   getPhaseAvailableChecks,
   pickLineForCheck,
   pickLineForGroup,
+  normalizeDifficulty,
+  getDifficultyLabel,
+  getDifficultyOptions,
+  shiftDifficulty,
   isPhaseComplete,
   isDependencyComplete
 };

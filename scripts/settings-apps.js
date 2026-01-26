@@ -58,6 +58,9 @@ import {
   shouldHideDc,
   shouldShowCheckTooltips,
   shouldShowLockedChecks,
+  getCheckRollMode,
+  getDifficultyLabel,
+  getDifficultyOptions,
   getActorCheckBonus,
   getCheckSuccessChance,
   updateTrackerSettings,
@@ -139,10 +142,12 @@ const buildPotentialRollData = (phase, check, checkProgress) => {
   if (!deps.length) return null;
   const hasIncomplete = deps.some((dep) => !isDependencyComplete(phase, dep, checkProgress));
   if (!hasIncomplete) return null;
+  const rollMode = getCheckRollMode();
   let advantage = false;
   let disadvantage = false;
   let overrideSkill = "";
   let overrideDc = null;
+  let overrideDifficulty = "";
   let dcPenalty = 0;
   for (const dep of deps) {
     switch (dep.type) {
@@ -156,6 +161,7 @@ const buildPotentialRollData = (phase, check, checkProgress) => {
       case "override":
         if (dep.overrideSkill) overrideSkill = dep.overrideSkill;
         if (Number.isFinite(dep.overrideDc)) overrideDc = dep.overrideDc;
+        if (typeof dep.overrideDc === "string") overrideDifficulty = dep.overrideDc;
         break;
       default:
         break;
@@ -164,6 +170,20 @@ const buildPotentialRollData = (phase, check, checkProgress) => {
   if (advantage && disadvantage) {
     advantage = false;
     disadvantage = false;
+  }
+  if (rollMode === "d100") {
+    const baseDifficulty = check?.difficulty ?? "";
+    const difficulty = overrideDifficulty || baseDifficulty;
+    return {
+      skill: overrideSkill || check?.skill || "",
+      difficulty,
+      difficultyLabel: getDifficultyLabel(difficulty),
+      advantage,
+      disadvantage,
+      dcPenalty,
+      overrideSkill,
+      overrideDc,
+    };
   }
   const baseDc = getPhaseDc(phase, check);
   let dc = Number.isFinite(overrideDc) ? overrideDc : baseDc;
@@ -183,6 +203,24 @@ const buildPotentialRollData = (phase, check, checkProgress) => {
 
 const buildDcTooltip = ({ actor, rollData, baseDc, redacted, potentialRollData, allowTooltip }) => {
   if (!allowTooltip || !actor || !rollData || !rollData.skill || redacted) return "";
+  const rollMode = getCheckRollMode();
+  if (rollMode === "d100") {
+    const lines = [];
+    const skillLabel = getSkillLabel(rollData.skill);
+    if (skillLabel) {
+      lines.push(`Skill: ${skillLabel}`);
+    }
+    const difficultyLabel = rollData.difficultyLabel || getDifficultyLabel(rollData.difficulty ?? baseDc);
+    if (difficultyLabel) {
+      lines.push(`Difficulty: ${difficultyLabel}`);
+    }
+    if (potentialRollData?.difficulty && potentialRollData.difficulty !== rollData.difficulty) {
+      lines.push(`If deps complete: ${getDifficultyLabel(potentialRollData.difficulty)}`);
+    }
+    if (rollData.advantage) lines.push("Advantage");
+    if (rollData.disadvantage) lines.push("Disadvantage");
+    return lines.join("\n");
+  }
   const bonus = getActorCheckBonus(actor, rollData.skill);
   if (!Number.isFinite(bonus)) return "";
   const chance = getCheckSuccessChance({
@@ -1394,6 +1432,7 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
     const phaseName = phase?.name ?? "Phase";
     const actor = this._actor ?? null;
     const allowTooltips = game.user?.isGM || shouldShowCheckTooltips(this._trackerId);
+    const rollMode = getCheckRollMode();
 
     const state = getWorldState(this._trackerId);
     const phaseState = state?.phases?.[phase?.id] ?? {};
@@ -1424,6 +1463,9 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
       const type = dep?.type ?? "block";
       if (type === "harder") {
         const penalty = Number.isFinite(dep?.dcPenalty) && dep.dcPenalty > 0 ? dep.dcPenalty : 1;
+        if (rollMode === "d100") {
+          return `Harder until completed (Increase Difficulty${penalty > 1 ? ` +${penalty}` : ""})`;
+        }
         return `Harder until completed (+${penalty} DC)`;
       }
       if (type === "prevents") return "Blocks when completed";
@@ -1433,6 +1475,7 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
         const parts = [];
         if (dep?.overrideSkill) parts.push(getSkillLabel(dep.overrideSkill));
         if (Number.isFinite(dep?.overrideDc)) parts.push(`DC ${dep.overrideDc}`);
+        if (typeof dep?.overrideDc === "string") parts.push(getDifficultyLabel(dep.overrideDc));
         const detail = parts.length ? parts.join(" ") : "Override";
         return `Overrides when completed (${detail})`;
       }
@@ -1446,6 +1489,9 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
       if (type === "prevents") return `${base} (Blocks when completed)`;
       if (type === "harder") {
         const penalty = Number.isFinite(dep?.dcPenalty) && dep.dcPenalty > 0 ? dep.dcPenalty : 1;
+        if (rollMode === "d100") {
+          return `${base} (Increase Difficulty${penalty > 1 ? ` +${penalty}` : ""})`;
+        }
         return `${base} (DC +${penalty})`;
       }
       if (type === "advantage") return `${base} (Advantage)`;
@@ -1454,6 +1500,7 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
         const parts = [];
         if (dep?.overrideSkill) parts.push(getSkillLabel(dep.overrideSkill));
         if (Number.isFinite(dep?.overrideDc)) parts.push(`DC ${dep.overrideDc}`);
+        if (typeof dep?.overrideDc === "string") parts.push(getDifficultyLabel(dep.overrideDc));
         const detail = parts.length ? parts.join(" ") : "Override";
         return `${base} (${detail})`;
       }
@@ -1502,6 +1549,7 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
 
     const groups = getPhaseGroups(phase).map((group) => {
       const checks = (group.checks ?? []).map((check) => {
+        const rollMode = getCheckRollMode();
         const rollData = getCheckRollData(phase, check, checkProgress);
         const skillLabel = check.skill ? getSkillLabel(check.skill) : "";
         const name = check.name || skillLabel || "Check";
@@ -1520,15 +1568,22 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
         const displaySkillLabel = shouldRedact ? "???" : skillLabel;
         const displayDescription = shouldRedact ? "???" : rawDescription;
         const potentialRollData = buildPotentialRollData(phase, check, checkProgress);
+        const baseDcValue = rollMode === "d100" ? check.difficulty : check.dc;
         const dcTooltip = buildDcTooltip({
           actor,
           rollData,
-          baseDc: check.dc,
+          baseDc: baseDcValue,
           redacted: shouldRedact,
           potentialRollData,
           allowTooltip: allowTooltips,
         });
         checkLabels[check.id] = displayName;
+        const difficulty = check?.difficulty ?? "";
+        const difficultyLabel = getDifficultyLabel(difficulty);
+        const dcValue = Number(check.dc ?? 0);
+        const dcLabel = rollMode === "d100"
+          ? `Difficulty: ${difficultyLabel}`
+          : (Number.isFinite(dcValue) ? `DC ${dcValue}` : "");
         return {
           id: check.id,
           name: displayName,
@@ -1540,7 +1595,10 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
           complete,
           locked: isLocked,
           groupMaxed: groupMaxed && !complete,
-          dc: Number(check.dc ?? 0),
+          dc: dcValue,
+          dcLabel,
+          difficulty,
+          difficultyLabel,
           dcTooltip,
           dependsOn: normalizeCheckDependencies(check.dependsOn ?? []),
           successLines: successByCheck[check.id] ?? [],
@@ -1803,8 +1861,11 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
 
       if (config.type === "select") {
         input = $('<select class="drep-inline-edit"></select>');
-        for (const option of getSkillOptions()) {
-          input.append(`<option value="${option.key}">${option.label}</option>`);
+        const options = Array.isArray(config.options) && config.options.length
+          ? config.options
+          : getSkillOptions().map((option) => ({ value: option.key, label: option.label }));
+        for (const option of options) {
+          input.append(`<option value="${option.value}">${option.label}</option>`);
         }
         input.val(config.value || "");
       } else if (config.type === "textarea") {
@@ -1848,6 +1909,15 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
           return;
         }
         if (config.edit === "check-dc") {
+          const rollMode = getCheckRollMode();
+          if (rollMode === "d100") {
+            const difficulty = newValue || "regular";
+            debugLog("Inline edit save", { edit: config.edit, checkId: config.checkId, value: difficulty });
+            if (updateCheckField(phase, config.checkId, { difficulty })) {
+              savePhaseConfig(phase);
+            }
+            return;
+          }
           const dcValue = Number(newValue);
           if (!Number.isInteger(dcValue) || dcValue <= 0) {
             ui.notifications.warn("Indy Downtime Tracker: DC must be a positive integer.");
@@ -1916,6 +1986,7 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
       const group = (phase.groups ?? []).find((entry) => entry.id === groupId);
       if (!group) return;
       group.checks = Array.isArray(group.checks) ? group.checks : [];
+      const rollMode = getCheckRollMode();
       const options = getSkillOptions();
       const defaultSkill = options[0]?.key ?? "";
       const defaultLabel = defaultSkill ? getSkillLabel(defaultSkill) : "";
@@ -1925,6 +1996,7 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
         skill: defaultSkill,
         description: "",
         dc: 13,
+        difficulty: rollMode === "d100" ? "regular" : "",
         value: 1,
         dependsOn: [],
       });
@@ -2270,7 +2342,18 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
         } else if (edit === "check-skill") {
           beginInlineEdit(target, { edit, type: "select", value: target.dataset.value ?? target.dataset.skill ?? "", checkId });
         } else if (edit === "check-dc") {
-          beginInlineEdit(target, { edit, type: "number", value: target.dataset.dc ?? "", checkId });
+          const rollMode = getCheckRollMode();
+          if (rollMode === "d100") {
+            beginInlineEdit(target, {
+              edit,
+              type: "select",
+              value: target.dataset.difficulty ?? "regular",
+              checkId,
+              options: getDifficultyOptions(),
+            });
+          } else {
+            beginInlineEdit(target, { edit, type: "number", value: target.dataset.dc ?? "", checkId });
+          }
         } else if (edit === "check-description") {
           beginInlineEdit(target, { edit, type: "textarea", value: target.dataset.value ?? target.textContent, checkId });
         }
@@ -2782,7 +2865,10 @@ class DowntimeRepDepEditor extends HandlebarsApplicationMixin(ApplicationV2) {
     const type = dep.type ?? "block";
     const dcPenalty = Number.isFinite(dep.dcPenalty) && dep.dcPenalty > 0 ? dep.dcPenalty : 1;
     const overrideSkill = dep.overrideSkill ?? "";
-    const overrideDc = Number.isFinite(dep.overrideDc) ? dep.overrideDc : "";
+    const overrideDc = typeof dep.overrideDc === "string"
+      ? dep.overrideDc
+      : (Number.isFinite(dep.overrideDc) ? dep.overrideDc : "");
+    const rollMode = getCheckRollMode();
     return {
       ...context,
       depId: dep.id ?? "",
@@ -2791,6 +2877,8 @@ class DowntimeRepDepEditor extends HandlebarsApplicationMixin(ApplicationV2) {
       overrideSkill,
       overrideDc,
       skillOptions: getSkillOptions(),
+      isD100Mode: rollMode === "d100",
+      difficultyOptions: getDifficultyOptions(),
     };
   }
 
@@ -2848,8 +2936,14 @@ class DowntimeRepDepEditor extends HandlebarsApplicationMixin(ApplicationV2) {
     if (type === "override") {
       const skillValue = String(data.overrideSkill ?? "").trim();
       if (skillValue) nextDep.overrideSkill = skillValue;
-      const dcValue = Number(data.overrideDc);
-      if (Number.isFinite(dcValue)) nextDep.overrideDc = dcValue;
+      const rollMode = getCheckRollMode();
+      if (rollMode === "d100") {
+        const difficultyValue = String(data.overrideDc ?? "").trim();
+        if (difficultyValue) nextDep.overrideDc = difficultyValue;
+      } else {
+        const dcValue = Number(data.overrideDc);
+        if (Number.isFinite(dcValue)) nextDep.overrideDc = dcValue;
+      }
     }
     if (app._onSave) {
       app._onSave(nextDep);

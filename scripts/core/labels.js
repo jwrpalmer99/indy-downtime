@@ -6,6 +6,7 @@ import {
   DEFAULT_TAB_LABEL,
   LAST_ACTOR_IDS_SETTING,
   LAST_SKILL_CHOICES_SETTING,
+  CHECK_ROLL_MODE_SETTING,
   INJECT_INTO_SHEET_SETTING,
   MANUAL_ROLL_SETTING,
   MANUAL_SKILL_OVERRIDES_SETTING,
@@ -139,6 +140,18 @@ function shouldUseManualRolls(trackerId) {
     return Boolean(tracker.manualRollEnabled);
   }
   return true;
+}
+
+function getCheckRollMode() {
+  const settingKey = `${MODULE_ID}.${CHECK_ROLL_MODE_SETTING}`;
+  if (game?.settings?.settings?.has(settingKey)) {
+    return String(game.settings.get(MODULE_ID, CHECK_ROLL_MODE_SETTING) ?? "d20");
+  }
+  return "d20";
+}
+
+function isD100RollMode() {
+  return getCheckRollMode() === "d100";
 }
 
 
@@ -486,6 +499,8 @@ export {
   shouldShowCheckTooltips,
   shouldInjectIntoSheet,
   shouldUseManualRolls,
+  getCheckRollMode,
+  isD100RollMode,
   getRestrictedActorUuids,
   parseRestrictedActorUuids,
   getLastSkillChoice,

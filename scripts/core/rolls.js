@@ -1,4 +1,4 @@
-import { debugLog, getIntervalLabel, getSkillLabel } from "./labels.js";
+import { debugLog, getIntervalLabel, getSkillLabel, getCheckRollMode } from "./labels.js";
 import {
   getActivePhase,
   getPhaseCheckById,
@@ -14,6 +14,8 @@ import {
   pickLineForCheck,
   pickLineForGroup,
   isGroupComplete,
+  getDifficultyLabel,
+  normalizeDifficulty,
 } from "./phase.js";
 import {
   getNextIncompletePhaseId,
@@ -83,6 +85,7 @@ function getActorCheckBonus(actor, skillKey) {
   return Number.isFinite(bonus) ? bonus : null;
 }
 function getCheckSuccessChance({ dc, bonus, advantage, disadvantage } = {}) {
+  if (getCheckRollMode() === "d100") return null;
   const dcValue = Number(dc);
   const bonusValue = Number(bonus);
   if (!Number.isFinite(dcValue) || !Number.isFinite(bonusValue)) return null;
@@ -96,6 +99,22 @@ function getCheckSuccessChance({ dc, bonus, advantage, disadvantage } = {}) {
     return Math.pow(chance, 2);
   }
   return chance;
+}
+
+const D100_DIFFICULTY_MULTIPLIERS = {
+  easy: 2,
+  regular: 1,
+  difficult: 0.5,
+  extreme: 0.2,
+};
+
+function getD100TargetValue(skillValue, difficulty) {
+  const base = Number(skillValue);
+  if (!Number.isFinite(base)) return null;
+  const normalized = normalizeDifficulty(difficulty);
+  const multiplier = D100_DIFFICULTY_MULTIPLIERS[normalized] ?? 1;
+  const target = Math.floor(base * multiplier);
+  return Math.min(100, Math.max(0, target));
 }
 async function rollPf2eSkill(actor, skillKey, advantage, disadvantage) {
   if (!actor || !skillKey) return null;
@@ -312,7 +331,10 @@ async function runIntervalRoll({ actor, checkChoice, trackerId }) {
   );
   const skillKey = rollData.skill;
   const skillLabel = skillKey ? getSkillLabel(skillKey) : selectedCheck.skill;
+  const rollMode = getCheckRollMode();
   const dc = rollData.dc;
+  const difficulty = rollData.difficulty ?? "";
+  const difficultyLabel = rollData.difficultyLabel ?? getDifficultyLabel(difficulty);
   const roll = await rollSkill(
     actor,
     skillKey,
@@ -321,7 +343,23 @@ async function runIntervalRoll({ actor, checkChoice, trackerId }) {
   );
   if (!roll) return;
   const total = roll.total ?? roll._total ?? 0;
-  const success = total >= dc;
+  let success = false;
+  let dcLabel = Number.isFinite(dc) ? String(dc) : "";
+  let dcLabelType = "DC";
+  let targetValue = null;
+  if (rollMode === "d100") {
+    const baseValue = getActorCheckBonus(actor, skillKey);
+    targetValue = getD100TargetValue(baseValue, difficulty);
+    if (!Number.isFinite(targetValue)) {
+      ui.notifications.warn("Indy Downtime Tracker: check target not available.");
+      return;
+    }
+    success = total <= targetValue;
+    dcLabel = difficultyLabel;
+    dcLabelType = "Difficulty";
+  } else {
+    success = total >= dc;
+  }
   const formula = roll.formula || roll._formula || "";
   state.checkCount = Number.isFinite(state.checkCount) ? state.checkCount + 1 : 1;
   let progressGained = 0;
@@ -410,6 +448,10 @@ async function runIntervalRoll({ actor, checkChoice, trackerId }) {
     skillKey,
     skillLabel,
     dc,
+    dcLabel,
+    dcLabelType,
+    difficulty,
+    targetValue,
     total,
     success,
     progressGained,
@@ -427,6 +469,8 @@ async function runIntervalRoll({ actor, checkChoice, trackerId }) {
     checkLabel,
     skillLabel,
     dc,
+    dcLabel,
+    dcLabelType,
     total,
     formula,
     success,
@@ -481,7 +525,12 @@ async function runManualIntervalResult({ actor, checkId, checkChoice, trackerId,
   );
   const skillKey = rollData.skill;
   const skillLabel = skillKey ? getSkillLabel(skillKey) : selectedCheck.skill;
+  const rollMode = getCheckRollMode();
   const dc = rollData.dc;
+  const difficulty = rollData.difficulty ?? "";
+  const difficultyLabel = rollData.difficultyLabel ?? getDifficultyLabel(difficulty);
+  const dcLabel = rollMode === "d100" ? difficultyLabel : (Number.isFinite(dc) ? String(dc) : "");
+  const dcLabelType = rollMode === "d100" ? "Difficulty" : "DC";
   const isSuccess = Boolean(success);
   const total = "Manual";
   const formula = "manual";
@@ -564,6 +613,9 @@ async function runManualIntervalResult({ actor, checkId, checkChoice, trackerId,
     skillKey,
     skillLabel,
     dc,
+    dcLabel,
+    dcLabelType,
+    difficulty,
     total,
     success: isSuccess,
     progressGained,
@@ -582,6 +634,8 @@ async function runManualIntervalResult({ actor, checkId, checkChoice, trackerId,
     checkLabel,
     skillLabel,
     dc,
+    dcLabel,
+    dcLabelType,
     success: isSuccess,
     progress: state.phases[activePhase.id].progress,
     progressTarget: activePhase.target,
@@ -598,6 +652,8 @@ async function postSummaryMessage({
   checkLabel,
   skillLabel,
   dc,
+  dcLabel,
+  dcLabelType,
   total,
   formula,
   success,
@@ -612,6 +668,8 @@ async function postSummaryMessage({
   trackerId,
 }) {
   const outcome = success ? "Success" : "Failure";
+  const targetLabel = dcLabel ?? (Number.isFinite(dc) ? String(dc) : "");
+  const targetType = dcLabelType || "DC";
   const progressLine = success
     ? `<p><strong>Progress:</strong> ${progress} / ${progressTarget}${
         progressGained ? ` (+${progressGained})` : ""
@@ -636,7 +694,7 @@ async function postSummaryMessage({
         <h4>${getIntervalLabel(trackerId)} Check: ${checkLabel}</h4>
         <p><strong>Actor:</strong> ${actor.name}</p>
         <p><strong>Skill:</strong> ${skillLabel}</p>
-        <p><strong>DC:</strong> ${dc}</p>
+        ${targetLabel ? `<p><strong>${targetType}:</strong> ${targetLabel}</p>` : ""}
         <p><strong>Result:</strong> ${total} [${formula}] (${outcome})</p>
         ${progressLine}
         ${criticalLine}
@@ -654,6 +712,8 @@ async function postManualSummaryMessage({
   checkLabel,
   skillLabel,
   dc,
+  dcLabel,
+  dcLabelType,
   success,
   progress,
   progressTarget,
@@ -665,6 +725,8 @@ async function postManualSummaryMessage({
   trackerId,
 }) {
   const outcome = success ? "Success" : "Failure";
+  const targetLabel = dcLabel ?? (Number.isFinite(dc) ? String(dc) : "");
+  const targetType = dcLabelType || "DC";
   const progressLine = success
     ? `<p><strong>Progress:</strong> ${progress} / ${progressTarget}${
         progressGained ? ` (+${progressGained})` : ""
@@ -686,7 +748,7 @@ async function postManualSummaryMessage({
         <h4>${getIntervalLabel(trackerId)} Check: ${checkLabel}</h4>
         <p><strong>Actor:</strong> ${actor.name}</p>
         <p><strong>Skill:</strong> ${skillLabel}</p>
-        <p><strong>DC:</strong> ${dc}</p>
+        ${targetLabel ? `<p><strong>${targetType}:</strong> ${targetLabel}</p>` : ""}
         <p><strong>Result:</strong> ${outcome} (Manual)</p>
         ${progressLine}
         ${successBlock}

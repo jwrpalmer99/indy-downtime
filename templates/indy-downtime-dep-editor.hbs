@@ -6,18 +6,22 @@
       <select name="depType">
         <option value="block" {{#if (eq depType "block")}}selected{{/if}}>Block until completed</option>
         <option value="prevents" {{#if (eq depType "prevents")}}selected{{/if}}>Block when completed</option>
-        <option value="harder" {{#if (eq depType "harder")}}selected{{/if}}>Harder until completed (+DC)</option>
+        <option value="harder" {{#if (eq depType "harder")}}selected{{/if}}>{{#if isD100Mode}}Harder until completed (Increase Difficulty){{else}}Harder until completed (+DC){{/if}}</option>
         <option value="advantage" {{#if (eq depType "advantage")}}selected{{/if}}>Advantage when completed</option>
         <option value="disadvantage" {{#if (eq depType "disadvantage")}}selected{{/if}}>Disadvantage until completed</option>
-        <option value="override" {{#if (eq depType "override")}}selected{{/if}}>Change skill/DC when completed</option>
+        <option value="override" {{#if (eq depType "override")}}selected{{/if}}>{{#if isD100Mode}}Change skill/difficulty when completed{{else}}Change skill/DC when completed{{/if}}</option>
       </select>
     </div>
   </div>
 
   <div class="form-group drep-dep-penalty">
-    <label>DC penalty</label>
+    <label>{{#if isD100Mode}}Increase difficulty{{else}}DC penalty{{/if}}</label>
     <div class="form-fields">
-      <input type="number" name="dcPenalty" value="{{dcPenalty}}" min="1" max="10" />
+      {{#if isD100Mode}}
+        <span class="notes">Moves the check up one difficulty level.</span>
+      {{else}}
+        <input type="number" name="dcPenalty" value="{{dcPenalty}}" min="1" max="10" />
+      {{/if}}
     </div>
   </div>
 
@@ -34,9 +38,18 @@
   </div>
 
   <div class="form-group drep-dep-override">
-    <label>Override DC</label>
+    <label>{{#if isD100Mode}}Override Difficulty{{else}}Override DC{{/if}}</label>
     <div class="form-fields">
-      <input type="number" name="overrideDc" value="{{overrideDc}}" min="0" />
+      {{#if isD100Mode}}
+        <select name="overrideDc">
+          <option value="">(no override)</option>
+          {{#each difficultyOptions}}
+            <option value="{{this.value}}" {{#if (eq ../overrideDc this.value)}}selected{{/if}}>{{this.label}}</option>
+          {{/each}}
+        </select>
+      {{else}}
+        <input type="number" name="overrideDc" value="{{overrideDc}}" min="0" />
+      {{/if}}
     </div>
   </div>
 </div>
