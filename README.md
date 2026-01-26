@@ -1,6 +1,6 @@
 # Indy Downtime Tracker
 
-Indy Downtime Tracker is a Foundry VTT v13 module for 5e/p2fe that models (downtime) projects with flexible multi-phase progress trackers and plans. Each tracker gets its own character sheet tab (shared amongst players) with progress, check selection, and roll controls.
+Indy Downtime Tracker is a Foundry VTT v13 module for any system (best integration with 5e/p2fe) that models (downtime) projects with flexible multi-phase progress trackers and plans. Each tracker gets its own character sheet tab (shared amongst players) with progress, check selection, and roll controls.
 
 Character Sheet:
 
@@ -22,7 +22,8 @@ Building the Plan:
 - Per-tracker labels and icon: header, tab label, interval label, Font Awesome icon.
 - Restrict a trackers visibility to specific actor UUIDs.
 - Roll summaries in chat, activity log, and manual progress editing/maintenance.
-- Optional sheet injection toggle; when disabled, open the tracker from Token Controls.
+- System-agnostic support: manual success/failure results, manual skill/ability overrides, and selectable d20/d100 check modes.
+- Optional sheet injection toggle (most system sheets should work but you can disable this and open the plan from Token Controls if yours doesn't)
 - Import/export for a tracker, a phase, all settings, or all state.
 - Compatible with default DnD5e sheets, Tidy5e, and PF2e character sheets.
 
@@ -40,6 +41,16 @@ Building the Plan:
 5. Use Edit Flow to add groups, checks, and dependencies.
 6. Open a character sheet and use the tracker tab to roll checks.
 
+
+> [!NOTE]
+>If your system sheet doesn't properly display the tracker tab then disable Inject into Character Sheet and use the scene controls (under Token).
+
+> [!NOTE]
+>If automatic rolls don't work in your system (quite likely!) then enable Manual Failure/Success 
+
+> [!NOTE]
+>If your systems' skill/abilities are not properly detected then us Manual Skill/Ability Overrides
+
 ## UI At A Glance
 - Configure Tracker: main settings and maintenance actions.
 - Edit Phase Configuration: phase names, targets, critical bonus, failure events, images, and completion actions.
@@ -53,5 +64,6 @@ Building the Plan:
 - DnD5e system (primary)
 - PF2e character sheets (tab injection + roll support)
 - Tidy5e character sheet
+- System-agnostic worlds (manual roll results + skill/ability overrides)
 
 See settings.md for a full settings walkthrough and tutorial.md for a step-by-step example.
