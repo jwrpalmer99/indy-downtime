@@ -49,7 +49,7 @@ Building the Plan:
 >If automatic rolls don't work in your system (quite likely!) then enable Manual Failure/Success 
 
 > [!NOTE]
->If your systems' skill/abilities are not properly detected then us Manual Skill/Ability Overrides
+>If your systems' skill/abilities are not properly detected then use Manual Skill/Ability Overrides
 
 ## UI At A Glance
 - Configure Tracker: main settings and maintenance actions.
