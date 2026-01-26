@@ -55,6 +55,7 @@ import {
 
   getPhaseCheckTarget,
   getDifficultyLabel,
+  getNarrativeOutcomeLabel,
 
   getRestrictedActorUuids,
 
@@ -396,7 +397,12 @@ function buildTrackerData({
 
   const displayLog = (state.log ?? []).map((entry) => {
     if (!entry || entry.type === "phase-complete") return entry;
-    if (entry.dcLabel && entry.dcLabelType) return entry;
+    const outcomeLabel = entry.outcome
+      ? getNarrativeOutcomeLabel(entry.outcome)
+      : (entry.outcomeLabel ?? "");
+    if (entry.dcLabel && entry.dcLabelType) {
+      return outcomeLabel ? { ...entry, outcomeLabel } : entry;
+    }
     if (rollMode === "d100") {
       const difficultyLabel = entry.difficulty
         ? getDifficultyLabel(entry.difficulty)
@@ -405,12 +411,14 @@ function buildTrackerData({
         ...entry,
         dcLabel: difficultyLabel,
         dcLabelType: "Difficulty",
+        outcomeLabel,
       };
     }
     return {
       ...entry,
       dcLabel: entry.dcLabel ?? (Number.isFinite(entry.dc) ? String(entry.dc) : ""),
       dcLabelType: entry.dcLabelType ?? "DC",
+      outcomeLabel,
     };
   });
 
@@ -421,7 +429,7 @@ function buildTrackerData({
 
     activePhase.checkProgress,
 
-    { groupCounts }
+    { groupCounts, resolvedChecks: activePhase.resolvedChecks ?? {} }
 
   ).map((choice) => ({
 
@@ -501,7 +509,12 @@ function buildTrackerData({
     checkDescriptions[choice.key] = choice.description || "";
 
     const check = getPhaseCheckById(activePhase, choice.key);
-    const depDetails = getCheckDependencyDetails(activePhase, check, activePhase.checkProgress);
+    const depDetails = getCheckDependencyDetails(
+      activePhase,
+      check,
+      activePhase.checkProgress,
+      activePhase.resolvedChecks
+    );
     if (depDetails.length) {
       const lines = depDetails.map((detail) => {
         const status = checkLockMap.get(detail.sourceId);
@@ -514,6 +527,18 @@ function buildTrackerData({
             return `Increase Difficulty${steps > 1 ? ` (+${steps})` : ""} (from ${displaySource})`;
           }
           return `+${detail.dcPenalty} DC (from ${displaySource})`;
+        }
+        if (detail.type === "triumph") {
+          return `Requires Triumph (from ${displaySource})`;
+        }
+        if (detail.type === "success") {
+          return `Requires Success (from ${displaySource})`;
+        }
+        if (detail.type === "failure") {
+          return `Requires Failure (from ${displaySource})`;
+        }
+        if (detail.type === "despair") {
+          return `Requires Despair (from ${displaySource})`;
         }
         if (detail.type === "advantage") {
           return `Advantage (from ${displaySource})`;
@@ -840,10 +865,13 @@ async function handleRoll(root, { render, actorOverride, trackerId, app } = {}) 
     requestTabRestore(app, activeTabId);
   }
 
-  if (shouldUseManualRolls(resolvedTrackerId)) {
+  const rollMode = getCheckRollMode();
+  const useManual = rollMode === "narrative" || shouldUseManualRolls(resolvedTrackerId);
+  if (useManual) {
     const availableChecks = getPhaseAvailableChecks(
       activePhase,
-      activePhase.checkProgress
+      activePhase.checkProgress,
+      activePhase.resolvedChecks
     );
     if (!availableChecks.length) {
       ui.notifications.warn("Indy Downtime Tracker: configure checks before rolling.");
@@ -859,32 +887,47 @@ async function handleRoll(root, { render, actorOverride, trackerId, app } = {}) 
     const rollData = getCheckRollData(
       activePhase,
       selectedCheck,
-      activePhase.checkProgress
+      activePhase.checkProgress,
+      activePhase.resolvedChecks
     );
-    const rollMode = getCheckRollMode();
     const checkLabel = getPhaseCheckLabel(selectedCheck);
     const skillLabel = rollData.skill ? getSkillLabel(rollData.skill) : selectedCheck.skill;
-    const dcLabel = rollMode === "d100"
-      ? (rollData.difficultyLabel ?? "")
-      : (Number.isFinite(rollData.dc) ? String(rollData.dc) : "");
-    const dcLabelType = rollMode === "d100" ? "Difficulty" : "DC";
-    const outcome = await promptManualRoll({
-      checkLabel,
-      skillLabel,
-      dc: rollData.dc,
-      dcLabel,
-      dcLabelType,
-      advantage: rollData.advantage,
-      disadvantage: rollData.disadvantage,
-    });
-    if (outcome === null) return;
-    await runManualIntervalResult({
-      actor,
-      checkId: selectedCheck.id,
-      checkChoice,
-      trackerId: resolvedTrackerId,
-      success: outcome,
-    });
+    if (rollMode === "narrative") {
+      const narrativeOutcome = await promptNarrativeOutcome({
+        checkLabel,
+        skillLabel,
+      });
+      if (narrativeOutcome === null) return;
+      await runManualIntervalResult({
+        actor,
+        checkId: selectedCheck.id,
+        checkChoice,
+        trackerId: resolvedTrackerId,
+        outcome: narrativeOutcome,
+      });
+    } else {
+      const dcLabel = rollMode === "d100"
+        ? (rollData.difficultyLabel ?? "")
+        : (Number.isFinite(rollData.dc) ? String(rollData.dc) : "");
+      const dcLabelType = rollMode === "d100" ? "Difficulty" : "DC";
+      const outcome = await promptManualRoll({
+        checkLabel,
+        skillLabel,
+        dc: rollData.dc,
+        dcLabel,
+        dcLabelType,
+        advantage: rollData.advantage,
+        disadvantage: rollData.disadvantage,
+      });
+      if (outcome === null) return;
+      await runManualIntervalResult({
+        actor,
+        checkId: selectedCheck.id,
+        checkChoice,
+        trackerId: resolvedTrackerId,
+        success: outcome,
+      });
+    }
   } else {
     await runIntervalRoll({
       actor,
@@ -970,6 +1013,46 @@ function resolveActorFromContext(context) {
 }
 
 
+
+function promptNarrativeOutcome({ checkLabel, skillLabel }) {
+  const skillText = skillLabel ? `${skillLabel} check` : "the check";
+  const content = `
+      <div class="drep-manual-roll">
+        <p><strong>${checkLabel}</strong></p>
+        <p>Resolve ${skillText} and choose the outcome below.</p>
+      </div>`;
+  return new Promise((resolve) => {
+    const dialog = new foundry.applications.api.DialogV2({
+      window: { title: "Narrative Outcome" },
+      content,
+      buttons: [
+        {
+          action: "triumph",
+          label: "Triumph",
+          callback: () => resolve("triumph"),
+        },
+        {
+          action: "success",
+          label: "Success",
+          default: true,
+          callback: () => resolve("success"),
+        },
+        {
+          action: "failure",
+          label: "Failure",
+          callback: () => resolve("failure"),
+        },
+        {
+          action: "despair",
+          label: "Despair",
+          callback: () => resolve("despair"),
+        },
+      ],
+      close: () => resolve(null),
+    });
+    dialog.render(true);
+  });
+}
 
 function promptManualRoll({ checkLabel, skillLabel, dc, dcLabel, dcLabelType, advantage, disadvantage }) {
   const rollHint = advantage

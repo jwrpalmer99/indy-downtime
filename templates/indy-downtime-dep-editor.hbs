@@ -6,6 +6,12 @@
       <select name="depType">
         <option value="block" {{#if (eq depType "block")}}selected{{/if}}>Block until completed</option>
         <option value="prevents" {{#if (eq depType "prevents")}}selected{{/if}}>Block when completed</option>
+        {{#if isNarrativeMode}}
+          <option value="triumph" {{#if (eq depType "triumph")}}selected{{/if}}>Unlock on Triumph</option>
+          <option value="success" {{#if (eq depType "success")}}selected{{/if}}>Unlock on Success</option>
+          <option value="failure" {{#if (eq depType "failure")}}selected{{/if}}>Unlock on Failure</option>
+          <option value="despair" {{#if (eq depType "despair")}}selected{{/if}}>Unlock on Despair</option>
+        {{/if}}
         <option value="harder" {{#if (eq depType "harder")}}selected{{/if}}>{{#if isD100Mode}}Harder until completed (Increase Difficulty){{else}}Harder until completed (+DC){{/if}}</option>
         <option value="advantage" {{#if (eq depType "advantage")}}selected{{/if}}>Advantage when completed</option>
         <option value="disadvantage" {{#if (eq depType "disadvantage")}}selected{{/if}}>Disadvantage until completed</option>

@@ -670,7 +670,7 @@ Hooks.once("init", () => {
 
     name: "Ability Check Mode",
 
-    hint: "Choose between d20 (5e style) or d100 (CoC style) check difficulties.",
+    hint: "Choose between d20 (5e style), d100 (CoC style), or narrative outcomes.",
 
     scope: "world",
 
@@ -681,6 +681,7 @@ Hooks.once("init", () => {
     choices: {
       d20: "d20 (5e style)",
       d100: "d100 (CoC style)",
+      narrative: "Narrative (outcomes)",
     },
 
     default: "d20",

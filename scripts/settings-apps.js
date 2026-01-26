@@ -63,6 +63,9 @@ import {
   getDifficultyOptions,
   getActorCheckBonus,
   getCheckSuccessChance,
+  getNarrativeOutcomeLabel,
+  normalizeNarrativeOutcome,
+  isNarrativeOutcomeSuccess,
   updateTrackerSettings,
   getSettingsExportPayload,
   getStateExportPayload,
@@ -137,10 +140,10 @@ const formatSignedNumber = (value) => {
   return numeric >= 0 ? `+${numeric}` : `${numeric}`;
 };
 
-const buildPotentialRollData = (phase, check, checkProgress) => {
+const buildPotentialRollData = (phase, check, checkProgress, resolvedChecks = {}) => {
   const deps = normalizeCheckDependencies(check?.dependsOn ?? []);
   if (!deps.length) return null;
-  const hasIncomplete = deps.some((dep) => !isDependencyComplete(phase, dep, checkProgress));
+  const hasIncomplete = deps.some((dep) => !isDependencyComplete(phase, dep, checkProgress, resolvedChecks));
   if (!hasIncomplete) return null;
   const rollMode = getCheckRollMode();
   let advantage = false;
@@ -204,6 +207,28 @@ const buildPotentialRollData = (phase, check, checkProgress) => {
 const buildDcTooltip = ({ actor, rollData, baseDc, redacted, potentialRollData, allowTooltip }) => {
   if (!allowTooltip || !actor || !rollData || !rollData.skill || redacted) return "";
   const rollMode = getCheckRollMode();
+  if (rollMode === "narrative") {
+    const lines = [];
+    const skillLabel = getSkillLabel(rollData.skill);
+    if (skillLabel) {
+      lines.push(`Skill: ${skillLabel}`);
+    }
+    const dcValue = Number(rollData.dc);
+    const baseValue = Number(baseDc);
+    if (Number.isFinite(dcValue)) {
+      if (Number.isFinite(baseValue) && baseValue && baseValue !== dcValue) {
+        lines.push(`DC: ${dcValue} (base ${baseValue})`);
+      } else {
+        lines.push(`DC: ${dcValue}`);
+      }
+    }
+    if (Number.isFinite(potentialRollData?.dc) && potentialRollData.dc !== rollData.dc) {
+      lines.push(`If deps complete: DC ${potentialRollData.dc}`);
+    }
+    if (rollData.advantage) lines.push("Advantage");
+    if (rollData.disadvantage) lines.push("Disadvantage");
+    return lines.join("\n");
+  }
   if (rollMode === "d100") {
     const lines = [];
     const skillLabel = getSkillLabel(rollData.skill);
@@ -319,6 +344,15 @@ class DowntimeRepSettings extends HandlebarsApplicationMixin(ApplicationV2) {
     const trackerId = getCurrentTrackerId();
     const tracker = getTrackerById(trackerId) ?? getCurrentTracker();
     const state = getWorldState(trackerId);
+    const displayLog = (state.log ?? []).map((entry) => {
+      if (!entry || entry.type === "phase-complete") return entry;
+      const outcomeLabel = entry.outcome
+        ? getNarrativeOutcomeLabel(entry.outcome)
+        : (entry.outcomeLabel ?? "");
+      if (!outcomeLabel) return entry;
+      return { ...entry, outcomeLabel };
+    });
+    const displayState = { ...state, log: displayLog };
     const headerLabel = getHeaderLabel(trackerId);
     const tabLabel = getTabLabel(trackerId);
     const intervalLabel = getIntervalLabel(trackerId);
@@ -341,8 +375,9 @@ class DowntimeRepSettings extends HandlebarsApplicationMixin(ApplicationV2) {
       showFlowRelationships: tracker?.showFlowRelationships !== false,
       showFlowLines: tracker?.showFlowLines !== false,
       isSingleTracker: trackerOptions.length <= 1,
-      state,
+      state: displayState,
       criticalBonusEnabled: state.criticalBonusEnabled,
+      isNarrativeMode: getCheckRollMode() === "narrative",
       headerLabel,
       tabLabel,
       intervalLabel,
@@ -657,9 +692,23 @@ class DowntimeRepSettings extends HandlebarsApplicationMixin(ApplicationV2) {
       state.log.splice(index, 1);
     } else if (action === "log-toggle") {
       const entry = state.log[index];
-      entry.success = !entry.success;
-      if (!entry.success) {
-        entry.criticalBonusApplied = false;
+      if (getCheckRollMode() === "narrative") {
+        const outcomes = ["triumph", "success", "failure", "despair"];
+        const current = normalizeNarrativeOutcome(entry.outcome)
+          || (entry.success ? "success" : "failure");
+        const currentIndex = outcomes.indexOf(current);
+        const next = outcomes[(currentIndex + 1) % outcomes.length] ?? "success";
+        entry.outcome = next;
+        entry.outcomeLabel = getNarrativeOutcomeLabel(next);
+        entry.success = isNarrativeOutcomeSuccess(next);
+        if (!entry.success) {
+          entry.criticalBonusApplied = false;
+        }
+      } else {
+        entry.success = !entry.success;
+        if (!entry.success) {
+          entry.criticalBonusApplied = false;
+        }
       }
     } else {
       return;
@@ -1437,6 +1486,7 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
     const state = getWorldState(this._trackerId);
     const phaseState = state?.phases?.[phase?.id] ?? {};
     const checkProgress = phaseState?.checkProgress ?? {};
+    const resolvedChecks = phaseState?.resolvedChecks ?? {};
     const redactLockedChecks = this._readOnly && !shouldShowLockedChecks(this._trackerId);
     const groupCounts = {};
     if (Array.isArray(state?.log)) {
@@ -1471,6 +1521,10 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
       if (type === "prevents") return "Blocks when completed";
       if (type === "advantage") return "Advantage when completed";
       if (type === "disadvantage") return "Disadvantage until completed";
+      if (type === "triumph" || type === "success" || type === "failure" || type === "despair") {
+        const outcomeLabel = getNarrativeOutcomeLabel(type) || type;
+        return `Unlocks on ${outcomeLabel}`;
+      }
       if (type === "override") {
         const parts = [];
         if (dep?.overrideSkill) parts.push(getSkillLabel(dep.overrideSkill));
@@ -1496,6 +1550,10 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
       }
       if (type === "advantage") return `${base} (Advantage)`;
       if (type === "disadvantage") return `${base} (Disadvantage)`;
+      if (type === "triumph" || type === "success" || type === "failure" || type === "despair") {
+        const outcomeLabel = getNarrativeOutcomeLabel(type) || type;
+        return `${base} (${outcomeLabel})`;
+      }
       if (type === "override") {
         const parts = [];
         if (dep?.overrideSkill) parts.push(getSkillLabel(dep.overrideSkill));
@@ -1550,13 +1608,13 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
     const groups = getPhaseGroups(phase).map((group) => {
       const checks = (group.checks ?? []).map((check) => {
         const rollMode = getCheckRollMode();
-        const rollData = getCheckRollData(phase, check, checkProgress);
+        const rollData = getCheckRollData(phase, check, checkProgress, resolvedChecks);
         const skillLabel = check.skill ? getSkillLabel(check.skill) : "";
         const name = check.name || skillLabel || "Check";
         const rawName = check.name || "";
         const rawDescription = check.description ?? "";
         const complete = isCheckComplete(check, checkProgress);
-        const unlocked = isCheckUnlocked(phase, check, checkProgress);
+        const unlocked = isCheckUnlocked(phase, check, checkProgress, resolvedChecks);
         const group = getPhaseGroups(phase).find((entry) => entry.id === check.groupId);
         const groupLimit = Number(group?.maxChecks ?? 0);
         const groupUsed = Number(groupCounts?.[check.groupId] ?? 0);
@@ -1567,7 +1625,7 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
         const displayName = shouldRedact ? "???" : name;
         const displaySkillLabel = shouldRedact ? "???" : skillLabel;
         const displayDescription = shouldRedact ? "???" : rawDescription;
-        const potentialRollData = buildPotentialRollData(phase, check, checkProgress);
+        const potentialRollData = buildPotentialRollData(phase, check, checkProgress, resolvedChecks);
         const baseDcValue = rollMode === "d100" ? check.difficulty : check.dc;
         const dcTooltip = buildDcTooltip({
           actor,
@@ -1629,7 +1687,7 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
           dcPenalty: dep.dcPenalty ?? 0,
           overrideSkill: dep.overrideSkill ?? "",
           overrideDc: dep.overrideDc ?? null,
-          complete: isDependencyComplete(phase, dep, checkProgress),
+          complete: isDependencyComplete(phase, dep, checkProgress, resolvedChecks),
         }));
         if (check.dependsOnEntries.length) {
           debugLog("Flow check deps", {
@@ -2878,6 +2936,7 @@ class DowntimeRepDepEditor extends HandlebarsApplicationMixin(ApplicationV2) {
       overrideDc,
       skillOptions: getSkillOptions(),
       isD100Mode: rollMode === "d100",
+      isNarrativeMode: rollMode === "narrative",
       difficultyOptions: getDifficultyOptions(),
     };
   }

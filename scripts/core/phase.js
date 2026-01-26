@@ -1,6 +1,6 @@
 import { DEFAULT_PHASE_CONFIG } from "../constants.js";
 import { parseList } from "./parse.js";
-import { getSkillLabel, clampNumber, getCheckRollMode } from "./labels.js";
+import { getSkillLabel, clampNumber, getCheckRollMode, normalizeNarrativeOutcome } from "./labels.js";
 import { getCurrentTracker, getTrackerById } from "./tracker.js";
 
 const DEFAULT_CHECK_TARGET = 1;
@@ -23,7 +23,12 @@ const DEPENDENCY_TYPES = new Set([
   "advantage",
   "disadvantage",
   "override",
+  "triumph",
+  "success",
+  "failure",
+  "despair",
 ]);
+const NARRATIVE_DEPENDENCY_TYPES = new Set(["triumph", "success", "failure", "despair"]);
 
 function getPhaseConfig(trackerId) {
   const tracker = trackerId ? getTrackerById(trackerId) : getCurrentTracker();
@@ -422,12 +427,17 @@ function getActivePhase(state, trackerId) {
     completed: false,
     failuresInRow: 0,
     checkProgress: {},
+    resolvedChecks: {},
   };
   const merged = {
     ...definition,
     ...phaseState,
   };
   merged.checkProgress = buildCheckProgressMap(merged, phaseState.checkProgress);
+  merged.resolvedChecks =
+    phaseState.resolvedChecks && typeof phaseState.resolvedChecks === "object"
+      ? phaseState.resolvedChecks
+      : {};
   merged.progress = getPhaseProgress(merged, merged.checkProgress);
   merged.completed = isPhaseComplete({ ...merged });
   return merged;
@@ -444,6 +454,7 @@ function initializePhaseState(state, phase) {
     completed: false,
     failuresInRow: 0,
     checkProgress: buildCheckProgressMap(phase, {}),
+    resolvedChecks: {},
   };
 }
 
@@ -562,11 +573,31 @@ function isGroupComplete(phase, groupId, checkProgress) {
   return (group.checks ?? []).every((check) => isCheckComplete(check, checkProgress));
 }
 
-function isDependencyComplete(phase, dep, checkProgress) {
+function isDependencyComplete(phase, dep, checkProgress, resolvedChecks = {}) {
   if (!dep) return true;
   const depId = typeof dep === "string" ? dep : dep.id;
   if (!depId) return true;
+  const depType = dep?.type ?? "block";
   const kind = typeof dep === "object" && dep.kind === "group" ? "group" : "check";
+  if (NARRATIVE_DEPENDENCY_TYPES.has(depType)) {
+    const normalizedChecks =
+      resolvedChecks && typeof resolvedChecks === "object" ? resolvedChecks : {};
+    const matchesRequirement = (outcome, requirement) => {
+      const normalized = normalizeNarrativeOutcome(outcome);
+      if (!normalized) return false;
+      if (requirement === "success") return normalized === "success" || normalized === "triumph";
+      if (requirement === "failure") return normalized === "failure" || normalized === "despair";
+      return normalized === requirement;
+    };
+    if (kind === "group") {
+      const group = resolveGroupByIdOrName(phase, depId);
+      if (!group) return false;
+      return (group.checks ?? []).some((check) =>
+        matchesRequirement(normalizedChecks[check.id], depType)
+      );
+    }
+    return matchesRequirement(normalizedChecks[depId], depType);
+  }
   if (kind === "group") {
     return isGroupComplete(phase, depId, checkProgress);
   }
@@ -580,7 +611,7 @@ function isDependencyComplete(phase, dep, checkProgress) {
   return current >= target;
 }
 
-function getCheckDependencyEffects(phase, check, checkProgress) {
+function getCheckDependencyEffects(phase, check, checkProgress, resolvedChecks = {}) {
   const deps = getCheckDependencies(check);
   let dcPenalty = 0;
   let advantage = false;
@@ -588,7 +619,7 @@ function getCheckDependencyEffects(phase, check, checkProgress) {
   let overrideSkill = "";
   let overrideDc = null;
   for (const dep of deps) {
-    const complete = isDependencyComplete(phase, dep, checkProgress);
+    const complete = isDependencyComplete(phase, dep, checkProgress, resolvedChecks);
     switch (dep.type) {
       case "harder": {
         const penalty = Number.isFinite(dep.dcPenalty) && dep.dcPenalty > 0 ? dep.dcPenalty : 1;
@@ -627,7 +658,7 @@ function getCheckDependencyEffects(phase, check, checkProgress) {
   };
 }
 
-function getCheckDependencyDetails(phase, check, checkProgress) {
+function getCheckDependencyDetails(phase, check, checkProgress, resolvedChecks = {}) {
   const deps = getCheckDependencies(check);
   const details = [];
   for (const dep of deps) {
@@ -641,11 +672,17 @@ function getCheckDependencyDetails(phase, check, checkProgress) {
         ? (sourceGroup?.name || dep.id)
         : (getPhaseCheckLabel(sourceCheck) || sourceGroup?.name || dep.id);
     const sourceId = dep.id;
-    const complete = isDependencyComplete(phase, dep, checkProgress);
+    const complete = isDependencyComplete(phase, dep, checkProgress, resolvedChecks);
     if (dep.type === "harder") {
       const penalty = Number.isFinite(dep.dcPenalty) && dep.dcPenalty > 0 ? dep.dcPenalty : 1;
       if (!complete) {
         details.push({ type: "harder", dcPenalty: penalty, source: sourceLabel, sourceId, sourceKind: dep.kind, complete });
+      }
+      continue;
+    }
+    if (NARRATIVE_DEPENDENCY_TYPES.has(dep.type)) {
+      if (!complete) {
+        details.push({ type: dep.type, source: sourceLabel, sourceId, sourceKind: dep.kind, complete });
       }
       continue;
     }
@@ -665,8 +702,8 @@ function getCheckDependencyDetails(phase, check, checkProgress) {
   return details;
 }
 
-function getCheckRollData(phase, check, checkProgress) {
-  const effects = getCheckDependencyEffects(phase, check, checkProgress);
+function getCheckRollData(phase, check, checkProgress, resolvedChecks = {}) {
+  const effects = getCheckDependencyEffects(phase, check, checkProgress, resolvedChecks);
   const skill = effects.overrideSkill || check?.skill || "";
   const rollMode = getCheckRollMode();
   if (rollMode === "d100") {
@@ -710,14 +747,15 @@ function getCheckRollData(phase, check, checkProgress) {
   };
 }
 
-function isCheckUnlocked(phase, check, checkProgress) {
+function isCheckUnlocked(phase, check, checkProgress, resolvedChecks = {}) {
+  if (resolvedChecks && resolvedChecks[check?.id]) return false;
   const deps = getCheckDependencies(check);
-  const blockers = deps.filter((dep) => dep.type === "block");
-  if (blockers.length && !blockers.every((dep) => isDependencyComplete(phase, dep, checkProgress))) {
+  const blockers = deps.filter((dep) => dep.type === "block" || NARRATIVE_DEPENDENCY_TYPES.has(dep.type));
+  if (blockers.length && !blockers.every((dep) => isDependencyComplete(phase, dep, checkProgress, resolvedChecks))) {
     return false;
   }
   const lockouts = deps.filter((dep) => dep.type === "prevents");
-  if (lockouts.some((dep) => isDependencyComplete(phase, dep, checkProgress))) {
+  if (lockouts.some((dep) => isDependencyComplete(phase, dep, checkProgress, resolvedChecks))) {
     return false;
   }
   return true;
@@ -732,15 +770,16 @@ function getPhaseDc(phase, checkId) {
 
 function getPhaseCheckChoices(phase, checkProgress, options = {}) {
   const groupCounts = options.groupCounts ?? {};
+  const resolvedChecks = options.resolvedChecks ?? {};
   const rollMode = getCheckRollMode();
   return getPhaseChecks(phase).map((check) => {
     const complete = isCheckComplete(check, checkProgress);
-    const unlocked = isCheckUnlocked(phase, check, checkProgress);
+    const unlocked = isCheckUnlocked(phase, check, checkProgress, resolvedChecks);
     const group = getPhaseGroups(phase).find((entry) => entry.id === check.groupId);
     const groupLimit = Number(group?.maxChecks ?? 0);
     const groupUsed = Number(groupCounts?.[check.groupId] ?? 0);
     const groupAvailable = !groupLimit || groupUsed < groupLimit;
-    const rollData = getCheckRollData(phase, check, checkProgress);
+    const rollData = getCheckRollData(phase, check, checkProgress, resolvedChecks);
     const skillLabel = rollData.skill ? getSkillLabel(rollData.skill) : "";
     const difficultyLabel = rollMode === "d100" ? getDifficultyLabel(rollData.difficulty) : "";
     const dcLabel = rollMode === "d100"
@@ -767,10 +806,10 @@ function getPhaseCheckChoices(phase, checkProgress, options = {}) {
   });
 }
 
-function getPhaseAvailableChecks(phase, checkProgress) {
+function getPhaseAvailableChecks(phase, checkProgress, resolvedChecks = {}) {
   return getPhaseChecks(phase).filter((check) => {
     if (isCheckComplete(check, checkProgress)) return false;
-    return isCheckUnlocked(phase, check, checkProgress);
+    return isCheckUnlocked(phase, check, checkProgress, resolvedChecks);
   });
 }
 

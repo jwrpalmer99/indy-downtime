@@ -144,11 +144,11 @@
             <div class="drep-log-main">
               <strong>Check {{#if this.checkNumber}}{{this.checkNumber}}{{else}}{{this.windowDay}}{{/if}}:</strong>
               {{this.actorName}} rolled {{#if this.checkName}}{{this.checkName}} ({{this.skillLabel}}){{else}}{{this.skillLabel}}{{/if}}{{#if this.dcLabel}} vs {{this.dcLabelType}} {{this.dcLabel}}{{else}} vs DC {{this.dc}}{{/if}}.
-              Result: {{this.total}} ({{#if this.success}}Success{{else}}Failure{{/if}})
+              Result: {{#if this.outcomeLabel}}{{this.outcomeLabel}}{{else}}{{this.total}} ({{#if this.success}}Success{{else}}Failure{{/if}}){{/if}}
             </div>
             <div class="drep-log-actions">
               <button type="button" class="dialog-button" data-drep-action="log-toggle" data-log-index="{{@index}}">
-                Toggle Success
+                {{#if ../isNarrativeMode}}Cycle Outcome{{else}}Toggle Success{{/if}}
               </button>
               <button type="button" class="dialog-button" data-drep-action="log-delete" data-log-index="{{@index}}">
                 Remove Entry

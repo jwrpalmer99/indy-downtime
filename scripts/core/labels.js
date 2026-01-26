@@ -130,6 +130,7 @@ function shouldInjectIntoSheet(trackerId) {
 }
 
 function shouldUseManualRolls(trackerId) {
+  if (getCheckRollMode() === "narrative") return true;
   if (game.system?.id === "dnd5e" || game.system?.id === "pf2e") return false;
   const settingKey = `${MODULE_ID}.${MANUAL_ROLL_SETTING}`;
   if (game?.settings?.settings?.has(settingKey)) {
@@ -152,6 +153,33 @@ function getCheckRollMode() {
 
 function isD100RollMode() {
   return getCheckRollMode() === "d100";
+}
+
+function isNarrativeRollMode() {
+  return getCheckRollMode() === "narrative";
+}
+
+const NARRATIVE_OUTCOMES = ["triumph", "success", "failure", "despair"];
+const NARRATIVE_OUTCOME_LABELS = {
+  triumph: "Triumph",
+  success: "Success",
+  failure: "Failure",
+  despair: "Despair",
+};
+
+function normalizeNarrativeOutcome(raw) {
+  const value = typeof raw === "string" ? raw.trim().toLowerCase() : "";
+  return NARRATIVE_OUTCOMES.includes(value) ? value : "";
+}
+
+function isNarrativeOutcomeSuccess(outcome) {
+  const normalized = normalizeNarrativeOutcome(outcome);
+  return normalized === "triumph" || normalized === "success";
+}
+
+function getNarrativeOutcomeLabel(outcome) {
+  const normalized = normalizeNarrativeOutcome(outcome);
+  return normalized ? (NARRATIVE_OUTCOME_LABELS[normalized] ?? "") : "";
 }
 
 
@@ -501,6 +529,10 @@ export {
   shouldUseManualRolls,
   getCheckRollMode,
   isD100RollMode,
+  isNarrativeRollMode,
+  normalizeNarrativeOutcome,
+  isNarrativeOutcomeSuccess,
+  getNarrativeOutcomeLabel,
   getRestrictedActorUuids,
   parseRestrictedActorUuids,
   getLastSkillChoice,

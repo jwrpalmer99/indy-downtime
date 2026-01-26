@@ -5,7 +5,7 @@ import {
   SOCKET_EVENT_REQUEST,
   SOCKET_EVENT_STATE,
 } from "../constants.js";
-import { clampNumber, getSkillLabel, getCheckRollMode } from "./labels.js";
+import { clampNumber, getSkillLabel, getCheckRollMode, normalizeNarrativeOutcome, getNarrativeOutcomeLabel, isNarrativeOutcomeSuccess } from "./labels.js";
 import {
   buildCheckProgressMap,
   getFirstPhaseId,
@@ -70,7 +70,7 @@ function normalizeProjectState(source, phaseConfig) {
     : getPhaseConfig();
   state.phases = state.phases ?? {};
   for (const phase of resolvedConfig) {
-    const fallback = { progress: 0, completed: false, failuresInRow: 0, checkProgress: {} };
+    const fallback = { progress: 0, completed: false, failuresInRow: 0, checkProgress: {}, resolvedChecks: {} };
     const existing = foundry.utils.mergeObject(
       fallback,
       state.phases[phase.id] ?? {},
@@ -80,6 +80,7 @@ function normalizeProjectState(source, phaseConfig) {
       existing.checkProgress = {};
     }
     existing.checkProgress = migrateLegacyCheckProgress(phase, existing);
+    existing.resolvedChecks = normalizeResolvedChecks(phase, existing.resolvedChecks);
     existing.progress = Math.min(
       getPhaseProgress(phase, existing.checkProgress),
       Number(phase.target ?? 0)
@@ -115,6 +116,18 @@ function migrateLegacyCheckProgress(phase, phaseState) {
   return progress;
 }
 
+function normalizeResolvedChecks(phase, resolvedChecks) {
+  const output = {};
+  if (!resolvedChecks || typeof resolvedChecks !== "object") return output;
+  const validIds = new Set(getPhaseChecks(phase).map((check) => check.id));
+  for (const [checkId, outcomeRaw] of Object.entries(resolvedChecks)) {
+    if (!validIds.has(checkId)) continue;
+    const outcome = normalizeNarrativeOutcome(outcomeRaw);
+    if (outcome) output[checkId] = outcome;
+  }
+  return output;
+}
+
 function applyStateOverridesFromForm(state, formData, phaseConfig) {
   if (!state || !formData || !Array.isArray(phaseConfig)) return;
   const checkCount = Number(formData.checkCount);
@@ -130,6 +143,7 @@ function applyStateOverridesFromForm(state, formData, phaseConfig) {
       completed: false,
       failuresInRow: 0,
       checkProgress: {},
+      resolvedChecks: {},
     };
     const failureValue = Number(formData[`${phase.id}FailuresInRow`]);
     if (Number.isFinite(failureValue)) {
@@ -175,6 +189,7 @@ function recalculateStateFromLog(state, trackerId) {
       completed: false,
       failuresInRow: 0,
       checkProgress: buildCheckProgressMap(phase, {}),
+      resolvedChecks: {},
     };
   }
 
@@ -226,7 +241,14 @@ function applyLogEntryToState(entry, state, phaseConfig) {
   const groupId = check?.groupId ?? entry.groupId ?? "";
   const skillKey = check?.skill ?? entry.skillKey ?? entry.skillChoice ?? "";
   const skillLabel = skillKey ? getSkillLabel(skillKey) : "";
-  const success = Boolean(entry.success);
+  const normalizedOutcome = normalizeNarrativeOutcome(entry.outcome ?? "");
+  const storedOutcome = normalizedOutcome || (entry.outcome ?? "");
+  const outcomeLabel = normalizedOutcome
+    ? getNarrativeOutcomeLabel(normalizedOutcome)
+    : (entry.outcomeLabel ?? "");
+  const success = normalizedOutcome
+    ? isNarrativeOutcomeSuccess(normalizedOutcome)
+    : Boolean(entry.success);
   const rollMode = getCheckRollMode();
   const dc = getPhaseDc(phase, check);
   const difficulty = entry.difficulty ?? check?.difficulty ?? "";
@@ -246,6 +268,10 @@ function applyLogEntryToState(entry, state, phaseConfig) {
   let failureLine = entry.failureLine ?? "";
   let failureEvent = Boolean(entry.failureEvent);
   const beforeGroupComplete = isGroupComplete(phase, groupId, phaseState.checkProgress);
+  if (normalizedOutcome && checkId) {
+    phaseState.resolvedChecks = phaseState.resolvedChecks ?? {};
+    phaseState.resolvedChecks[checkId] = normalizedOutcome;
+  }
 
   if (check) {
     const currentValue = phaseState.checkProgress?.[check.id] ?? 0;
@@ -296,6 +322,8 @@ function applyLogEntryToState(entry, state, phaseConfig) {
     dcLabelType,
     difficulty,
     success,
+    outcome: storedOutcome,
+    outcomeLabel,
     progressGained,
     criticalBonusApplied,
     successLine,
@@ -347,6 +375,7 @@ function resetPhaseState(state, phaseConfig) {
       completed: false,
       failuresInRow: 0,
       checkProgress: buildCheckProgressMap(phase, {}),
+      resolvedChecks: {},
     };
   }
 }

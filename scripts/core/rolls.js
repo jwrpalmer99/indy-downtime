@@ -1,4 +1,4 @@
-import { debugLog, getIntervalLabel, getSkillLabel, getCheckRollMode } from "./labels.js";
+import { debugLog, getIntervalLabel, getSkillLabel, getCheckRollMode, normalizeNarrativeOutcome, getNarrativeOutcomeLabel, isNarrativeOutcomeSuccess } from "./labels.js";
 import {
   getActivePhase,
   getPhaseCheckById,
@@ -85,7 +85,7 @@ function getActorCheckBonus(actor, skillKey) {
   return Number.isFinite(bonus) ? bonus : null;
 }
 function getCheckSuccessChance({ dc, bonus, advantage, disadvantage } = {}) {
-  if (getCheckRollMode() === "d100") return null;
+  if (getCheckRollMode() !== "d20") return null;
   const dcValue = Number(dc);
   const bonusValue = Number(bonus);
   if (!Number.isFinite(dcValue) || !Number.isFinite(bonusValue)) return null;
@@ -305,7 +305,8 @@ async function runIntervalRoll({ actor, checkChoice, trackerId }) {
   if (activePhase.completed) return;
   const availableChecks = getPhaseAvailableChecks(
     activePhase,
-    activePhase.checkProgress
+    activePhase.checkProgress,
+    activePhase.resolvedChecks
   );
   if (!availableChecks.length) {
     ui.notifications.warn("Indy Downtime Tracker: configure checks before rolling.");
@@ -327,11 +328,16 @@ async function runIntervalRoll({ actor, checkChoice, trackerId }) {
   const rollData = getCheckRollData(
     activePhase,
     selectedCheck,
-    activePhase.checkProgress
+    activePhase.checkProgress,
+    activePhase.resolvedChecks
   );
   const skillKey = rollData.skill;
   const skillLabel = skillKey ? getSkillLabel(skillKey) : selectedCheck.skill;
   const rollMode = getCheckRollMode();
+  if (rollMode === "narrative") {
+    ui.notifications.warn("Indy Downtime Tracker: narrative checks must be resolved manually.");
+    return;
+  }
   const dc = rollData.dc;
   const difficulty = rollData.difficulty ?? "";
   const difficultyLabel = rollData.difficultyLabel ?? getDifficultyLabel(difficulty);
@@ -485,14 +491,15 @@ async function runIntervalRoll({ actor, checkChoice, trackerId }) {
     trackerId: resolvedTrackerId,
   });
 }
-async function runManualIntervalResult({ actor, checkId, checkChoice, trackerId, success }) {
+async function runManualIntervalResult({ actor, checkId, checkChoice, trackerId, success, outcome }) {
   const resolvedTrackerId = trackerId ?? getCurrentTrackerId();
   const state = getWorldState(resolvedTrackerId);
   const activePhase = getActivePhase(state, resolvedTrackerId);
   if (activePhase.completed) return;
   const availableChecks = getPhaseAvailableChecks(
     activePhase,
-    activePhase.checkProgress
+    activePhase.checkProgress,
+    activePhase.resolvedChecks
   );
   if (!availableChecks.length) {
     ui.notifications.warn("Indy Downtime Tracker: configure checks before rolling.");
@@ -521,7 +528,8 @@ async function runManualIntervalResult({ actor, checkId, checkChoice, trackerId,
   const rollData = getCheckRollData(
     activePhase,
     selectedCheck,
-    activePhase.checkProgress
+    activePhase.checkProgress,
+    activePhase.resolvedChecks
   );
   const skillKey = rollData.skill;
   const skillLabel = skillKey ? getSkillLabel(skillKey) : selectedCheck.skill;
@@ -531,7 +539,12 @@ async function runManualIntervalResult({ actor, checkId, checkChoice, trackerId,
   const difficultyLabel = rollData.difficultyLabel ?? getDifficultyLabel(difficulty);
   const dcLabel = rollMode === "d100" ? difficultyLabel : (Number.isFinite(dc) ? String(dc) : "");
   const dcLabelType = rollMode === "d100" ? "Difficulty" : "DC";
-  const isSuccess = Boolean(success);
+  const normalizedOutcome = rollMode === "narrative" ? normalizeNarrativeOutcome(outcome) : "";
+  const resolvedOutcome = rollMode === "narrative" ? (normalizedOutcome || "failure") : "";
+  const outcomeLabel = rollMode === "narrative" ? getNarrativeOutcomeLabel(resolvedOutcome) : "";
+  const isSuccess = rollMode === "narrative"
+    ? isNarrativeOutcomeSuccess(resolvedOutcome)
+    : Boolean(success);
   const total = "Manual";
   const formula = "manual";
   state.checkCount = Number.isFinite(state.checkCount) ? state.checkCount + 1 : 1;
@@ -589,11 +602,16 @@ async function runManualIntervalResult({ actor, checkId, checkChoice, trackerId,
     checkId: selectedCheck.id,
     checkProgress: { ...activePhase.checkProgress },
   });
+  if (rollMode === "narrative") {
+    activePhase.resolvedChecks = activePhase.resolvedChecks ?? {};
+    activePhase.resolvedChecks[selectedCheck.id] = resolvedOutcome;
+  }
   state.phases[activePhase.id] = {
     progress: activePhase.progress,
     completed: activePhase.completed,
     failuresInRow: activePhase.failuresInRow,
     checkProgress: activePhase.checkProgress ?? {},
+    resolvedChecks: activePhase.resolvedChecks ?? {},
   };
   if (isPhaseComplete(activePhase)) {
     state.phases[activePhase.id].completed = true;
@@ -616,6 +634,8 @@ async function runManualIntervalResult({ actor, checkId, checkChoice, trackerId,
     dcLabel,
     dcLabelType,
     difficulty,
+    outcome: resolvedOutcome,
+    outcomeLabel,
     total,
     success: isSuccess,
     progressGained,
@@ -636,6 +656,7 @@ async function runManualIntervalResult({ actor, checkId, checkChoice, trackerId,
     dc,
     dcLabel,
     dcLabelType,
+    outcomeLabel,
     success: isSuccess,
     progress: state.phases[activePhase.id].progress,
     progressTarget: activePhase.target,
@@ -714,6 +735,7 @@ async function postManualSummaryMessage({
   dc,
   dcLabel,
   dcLabelType,
+  outcomeLabel,
   success,
   progress,
   progressTarget,
@@ -743,13 +765,16 @@ async function postManualSummaryMessage({
   const failureEventBlock = failureEventResult
     ? `<div class="narrative"><strong>Event Table:</strong> ${failureEventResult}</div>`
     : "";
+  const resultLine = outcomeLabel
+    ? `<p><strong>Outcome:</strong> ${outcomeLabel}</p>`
+    : `<p><strong>Result:</strong> ${outcome} (Manual)</p>`;
   const content = `
       <div class="drep-chat">
         <h4>${getIntervalLabel(trackerId)} Check: ${checkLabel}</h4>
         <p><strong>Actor:</strong> ${actor.name}</p>
         <p><strong>Skill:</strong> ${skillLabel}</p>
         ${targetLabel ? `<p><strong>${targetType}:</strong> ${targetLabel}</p>` : ""}
-        <p><strong>Result:</strong> ${outcome} (Manual)</p>
+        ${resultLine}
         ${progressLine}
         ${successBlock}
         ${failureBlock}

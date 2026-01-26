@@ -10,12 +10,12 @@ Open Game Settings -> Module Settings -> Indy Downtime Tracker **as GM**. You wi
 - Manual Skill/Ability Overrides (system-agnostic only)
 - Inject into Character Sheet
 - Use manual failure/success (system-agnostic only)
-- Ability Check Mode (d20 or d100)
+- Ability Check Mode (d20, d100, or narrative)
 
 ## Module Settings Options
 - Inject into Character Sheet: when enabled, the tracker appears as a character sheet tab. When disabled, use the Token Controls button to open the tracker dialog.
 - Use manual failure/success (system-agnostic only): replaces automatic rolls with a prompt so players can mark success or failure manually.
-- Ability Check Mode: choose between d20 (5e style) DCs or d100 (CoC style) difficulty levels (Easy/Regular/Difficult/Extreme).
+- Ability Check Mode: choose between d20 (5e style) DCs, d100 (CoC style) difficulty levels (Easy/Regular/Difficult/Extreme), or narrative outcomes (Triumph/Success/Failure/Despair).
 
 ## Configure Tracker (Main Dialog)
 
