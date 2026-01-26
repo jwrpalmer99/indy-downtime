@@ -82,12 +82,6 @@ function normalizeTrackers(trackers) {
         : DEFAULT_PHASE_CONFIG
     );
     const state = normalizeProjectState(tracker?.state, phaseConfig);
-    const manualRollEnabled = Object.prototype.hasOwnProperty.call(tracker ?? {}, "manualRollEnabled")
-      ? Boolean(tracker.manualRollEnabled)
-      : getDefaultManualRollSetting();
-    const injectIntoSheet = Object.prototype.hasOwnProperty.call(tracker ?? {}, "injectIntoSheet")
-      ? Boolean(tracker.injectIntoSheet)
-      : getDefaultInjectIntoSheetSetting();
     return {
       id,
       name:
@@ -113,8 +107,6 @@ function normalizeTrackers(trackers) {
       restrictedActorUuids: parseRestrictedActorUuids(
         tracker?.restrictedActorUuids
       ),
-      manualRollEnabled,
-      injectIntoSheet,
       phaseConfig,
       state,
     };
@@ -169,8 +161,6 @@ function addTracker() {
     showFlowRelationships: true,
     showFlowLines: true,
     restrictedActorUuids: [],
-    manualRollEnabled: getDefaultManualRollSetting(),
-    injectIntoSheet: getDefaultInjectIntoSheetSetting(),
     phaseConfig: [blankPhase],
     state: normalizeProjectState(DEFAULT_STATE, [blankPhase]),
   };
@@ -225,19 +215,9 @@ function buildDefaultTrackerFromLegacy() {
     restrictedActorUuids: parseRestrictedActorUuids(
       getLegacySetting(RESTRICTED_ACTORS_SETTING)
     ),
-    manualRollEnabled: getDefaultManualRollSetting(),
-    injectIntoSheet: getDefaultInjectIntoSheetSetting(),
     phaseConfig,
     state,
   };
-}
-
-function getDefaultManualRollSetting() {
-  return game.system?.id !== "dnd5e" && game.system?.id !== "pf2e";
-}
-
-function getDefaultInjectIntoSheetSetting() {
-  return game.system?.id === "dnd5e" || game.system?.id === "pf2e";
 }
 
 function normalizeManualSkillOverrides(raw) {

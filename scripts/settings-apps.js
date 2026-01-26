@@ -285,7 +285,6 @@ class DowntimeRepSettings extends HandlebarsApplicationMixin(ApplicationV2) {
     const tabLabel = getTabLabel(trackerId);
     const intervalLabel = getIntervalLabel(trackerId);
     const restrictedActorUuids = getRestrictedActorUuids(trackerId);
-    const isSystemAgnostic = game.system?.id !== "dnd5e" && game.system?.id !== "pf2e";
     const trackerOptions = getTrackers().map((entry, index) => ({
       id: entry.id,
       label: entry.name ? `${entry.name}` : `Tracker ${index + 1}`,
@@ -303,8 +302,6 @@ class DowntimeRepSettings extends HandlebarsApplicationMixin(ApplicationV2) {
       showCheckTooltipsToPlayers: Boolean(tracker?.showCheckTooltipsToPlayers),
       showFlowRelationships: tracker?.showFlowRelationships !== false,
       showFlowLines: tracker?.showFlowLines !== false,
-      injectIntoSheet: tracker?.injectIntoSheet,
-      manualRollEnabled: tracker?.manualRollEnabled,
       isSingleTracker: trackerOptions.length <= 1,
       state,
       criticalBonusEnabled: state.criticalBonusEnabled,
@@ -312,7 +309,6 @@ class DowntimeRepSettings extends HandlebarsApplicationMixin(ApplicationV2) {
       tabLabel,
       intervalLabel,
       restrictedActorUuidsText: restrictedActorUuids.join("\n"),
-      isSystemAgnostic,
     };
   }
 
@@ -399,10 +395,6 @@ class DowntimeRepSettings extends HandlebarsApplicationMixin(ApplicationV2) {
         this.render();
         return;
       }
-      if (action === "open-skill-overrides") {
-        new DowntimeRepSkillOverrides().render(true);
-        return;
-      }
   
       if (action === "tracker-import-export") {
         const tracker = getCurrentTracker();
@@ -427,8 +419,6 @@ class DowntimeRepSettings extends HandlebarsApplicationMixin(ApplicationV2) {
               showLockedChecksToPlayers: tracker?.showLockedChecksToPlayers,
               showPhasePlanToPlayers: tracker?.showPhasePlanToPlayers,
               showCheckTooltipsToPlayers: tracker?.showCheckTooltipsToPlayers,
-              injectIntoSheet: tracker?.injectIntoSheet,
-              manualRollEnabled: tracker?.manualRollEnabled,
               showFlowRelationships: tracker?.showFlowRelationships,
               showFlowLines: tracker?.showFlowLines,
               restrictedActorUuids: tracker?.restrictedActorUuids ?? [],
@@ -453,8 +443,6 @@ class DowntimeRepSettings extends HandlebarsApplicationMixin(ApplicationV2) {
             if (typeof payload.showCheckTooltipsToPlayers !== "undefined") updates.showCheckTooltipsToPlayers = Boolean(payload.showCheckTooltipsToPlayers);
             if (typeof payload.showFlowRelationships !== "undefined") updates.showFlowRelationships = Boolean(payload.showFlowRelationships);
             if (typeof payload.showFlowLines !== "undefined") updates.showFlowLines = Boolean(payload.showFlowLines);
-            if (typeof payload.injectIntoSheet !== "undefined") updates.injectIntoSheet = Boolean(payload.injectIntoSheet);
-            if (typeof payload.manualRollEnabled !== "undefined") updates.manualRollEnabled = Boolean(payload.manualRollEnabled);
             if (Array.isArray(payload.restrictedActorUuids)) {
               updates.restrictedActorUuids = parseRestrictedActorUuids(payload.restrictedActorUuids);
             }
@@ -534,8 +522,6 @@ class DowntimeRepSettings extends HandlebarsApplicationMixin(ApplicationV2) {
       showLockedChecksToPlayers: Boolean(formData.showLockedChecksToPlayers),
       showPhasePlanToPlayers: Boolean(formData.showPhasePlanToPlayers),
       showCheckTooltipsToPlayers: Boolean(formData.showCheckTooltipsToPlayers),
-      injectIntoSheet: Boolean(formData.injectIntoSheet),
-      manualRollEnabled: Boolean(formData.manualRollEnabled),
       showFlowRelationships: Boolean(formData.showFlowRelationships),
       showFlowLines: Boolean(formData.showFlowLines),
       restrictedActorUuids: parseRestrictedActorUuids(

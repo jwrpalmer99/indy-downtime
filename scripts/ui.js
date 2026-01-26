@@ -672,6 +672,13 @@ function attachTrackerListeners(html, { render, actor, app } = {}) {
     rollButtons: scope.find("[data-drep-action='roll-interval']").length,
   });
 
+  const resolvePlanActor = () => {
+    if (actor) return actor;
+    const actorId = scope.find("[data-drep-name='actorId']").val();
+    if (!actorId) return null;
+    return game.actors.get(actorId) ?? null;
+  };
+
   const openPhasePlanFlow = (readOnly) => {
     if (!readOnly && !game.user?.isGM) {
       ui.notifications.warn("Indy Downtime Tracker: only a GM can edit the phase plan.");
@@ -687,7 +694,8 @@ function attachTrackerListeners(html, { render, actor, app } = {}) {
       ui.notifications.warn("Indy Downtime Tracker: phase plan view is unavailable.");
       return;
     }
-    new FlowClass({ trackerId, phaseId: phase.id, phase, readOnly, actor }).render(true);
+    const planActor = resolvePlanActor();
+    new FlowClass({ trackerId, phaseId: phase.id, phase, readOnly, actor: planActor }).render(true);
   };
 
   scope.find("[data-drep-action='view-phase-plan']").on("click", (event) => {
@@ -995,9 +1003,10 @@ class DowntimeRepTrackerDialog extends HandlebarsApplicationMixin(ApplicationV2)
     const trackerId = this._trackerId ?? getCurrentTrackerId();
     const tracker = getTrackerById(trackerId);
     const actor = this._actorId ? game.actors.get(this._actorId) : null;
+    const showActorSelect = !actor;
     const data = buildTrackerData({
       actor,
-      showActorSelect: true,
+      showActorSelect,
       embedded: true,
       trackerId,
     });
@@ -1976,10 +1985,26 @@ function openDowntimeDialog({ trackerId, actorId } = {}) {
 
 function refreshSceneControls() {
   const controls = ui?.controls;
+  const hasNewControl = controls && "control" in controls;
+  const hasNewTool = controls && "tool" in controls;
+  const activeControl = hasNewControl
+    ? controls?.control?.name ?? null
+    : (controls?.activeControl ?? controls?._activeControl ?? null);
+  const activeTool = hasNewTool
+    ? controls?.tool?.name ?? null
+    : (controls?.activeTool ?? controls?._activeTool ?? null);
+  const controlList = controls?.controls ?? controls?._controls ?? null;
+  debugLog("refreshing scene controls", {
+    hasControls: Boolean(controls),
+    hasControlList: Boolean(controlList),
+    activeControl,
+    activeTool,
+  });
   if (!controls) return;
+  if (controlList) {
+    Hooks.callAll("getSceneControlButtons", controlList);
+  }
   if (typeof controls.render === "function") {
-    const activeControl = controls.activeControl ?? controls._activeControl ?? controls.control ?? null;
-    const activeTool = controls.activeTool ?? controls._activeTool ?? null;
     try {
       controls.render({ force: true, controls: activeControl, tool: activeTool });
       return;
@@ -1992,9 +2017,6 @@ function refreshSceneControls() {
     } catch (error) {
       // fall through
     }
-  }
-  if (typeof controls.initialize === "function") {
-    controls.initialize();
   }
 }
 

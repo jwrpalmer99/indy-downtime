@@ -4,6 +4,8 @@ import {
 
   DEBUG_SETTING,
 
+  INJECT_INTO_SHEET_SETTING,
+
   DEFAULT_HEADER_LABEL,
 
   DEFAULT_INTERVAL_LABEL,
@@ -21,6 +23,8 @@ import {
   LAST_SKILL_CHOICES_SETTING,
 
   MODULE_ID,
+
+  MANUAL_ROLL_SETTING,
 
   RESTRICTED_ACTORS_SETTING,
 
@@ -160,16 +164,46 @@ function ensureGenericSheetTab($html, tracker, tabNav) {
   const tabIconHtml = tabIcon ? `<i class=\"${tabIcon}\"></i>` : tabLabel;
   const group = getSheetTabGroup($html, tabNav);
   const action = getSheetTabAction($html, tabNav);
+  const sampleTabs = tabNav.find("[data-tab]");
+  const sampleCandidates = sampleTabs.filter((_, element) => $(element).parent().hasClass("tab"));
+  const sample = (sampleCandidates.length ? sampleCandidates.last() : sampleTabs.last());
+  const sampleWrapper = sample.parent();
+  const wrapInTab = sampleWrapper?.length && sampleWrapper.hasClass("tab") && !sampleWrapper.is(tabNav);
+  const buildWrapper = () => {
+    const tagName = sampleWrapper.prop("tagName")?.toLowerCase() || "div";
+    const className = sampleWrapper.attr("class") || "tab";
+    const wrapper = $(`<${tagName} class=\"${className}\"></${tagName}>`);
+    if (sampleWrapper?.length && sampleWrapper[0]?.attributes) {
+      for (const attr of Array.from(sampleWrapper[0].attributes)) {
+        if (attr.name === "class") continue;
+        wrapper.attr(attr.name, attr.value);
+      }
+    }
+    return wrapper;
+  };
   let tabButton = tabNav.find(`[data-tab='${tabId}']`).first();
   if (!tabButton.length) {
-    const sample = tabNav.find("[data-tab]").first();
     const tagName = sample.prop("tagName")?.toLowerCase() || "a";
     const className = sample.attr("class") || "item";
     tabButton = $(`<${tagName} class=\"${className}\" data-action=\"${action}\" data-tab=\"${tabId}\"></${tagName}>`);
     if (group) tabButton.attr("data-group", group);
     const role = sample.attr("role") || "tab";
     tabButton.attr("role", role);
-    tabNav.append(tabButton);
+    if (wrapInTab) {
+      const wrapper = buildWrapper();
+      wrapper.append(tabButton);
+      tabNav.append(wrapper);
+    } else {
+      tabNav.append(tabButton);
+    }
+  } else if (wrapInTab) {
+    const parent = tabButton.parent();
+    if (!parent.hasClass("tab")) {
+      const wrapper = buildWrapper();
+      tabButton.detach();
+      wrapper.append(tabButton);
+      tabNav.append(wrapper);
+    }
   }
   tabButton
     .attr("data-tooltip", tabLabel)
@@ -553,6 +587,8 @@ Hooks.once("init", () => {
     });
   }
 
+  const isSystemAgnostic = game.system?.id !== "dnd5e" && game.system?.id !== "pf2e";
+
   game.settings.register(MODULE_ID, DEBUG_SETTING, {
 
     name: "Debug Logging",
@@ -566,6 +602,61 @@ Hooks.once("init", () => {
     type: Boolean,
 
     default: false,
+
+  });
+
+  game.settings.register(MODULE_ID, INJECT_INTO_SHEET_SETTING, {
+
+    name: "Inject into Character Sheet",
+
+    hint: "When disabled, open the tracker from Token Controls instead of a sheet tab.",
+
+    scope: "world",
+
+    config: true,
+
+    type: Boolean,
+
+    default: !isSystemAgnostic,
+
+    onChange: (value) => {
+
+      debugLog("injectIntoSheet updated", { value });
+
+      registerSheetTab();
+
+      updateTidyTabLabel();
+      refreshSceneControls();
+
+      rerenderCharacterSheets();
+
+      rerenderSettingsApps();
+
+    },
+
+  });
+
+  game.settings.register(MODULE_ID, MANUAL_ROLL_SETTING, {
+
+    name: "Use manual failure/success",
+
+    hint: "Uses a prompt to record success or failure instead of rolling automatically.",
+
+    scope: "world",
+
+    config: isSystemAgnostic,
+
+    type: Boolean,
+
+    default: isSystemAgnostic,
+
+    onChange: () => {
+
+      rerenderCharacterSheets();
+
+      rerenderSettingsApps();
+
+    },
 
   });
 
@@ -710,13 +801,43 @@ function addSceneControlTool(control, tool) {
   control.tools = [tool];
 }
 
+function removeSceneControlTools(control, predicate) {
+  if (!control || typeof predicate !== "function") return;
+  const tools = control.tools;
+  if (Array.isArray(tools)) {
+    control.tools = tools.filter((tool) => !predicate(tool));
+    return;
+  }
+  if (tools instanceof Map) {
+    for (const [key, tool] of tools.entries()) {
+      if (predicate(tool, key)) tools.delete(key);
+    }
+    return;
+  }
+  if (tools && typeof tools === "object") {
+    for (const [key, tool] of Object.entries(tools)) {
+      if (predicate(tool, key)) {
+        delete tools[key];
+      }
+    }
+  }
+}
+
 Hooks.on("getSceneControlButtons", (controls) => {
   const controlList = getSceneControlList(controls);
   const tokenControls = controlList.find((control) =>
     control.name === "token" || control.name === "tokens"
   );
   if (!tokenControls) return;
+  removeSceneControlTools(tokenControls, (tool, key) => {
+    const name = String(tool?.name ?? key ?? "");
+    return name.startsWith("indy-downtime-");
+  });
   const trackers = getTrackers().filter((tracker) => !shouldInjectIntoSheet(tracker.id));
+  debugLog("scene controls refreshed", {
+    injectIntoSheet: shouldInjectIntoSheet(),
+    trackerCount: trackers.length,
+  });
   if (!trackers.length) return;
   for (const tracker of trackers) {
     const toolName = `indy-downtime-${tracker.id}`;

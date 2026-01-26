@@ -110,34 +110,6 @@
 
   </details>
 
-  <fieldset class="drep-panel">
-    <legend>Sheet Integration</legend>
-    <div class="form-group">
-      <label class="checkbox flex">
-        <input type="checkbox" name="injectIntoSheet" {{#if injectIntoSheet}}checked{{/if}} />
-        Inject into Character Sheet
-      </label>
-      <p class="notes">When disabled, open the tracker from Token Controls instead of a sheet tab.</p>
-    </div>
-    {{#if isSystemAgnostic}}
-    <div class="form-group">
-      <label class="checkbox flex">
-        <input type="checkbox" name="manualRollEnabled" {{#if manualRollEnabled}}checked{{/if}} />
-        Use manual failure/success
-      </label>
-      <p class="notes">Uses a prompt to record success or failure instead of rolling automatically.</p>
-    </div>
-    <div class="form-group">
-      <button type="button" class="dialog-button" data-drep-action="open-skill-overrides">
-        Manual Skill/Ability Overrides
-      </button>
-      <p class="notes">Override detected skill and ability lists for system-agnostic sheets.</p>
-    </div>
-    {{/if}}
-  </fieldset>
-
-
-
 
     <div class="form-group">
       <button type="button" class="dialog-button" data-drep-action="tracker-import-export">

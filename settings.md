@@ -8,6 +8,12 @@ Open Game Settings -> Module Settings -> Indy Downtime Tracker **as GM**. You wi
 - Export/Import Settings (all tracker configuration)
 - Export/Import State (all tracker progress and state)
 - Manual Skill/Ability Overrides (system-agnostic only)
+- Inject into Character Sheet
+- Use manual failure/success (system-agnostic only)
+
+## Module Settings Options
+- Inject into Character Sheet: when enabled, the tracker appears as a character sheet tab. When disabled, use the Token Controls button to open the tracker dialog.
+- Use manual failure/success (system-agnostic only): replaces automatic rolls with a prompt so players can mark success or failure manually.
 
 ## Configure Tracker (Main Dialog)
 
@@ -31,11 +37,6 @@ Open Game Settings -> Module Settings -> Indy Downtime Tracker **as GM**. You wi
 - Show check chance tooltips: allows players to see success chance tooltips on DC labels in the Phase Plan (default off).
 - Show relationships on phase flow view: toggles dependency chips in the read-only Phase Plan.
 - Show success/failure lines on phase flow view: toggles narrative lines in the read-only Phase Plan.
-
-### Sheet Integration
-- Inject into Character Sheet: when enabled, the tracker appears as a character sheet tab. When disabled, use the Token Controls button to open the tracker dialog.
-- Use manual failure/success (system-agnostic only): replaces automatic rolls with a prompt so players can mark success or failure manually.
-- Manual Skill/Ability Overrides (system-agnostic only): opens the override editor for non-dnd5e/pf2e systems.
 
 ### Import/Export Tracker
 - Import/Export Tracker: open a dialog to export or import the current tracker only.

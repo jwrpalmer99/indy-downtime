@@ -5,6 +5,8 @@ import {
   DEFAULT_STATE,
   DEFAULT_TAB_LABEL,
   DEFAULT_TRACKER_NAME,
+  INJECT_INTO_SHEET_SETTING,
+  MANUAL_ROLL_SETTING,
   MODULE_ID,
   TRACKERS_SETTING,
   DEFAULT_TAB_ICON,
@@ -40,8 +42,6 @@ function getSettingsExportPayload() {
     showFlowRelationships: tracker.showFlowRelationships,
     showFlowLines: tracker.showFlowLines,
     restrictedActorUuids: tracker.restrictedActorUuids ?? [],
-    injectIntoSheet: tracker.injectIntoSheet,
-    manualRollEnabled: tracker.manualRollEnabled,
     phaseConfig: tracker.phaseConfig ?? [],
   }));
   return {
@@ -49,6 +49,8 @@ function getSettingsExportPayload() {
     version: game.modules.get(MODULE_ID)?.version ?? "",
     exportedAt: new Date().toISOString(),
     settings: {
+      injectIntoSheet: game.settings.get(MODULE_ID, INJECT_INTO_SHEET_SETTING),
+      manualRollEnabled: game.settings.get(MODULE_ID, MANUAL_ROLL_SETTING),
       trackers,
       manualSkillOverrides: game.settings.get(MODULE_ID, MANUAL_SKILL_OVERRIDES_SETTING) ?? { skills: {}, abilities: {} },
     },
@@ -76,6 +78,33 @@ function getStateExportPayload() {
 async function applySettingsImportPayload(payload) {
   const settings = payload?.settings ?? payload;
   if (!settings || typeof settings !== "object") return;
+  const getLegacyTrackerSetting = (key) => {
+    if (!Array.isArray(settings.trackers)) return undefined;
+    const match = settings.trackers.find((tracker) =>
+      Object.prototype.hasOwnProperty.call(tracker ?? {}, key)
+    );
+    return match ? match[key] : undefined;
+  };
+  const injectedSetting = typeof settings.injectIntoSheet !== "undefined"
+    ? settings.injectIntoSheet
+    : getLegacyTrackerSetting("injectIntoSheet");
+  if (typeof injectedSetting !== "undefined") {
+    await game.settings.set(
+      MODULE_ID,
+      INJECT_INTO_SHEET_SETTING,
+      Boolean(injectedSetting)
+    );
+  }
+  const manualRollSetting = typeof settings.manualRollEnabled !== "undefined"
+    ? settings.manualRollEnabled
+    : getLegacyTrackerSetting("manualRollEnabled");
+  if (typeof manualRollSetting !== "undefined") {
+    await game.settings.set(
+      MODULE_ID,
+      MANUAL_ROLL_SETTING,
+      Boolean(manualRollSetting)
+    );
+  }
   if (Array.isArray(settings.trackers)) {
     const existingStates = new Map(
       getTrackers().map((tracker) => [tracker.id, tracker.state])
@@ -116,10 +145,6 @@ async function applySettingsImportPayload(payload) {
         restrictedActorUuids: parseRestrictedActorUuids(
           tracker?.restrictedActorUuids
         ),
-        injectIntoSheet: Object.prototype.hasOwnProperty.call(tracker ?? {}, "injectIntoSheet")
-          ? Boolean(tracker.injectIntoSheet)
-          : (game.system?.id === "dnd5e" || game.system?.id === "pf2e"),
-        manualRollEnabled: Boolean(tracker?.manualRollEnabled),
         phaseConfig,
         state,
       };
@@ -163,12 +188,6 @@ async function applySettingsImportPayload(payload) {
     }
     if (typeof settings.showFlowLines !== "undefined") {
       updates.showFlowLines = Boolean(settings.showFlowLines);
-    }
-    if (typeof settings.injectIntoSheet !== "undefined") {
-      updates.injectIntoSheet = Boolean(settings.injectIntoSheet);
-    }
-    if (typeof settings.manualRollEnabled !== "undefined") {
-      updates.manualRollEnabled = Boolean(settings.manualRollEnabled);
     }
     if (settings.manualSkillOverrides && typeof settings.manualSkillOverrides === "object") {
       await game.settings.set(MODULE_ID, MANUAL_SKILL_OVERRIDES_SETTING, settings.manualSkillOverrides);

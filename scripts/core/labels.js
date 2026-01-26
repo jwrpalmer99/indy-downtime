@@ -6,6 +6,8 @@ import {
   DEFAULT_TAB_LABEL,
   LAST_ACTOR_IDS_SETTING,
   LAST_SKILL_CHOICES_SETTING,
+  INJECT_INTO_SHEET_SETTING,
+  MANUAL_ROLL_SETTING,
   MANUAL_SKILL_OVERRIDES_SETTING,
   MODULE_ID,
   RESTRICTED_ACTORS_SETTING,
@@ -112,6 +114,10 @@ function shouldShowCheckTooltips(trackerId) {
 }
 
 function shouldInjectIntoSheet(trackerId) {
+  const settingKey = `${MODULE_ID}.${INJECT_INTO_SHEET_SETTING}`;
+  if (game?.settings?.settings?.has(settingKey)) {
+    return Boolean(game.settings.get(MODULE_ID, INJECT_INTO_SHEET_SETTING));
+  }
   const tracker = trackerId ? getTrackerById(trackerId) : getCurrentTracker();
   if (!tracker) {
     return game.system?.id === "dnd5e" || game.system?.id === "pf2e";
@@ -124,6 +130,10 @@ function shouldInjectIntoSheet(trackerId) {
 
 function shouldUseManualRolls(trackerId) {
   if (game.system?.id === "dnd5e" || game.system?.id === "pf2e") return false;
+  const settingKey = `${MODULE_ID}.${MANUAL_ROLL_SETTING}`;
+  if (game?.settings?.settings?.has(settingKey)) {
+    return Boolean(game.settings.get(MODULE_ID, MANUAL_ROLL_SETTING));
+  }
   const tracker = trackerId ? getTrackerById(trackerId) : getCurrentTracker();
   if (tracker && Object.prototype.hasOwnProperty.call(tracker, "manualRollEnabled")) {
     return Boolean(tracker.manualRollEnabled);
@@ -406,19 +416,29 @@ function getResolvedSkillMaps() {
 function getSkillOptions() {
   const { skills, abilities } = getResolvedSkillMaps();
 
-  const skillOptions = Object.entries(skills).map(([key, labelKey]) => ({
-    key,
-    label: localizeSkillLabel(labelKey, key),
-  }));
+  const options = [];
+  const seenKeys = new Set();
+  const seenLabels = new Set();
+  const addOption = (key, label) => {
+    const normalizedKey = String(key ?? "").trim().toLowerCase();
+    if (!normalizedKey || seenKeys.has(normalizedKey)) return;
+    const normalizedLabel = String(label ?? "").trim().toLowerCase();
+    if (normalizedLabel && seenLabels.has(normalizedLabel)) return;
+    seenKeys.add(normalizedKey);
+    if (normalizedLabel) seenLabels.add(normalizedLabel);
+    options.push({ key, label });
+  };
 
-  const abilityOptions = Object.entries(abilities).map(([key, labelKey]) => ({
-    key: `ability:${key}`,
-    label: `${localizeSkillLabel(labelKey, key)} (Ability)`,
-  }));
+  for (const [key, labelKey] of Object.entries(skills)) {
+    addOption(key, localizeSkillLabel(labelKey, key));
+  }
 
-  return [...skillOptions, ...abilityOptions].sort((a, b) =>
-    a.label.localeCompare(b.label)
-  );
+  for (const [key, labelKey] of Object.entries(abilities)) {
+    const abilityKey = `ability:${key}`;
+    addOption(abilityKey, `${localizeSkillLabel(labelKey, key)} (Ability)`);
+  }
+
+  return options.sort((a, b) => a.label.localeCompare(b.label));
 }
 
 
