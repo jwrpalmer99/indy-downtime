@@ -275,15 +275,6 @@ function getConfiguredAbilityMap() {
   return {};
 }
 
-function findFallbackActor() {
-  const actors = game?.actors ? Array.from(game.actors) : [];
-  let actor = actors.find((entry) => entry?.type === "character");
-  if (!actor) {
-    actor = actors.find((entry) => entry?.system?.skills || entry?.skills || entry?.system?.abilities || entry?.abilities);
-  }
-  return actor ?? null;
-}
-
 function normalizeActorEntries(raw) {
   const output = {};
   if (!raw) return output;
@@ -358,36 +349,44 @@ function extractItemSkills(actor) {
   return output;
 }
 
-function getFallbackSkillMaps() {
-  const actor = findFallbackActor();
-  const skillsRaw =
-    actor?.system?.skills ??
-    actor?.system?.attributes?.skills ??
-    actor?.skills ??
-    actor?.attributes?.skills ??
-    null;
-  const { entries: skillsFromSystem, source: skillsSource } = extractSystemSkills(actor);
-  const skillsFromItems = extractItemSkills(actor);
-  const abilitiesRaw =
-    actor?.system?.abilities ??
-    actor?.system?.attributes?.abilities ??
-    actor?.abilities ??
-    actor?.attributes?.abilities ??
-    null;
-  let abilities = normalizeActorEntries(abilitiesRaw);
-  let systemSkills = skillsFromSystem;
-  if (!Object.keys(abilities).length && skillsSource === "attributes") {
-    abilities = skillsFromSystem;
-    systemSkills = {};
+function collectFallbackActorMaps() {
+  const actors = game?.actors ? Array.from(game.actors) : [];
+  const aggregated = { skills: {}, abilities: {} };
+  for (const actor of actors) {
+    if (!actor) continue;
+    const { entries: skillsFromSystem, source: skillsSource } = extractSystemSkills(actor);
+    const skillsFromItems = extractItemSkills(actor);
+    const abilitiesRaw =
+      actor?.system?.abilities ??
+      actor?.system?.attributes?.abilities ??
+      actor?.abilities ??
+      actor?.attributes?.abilities ??
+      null;
+    let abilities = normalizeActorEntries(abilitiesRaw);
+    let systemSkills = skillsFromSystem;
+    if (!Object.keys(abilities).length && skillsSource === "attributes") {
+      abilities = skillsFromSystem;
+      systemSkills = {};
+    }
+    const skillsRaw =
+      actor?.system?.skills ??
+      actor?.system?.attributes?.skills ??
+      actor?.skills ??
+      actor?.attributes?.skills ??
+      null;
+    Object.assign(
+      aggregated.skills,
+      normalizeActorEntries(skillsRaw),
+      systemSkills,
+      skillsFromItems
+    );
+    Object.assign(aggregated.abilities, abilities);
   }
-  return {
-    skills: {
-      ...(normalizeActorEntries(skillsRaw)),
-      ...systemSkills,
-      ...skillsFromItems,
-    },
-    abilities,
-  };
+  return aggregated;
+}
+
+function getFallbackSkillMaps() {
+  return collectFallbackActorMaps();
 }
 
 function getResolvedSkillMaps() {
