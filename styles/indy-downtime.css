@@ -11,12 +11,12 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
-  color: var(--color-text-dark-primary);
+  --color: var(--color-text-dark-primary);
 }
 
 .drep-app.embedded {
   gap: 12px;
-  color: rgba(255, 255, 255, 0.92);
+  --color: rgba(255, 255, 255, 0.92);
 }
 
 .drep-header {
@@ -28,6 +28,7 @@
 
 .drep-app.embedded .drep-header h1 {
   font-size: xx-large !important;
+  color: var(--highlight-color);
   /* font-family: 'Modesto Condensed' !important; */
 }
 
@@ -36,30 +37,31 @@
 }
 
 .drep-header h1 {
-  color: white;
-  mix-blend-mode: difference;
+  --color: white;
+  --mix-blend-mode: difference;
   font-size: 20px;
   margin: 0 0 4px;
 }
 
 .drep-subtitle {
-  color: var(--color-text-dark-secondary);
+  --color: var(--color-text-dark-secondary);
   font-size: xx-large;
 }
 
 .drep-app.embedded .drep-subtitle,
 .drep-app.embedded .drep-status-grid label,
 .drep-app.embedded .drep-muted {
-  color: rgba(255, 255, 255, 0.7);
+  --color: rgba(255, 255, 255, 0.7);
 }
 
 .drep-app.embedded .drep-value {
-  color: rgba(255, 255, 255, 0.95);
+  --color: rgba(255, 255, 255, 0.95);
 }
 
 .drep-phase-title {
-  color: white;
-  mix-blend-mode: difference;
+  --color: white;
+  --mix-blend-mode: difference;
+  color: var(--highlight-color);
   font-size: 28px;
   font-weight: 700;
   margin-top: 2px;
@@ -84,7 +86,13 @@
   gap: 12px;
   padding: 12px;
   border-radius: 8px;
-  background: rgba(0, 0, 0, 0.03);
+   border-color: color-mix(
+    in srgb,
+    var(--color-tabs-border, rgba(0, 0, 0, 0.5)) 60%,
+    transparent
+  );
+  border-width: 1px;
+  border-style: solid;
 }
 
 .drep-phase-art {
@@ -124,26 +132,26 @@
 }
 
 .drep-pill.active {
-  background: rgba(243, 156, 18, 0.2);
-  color: #a65d00;
+  --background:: rgba(243, 156, 18, 0.2);
+  --color: #a65d00;
 }
 
 .drep-pill.complete {
-  background: rgba(39, 174, 96, 0.2);
-  color: #1b6d3a;
+  --background:: rgba(39, 174, 96, 0.2);
+  --color: #1b6d3a;
 }
 
 .drep-app.embedded .drep-status-grid {
   padding: 8px;
   gap: 8px;
-  background: rgba(0, 0, 0, 0.45);
+  --background:: rgba(0, 0, 0, 0.45);
 }
 
 .drep-status-grid label {
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.03em;
-  color: var(--color-text-dark-secondary);
+  --color: var(--color-text-dark-secondary);
 }
 
 .drep-value {
@@ -153,14 +161,14 @@
 }
 
 .drep-muted {
-  color: var(--color-text-dark-secondary);
+  --color: var(--color-text-dark-secondary);
   font-size: 12px;
   margin-top: 4px;
 }
 
 .drep-progress-bar {
   height: 8px;
-  background: rgba(0, 0, 0, 0.1);
+  --background:: rgba(0, 0, 0, 0.1);
   border-radius: 999px;
   overflow: hidden;
   margin-top: 8px;
@@ -172,26 +180,31 @@
 
 .drep-progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #f39c12, #e67e22);
-  /* background-color: hsl(calc(var(--progress) * 1.2), 50%, 20%); */
-  /* background: linear-gradient(90deg, #660702, hsl(calc(var(--progress) * 1.2), 50%, 20%)); */
+  background: linear-gradient(90deg, var(--color-cool-4, darkred), var(--highlight-color, green));
+  /* --background:---color: hsl(calc(var(--progress) * 1.2), 50%, 20%); */
+  /* --background:: linear-gradient(90deg, #660702, hsl(calc(var(--progress) * 1.2), 50%, 20%)); */
 }
 
 .drep-progress-fill.main {
   height: 150%;
-  /* background-color: hsl(calc(var(--progress) * 1.2), 50%, 20%); */
+  /* --background:---color: hsl(calc(var(--progress) * 1.2), 50%, 20%); */
 }
 
 .drep-panel {
-  border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 10px;
   padding: 12px;
-  background: rgba(255, 255, 255, 0.6);
+   border-color: color-mix(
+    in srgb,
+    var(--color-tabs-border, rgba(0, 0, 0, 0.5)) 60%,
+    transparent
+  );
+  border-width: 1px;
+  border-style: solid;
 }
 
 .drep-settings .drep-panel {
-  background: transparent;
-  border-color: rgba(255, 255, 255, 0.08);
+  --background:: transparent;
+  border---color: rgba(255, 255, 255, 0.08);
 }
 
 .drep-tracker-row {
@@ -213,7 +226,7 @@
 
 .drep-app.embedded .drep-panel {
   padding: 10px;
-  background: rgba(0, 0, 0, 0.6);
+  --background:: rgba(0, 0, 0, 0.6);
 }
 
 .drep-panel h2 {
@@ -280,7 +293,7 @@
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.03em;
-  color: var(--color-text-dark-secondary);
+  --color: var(--color-text-dark-secondary);
 }
 
 .drep-check-title {
@@ -333,7 +346,7 @@
   padding: 6px 10px;
   font-weight: 600;
   border-style: groove;
-  background: darkslategray;
+  --background:: darkslategray;
 }
 
 .drep-button-secondary {
@@ -349,13 +362,13 @@
   line-height: 1;
   border: 1px solid rgba(0, 0, 0, 0.35);
   border-radius: 6px;
-  background: linear-gradient(180deg, #e6b956, #c6861a);
-  color: #1b1200;
+  --background:: linear-gradient(180deg, #e6b956, #c6861a);
+  --color: #1b1200;
   box-shadow: 0 2px 0 rgba(0, 0, 0, 0.25);
 }
 
 .drep-button-primary:hover {
-  background: linear-gradient(180deg, #f2c264, #d2921f);
+  --background:: linear-gradient(180deg, #f2c264, #d2921f);
 }
 
 .drep-button-primary:active {
@@ -365,8 +378,8 @@
 
 .drep-app.embedded .drep-button-primary {
   border: 1px solid rgba(255, 255, 255, 0.25) !important;
-  background: linear-gradient(180deg, #f2c264, #c6861a) !important;
-  color: #1b1200 !important;
+  --background:: linear-gradient(180deg, #f2c264, #c6861a) !important;
+  --color: #1b1200 !important;
 }
 
 .drep-actions {
@@ -408,11 +421,11 @@
 .drep-log-item {
   border-radius: 8px;
   padding: 8px;
-  background: rgba(0, 0, 0, 0.03);
+  --background:: rgba(0, 0, 0, 0.03);
 }
 
 .drep-app.embedded .drep-log-item {
-  background: rgba(0, 0, 0, 0.45);
+  --background:: rgba(0, 0, 0, 0.45);
 }
 
 .drep-log-item.success {
@@ -426,7 +439,7 @@
 .drep-log-note {
   margin-top: 6px;
   font-size: 12px;
-  color: var(--color-text-dark-secondary);
+  --color: var(--color-text-dark-secondary);
 }
 
 .drep-log-actions {
@@ -503,13 +516,13 @@
   padding: 6px 10px;
   border-radius: 6px;
   border: 1px solid rgba(255, 255, 255, 0.2);
-  background: rgba(0, 0, 0, 0.25);
-  color: inherit;
+  --background:: rgba(0, 0, 0, 0.25);
+  --color: inherit;
   cursor: pointer;
 }
 
 .drep-tab-button.active {
-  background: rgba(0, 0, 0, 0.5);
+  --background:: rgba(0, 0, 0, 0.5);
 }
 
 .drep-phase-tab {
@@ -599,7 +612,7 @@
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: var(--color-text-dark-secondary);
+  --color: var(--color-text-dark-secondary);
 }
 
 .drep-check-list {
@@ -609,25 +622,25 @@
 }
 
 .dialog-button.flow {
-  background-color: rgba(0,80,50,0.4);
+  --background:---color: rgba(0,80,50,0.4);
 }
 
 .drep-check-row {
   padding: 6px 8px;
   border-radius: 6px;
-  background: rgba(0, 0, 0, 0.04);
+  --background:: rgba(0, 0, 0, 0.04);
 }
 
 .drep-check-list > .drep-check-card:nth-child(odd) {
-  background-color: rgba(0, 85, 55, 0.20);
+  --background:---color: rgba(0, 85, 55, 0.20);
 }
 
 .drep-check-list > .drep-check-card:nth-child(even) {
-  background-color: rgba(4, 27, 81, 0.20);
+  --background:---color: rgba(4, 27, 81, 0.20);
 }
 
 .drep-app.embedded .drep-check-row {
-  background: rgba(255, 255, 255, 0.06);
+  --background:: rgba(255, 255, 255, 0.06);
 }
 
 .drep-check-row.complete {
@@ -670,7 +683,7 @@
   border-radius: 8px;
   padding: 10px;
   margin-bottom: 10px;
-  background: rgba(0, 0, 0, 0.2);
+  --background:: rgba(0, 0, 0, 0.2);
 }
 
 .drep-group-header {
@@ -691,7 +704,7 @@
 .drep-group-chip {
   padding: 2px 8px;
   border-radius: 999px;
-  background: rgba(0, 0, 0, 0.35);
+  --background:: rgba(0, 0, 0, 0.35);
   border: 1px solid rgba(255, 255, 255, 0.3);
   font-size: 11px;
   cursor: grab;
@@ -701,7 +714,7 @@
   border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: 8px;
   padding: 8px;
-  background: rgba(0, 0, 0, 0.18);
+  --background:: rgba(0, 0, 0, 0.18);
   cursor: grab;
 }
 
@@ -725,7 +738,7 @@
   margin-top: 8px;
   padding: 6px;
   border-radius: 6px;
-  background: rgba(0, 0, 0, 0.3);
+  --background:: rgba(0, 0, 0, 0.3);
   border: 1px dashed rgba(255, 255, 255, 0.34);
   min-height: 32px;
 }
@@ -734,7 +747,7 @@
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: var(--color-text-dark-secondary);
+  --color: var(--color-text-dark-secondary);
 }
 
 .drep-deps-chips {
@@ -749,15 +762,15 @@
   gap: 6px;
   padding: 2px 6px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
+  --background:: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.4);
   font-size: 11px;
 }
 
 .drep-dep-remove {
   border: none;
-  background: transparent;
-  color: inherit;
+  --background:: transparent;
+  --color: inherit;
   cursor: pointer;
   font-weight: 600;
 }
@@ -766,7 +779,7 @@
   border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: 8px;
   padding: 8px;
-  background: rgba(0, 0, 0, 0.18);
+  --background:: rgba(0, 0, 0, 0.18);
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -774,11 +787,11 @@
 }
 
 .card-success {
-  background: rgba(0, 40, 0, 0.35);
+  --background:: rgba(0, 40, 0, 0.35);
 }
 
 .card-failure {
-  background: rgba(40, 0, 0, 0.35);
+  --background:: rgba(40, 0, 0, 0.35);
 }
 
 .drep-line-actions {
@@ -795,7 +808,7 @@
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.03em;
-  color: var(--color-text-dark-secondary);
+  --color: var(--color-text-dark-secondary);
 }
 
 
@@ -861,7 +874,7 @@
   max-width: 180px;
   padding: 2px 6px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
+  --background:: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.4);
   font-size: 11px;
   white-space: nowrap;
@@ -928,22 +941,22 @@
 
 
 .drep-group-card {
-  border-color: rgba(255, 255, 255, 0.4);
-  background: rgba(0, 0, 0, 0.32);
+  border---color: rgba(255, 255, 255, 0.4);
+  --background:: rgba(0, 0, 0, 0.32);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
 }
 
 .drep-group-card:nth-of-type(odd) {
-  background: rgba(0, 0, 0, 0.36);
+  --background:: rgba(0, 0, 0, 0.36);
 }
 
 .drep-group-card:nth-of-type(even) {
-  background: rgba(0, 0, 0, 0.44);
+  --background:: rgba(0, 0, 0, 0.44);
 }
 
 .drep-check-card {
-  border-color: rgba(255, 255, 255, 0.42);
-  background: rgba(0, 0, 0, 0.26);
+  border---color: rgba(255, 255, 255, 0.42);
+  --background:: rgba(0, 0, 0, 0.26);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03);
 }
 
@@ -953,7 +966,7 @@
   align-items: center;
   justify-content: center;
   width: 16px;
-  color: var(--color-text-dark-secondary);
+  --color: var(--color-text-dark-secondary);
 }
 
 .drep-summary-toggle .drep-collapse {
@@ -994,20 +1007,20 @@
   align-items: center;
   gap: 6px;
   font-size: 12px;
-  color: var(--color-text-dark-secondary);
+  --color: var(--color-text-dark-secondary);
 }
 
 .drep-flow-zoom button {
   border: 1px solid rgba(255, 255, 255, 0.25);
-  background: rgba(0, 0, 0, 0.25);
-  color: inherit;
+  --background:: rgba(0, 0, 0, 0.25);
+  --color: inherit;
   border-radius: 6px;
   padding: 2px 6px;
   cursor: pointer;
 }
 
 .drep-flow-zoom button:hover {
-  color: var(--color-text-light-0);
+  --color: var(--color-text-light-0);
 }
 
 .drep-flow-zoom-range {
@@ -1034,7 +1047,7 @@
 }
 
 .drep-flow-lane {
-  background: rgba(0, 0, 0, 0.28);
+  --background:: rgba(0, 0, 0, 0.28);
   border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: 10px;
   padding: 10px;
@@ -1047,7 +1060,7 @@
 }
 
 .drep-flow-lane.is-drop-target {
-  border-color: rgba(255, 209, 102, 0.9);
+  border---color: rgba(255, 209, 102, 0.9);
   box-shadow: 0 0 0 1px rgba(255, 209, 102, 0.6);
 }
 
@@ -1087,7 +1100,7 @@
 }
 
 .drep-flow-check {
-  background-color: rgba(40, 40, 40, 0.3);
+  --background:---color: rgba(40, 40, 40, 0.3);
   border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: 8px;
   padding: 8px;
@@ -1095,7 +1108,7 @@
 }
 
 .drep-flow-check.is-drop-target {
-  border-color: rgba(255, 209, 102, 0.9);
+  border---color: rgba(255, 209, 102, 0.9);
   box-shadow: 0 0 0 1px rgba(255, 209, 102, 0.6);
 }
 
@@ -1109,13 +1122,13 @@
 
 .drep-flow-check-meta {
   font-size: 12px;
-  color: var(--color-text-dark-secondary);
+  --color: var(--color-text-dark-secondary);
   margin-top: 2px;
 }
 
 .drep-flow-check-desc {
   font-size: 12px;
-  color: var(--color-text-dark-secondary);
+  --color: var(--color-text-dark-secondary);
   margin-top: 4px;
 }
 
@@ -1131,7 +1144,7 @@
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.03em;
-  color: var(--color-text-dark-secondary);
+  --color: var(--color-text-dark-secondary);
 }
 
 .drep-flow-dep {
@@ -1139,23 +1152,23 @@
   align-items: center;
   padding: 2px 6px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
+  --background:: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.4);
   font-size: 11px;
 }
 
 
 .drep-flow-dep-remove {
-  background: transparent;
+  --background:: transparent;
   border: none;
-  color: inherit;
+  --color: inherit;
   margin-left: 6px;
   font-size: 11px;
   cursor: pointer;
 }
 
 .drep-flow-dep-remove:hover {
-  color: #f0c674;
+  --color: #f0c674;
 }
 
 .drep-flow-lines {
@@ -1168,38 +1181,38 @@
 }
 
 .drep-flow-lines.success {
-  border-top-color: rgba(120, 200, 140, 0.29);
+  border-top---color: rgba(120, 200, 140, 0.29);
 }
 
 .drep-flow-lines.failure {
-  border-top-color: rgba(220, 120, 120, 0.29);
+  border-top---color: rgba(220, 120, 120, 0.29);
 }
 
 .drep-flow-lines-label {
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.03em;
-  color: var(--color-text-dark-secondary);
+  --color: var(--color-text-dark-secondary);
 }
 
 .drep-flow-line {
   font-size: 12px;
-  color: var(--color-text-light-0);
+  --color: var(--color-text-light-0);
   display: inline-flex;
   align-items: center;
 }
 
 .drep-flow-line-remove {
-  background: transparent;
+  --background:: transparent;
   border: none;
-  color: inherit;
+  --color: inherit;
   margin-left: 6px;
   font-size: 11px;
   cursor: pointer;
 }
 
 .drep-flow-line-remove:hover {
-  color: #f0c674;
+  --color: #f0c674;
 }
 
 
@@ -1214,7 +1227,7 @@
   display: inline-flex;
   align-items: center;
   margin-left: 6px;
-  color: #c5b79d;
+  --color: #c5b79d;
   cursor: help;
 }
 
@@ -1223,36 +1236,36 @@
 }
 
 .drep-flow-check.is-complete {
-  background: rgba(20, 80, 35, 0.75) !important;
-  border-color: rgba(30, 120, 55, 0.9) !important;
-  background: rgba(20, 80, 35, 0.65);
-  border-color: rgba(30, 120, 55, 0.7);
+  --background:: rgba(20, 80, 35, 0.75) !important;
+  border---color: rgba(30, 120, 55, 0.9) !important;
+  --background:: rgba(20, 80, 35, 0.65);
+  border---color: rgba(30, 120, 55, 0.7);
 }
 
 .drep-flow-check.is-locked {
-  background: rgba(90, 20, 20, 0.6);
-  border-color: rgba(140, 40, 40, 0.7);
-  background: rgba(90, 20, 20, 0.6);
-  border-color: rgba(140, 40, 40, 0.7);
+  --background:: rgba(90, 20, 20, 0.6);
+  border---color: rgba(140, 40, 40, 0.7);
+  --background:: rgba(90, 20, 20, 0.6);
+  border---color: rgba(140, 40, 40, 0.7);
 }
 
 .drep-flow-check.is-locked.is-complete {
-  background: rgba(20, 80, 35, 0.75) !important;
-  border-color: rgba(30, 120, 55, 0.9) !important;
+  --background:: rgba(20, 80, 35, 0.75) !important;
+  border---color: rgba(30, 120, 55, 0.9) !important;
 }
 
 .drep-flow-dep.is-complete {
-  background: rgba(20, 80, 35, 0.7);
-  border-color: rgba(30, 120, 55, 0.85);
-  color: #e7f6ec;
+  --background:: rgba(20, 80, 35, 0.7);
+  border---color: rgba(30, 120, 55, 0.85);
+  --color: #e7f6ec;
 }
 
 .drep-flow-check.is-group-maxed {
-  background: rgba(85, 85, 85, 0.65) !important;
-  border-color: rgba(140, 140, 140, 0.7) !important;
+  --background:: rgba(85, 85, 85, 0.65) !important;
+  border---color: rgba(140, 140, 140, 0.7) !important;
 }
 
 .drep-flow-check.is-locked.is-group-maxed {
-  background: rgba(85, 85, 85, 0.65) !important;
-  border-color: rgba(140, 140, 140, 0.7) !important;
+  --background:: rgba(85, 85, 85, 0.65) !important;
+  border---color: rgba(140, 140, 140, 0.7) !important;
 }

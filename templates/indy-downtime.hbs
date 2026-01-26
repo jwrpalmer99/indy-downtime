@@ -15,7 +15,7 @@
   </header>
 
   <section class="drep-status-row">    
-    <div class="drep-status-grid">
+    <div class="section drep-status-grid">
       <div class="drep-progress-block main" style="--progress: {{progressPercent}}">
         <label>Phase Progress</label>
         <div class="drep-value">{{activePhase.progress}} / {{activePhase.target}}</div>
@@ -91,6 +91,8 @@
             {{#each checkTooltips}}
               <span class="drep-hidden" data-drep-check-tooltip="{{@key}}" data-tooltip="{{this}}"></span>
             {{/each}}
+            
+          </label>
             <div class="drep-muted drep-check-title">
               <span class="drep-check-title-text">Current Focus: {{selectedCheckLabel}}</span>
               <span class="drep-check-tooltip" title="{{selectedCheckTooltip}}" style="display: {{#if selectedCheckTooltip}}inline-flex{{else}}none{{/if}};">
@@ -100,10 +102,10 @@
             {{#if selectedCheckDescription}}
               <div class="drep-muted drep-check-description">{{selectedCheckDescription}}</div>
             {{/if}}
-          </label>
-        </div>
+          
         <div class="drep-actions">
           <button type="button" data-drep-action="roll-interval" class="always-interactive drep-button drep-button-primary">Roll {{intervalLabel}} Check</button>
+        </div>
         </div>
       </div>
     {{else}}
