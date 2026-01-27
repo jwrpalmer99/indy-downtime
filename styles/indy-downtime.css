@@ -1153,15 +1153,47 @@
   font-size: 12px;
   --color: var(--color-text-dark-secondary);
   margin-top: 2px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.drep-flow-flags-toggle {
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin: 0;
+  line-height: 1;
+  cursor: pointer;
+  --color: var(--color-text-dark-secondary);
+  display: inline-flex;
+  align-items: center;
+  font-size: x-small;
+}
+
+.drep-flow-flags-toggle i.fa-chevron-down {
+  display: none;
+}
+
+.drep-flow-flags-toggle.is-open i.fa-chevron-right {
+  display: none;
+}
+
+.drep-flow-flags-toggle.is-open i.fa-chevron-down {
+  display: inline-block;
 }
 
 .drep-flow-check-flags {
-  display: flex;
+  display: none;
   flex-wrap: wrap;
   gap: 10px;
   margin-top: 4px;
   font-size: 11px;
   --color: var(--color-text-dark-secondary);
+}
+
+.drep-flow-check-flags.is-open {
+  display: flex;
 }
 
 .drep-flow-check-flag {

@@ -1730,6 +1730,7 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
           groupMaxed: groupMaxed && !complete,
           completeGroupOnSuccess: Boolean(check.completeGroupOnSuccess),
           completePhaseOnSuccess: Boolean(check.completePhaseOnSuccess),
+          hasCompletionFlags: Boolean(check.completeGroupOnSuccess || check.completePhaseOnSuccess),
           dc: dcValue,
           dcLabel,
           difficulty,
@@ -2047,6 +2048,18 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
       if (updateCheckField(phase, checkId, updates)) {
         savePhaseConfig(phase);
       }
+    });
+
+    html.on("click.drepFlow", "[data-drep-action='toggle-check-flags']", (event) => {
+      event.preventDefault();
+      const button = event.currentTarget;
+      const checkId = button?.dataset?.checkId;
+      if (!checkId) return;
+      const flags = html.find(`[data-drep-check-flags='${checkId}']`).first();
+      if (!flags.length) return;
+      const isOpen = flags.hasClass("is-open");
+      flags.toggleClass("is-open", !isOpen);
+      button.classList?.toggle("is-open", !isOpen);
     });
 
     const beginInlineEdit = (element, config) => {
