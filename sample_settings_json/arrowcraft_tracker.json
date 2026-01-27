@@ -1,0 +1,918 @@
+{
+  "module": "indy-downtime",
+  "version": "1.0.0",
+  "exportedAt": "2026-01-27T09:48:15.635Z",
+  "tracker": {
+    "id": "tracker-3",
+    "name": "Fletching",
+    "headerLabel": "Learning to Fletch",
+    "tabLabel": "Fletching",
+    "intervalLabel": "Twice Weekly",
+    "tabIcon": "fa-duotone fa-solid fa-bullseye-arrow",
+    "hideDcFromPlayers": false,
+    "showLockedChecksToPlayers": true,
+    "showPhasePlanToPlayers": true,
+    "showCheckTooltipsToPlayers": false,
+    "showFlowRelationships": true,
+    "showFlowLines": true,
+    "restrictedActorUuids": [],
+    "phaseConfig": [
+      {
+        "id": "phase1",
+        "name": "Walloping Arrow",
+        "narrativeDuration": "2 weeks",
+        "expectedGain": "",
+        "target": 4,
+        "allowCriticalBonus": true,
+        "failureEvents": false,
+        "failureEventTable": "",
+        "image": "",
+        "phaseCompleteMessage": "You learn to craft Walloping Arrows (can knock a target prone).",
+        "phaseCompleteMacro": "",
+        "groups": [
+          {
+            "id": "p1-g1",
+            "name": "Material Study",
+            "checks": [
+              {
+                "id": "p1-g1-c1",
+                "name": "Arcane Resonance",
+                "skill": "arc",
+                "description": "Map how the head channels kinetic force.",
+                "dc": 12,
+                "difficulty": "regular",
+                "target": 1,
+                "dependsOn": [],
+                "groupId": "p1-g1",
+                "step": 0
+              },
+              {
+                "id": "p1-g1-c2",
+                "name": "Stonehead Geometry",
+                "skill": "inv",
+                "description": "Design a shape that spreads impact without shattering.",
+                "dc": 13,
+                "difficulty": "regular",
+                "target": 1,
+                "dependsOn": [
+                  {
+                    "id": "p1-g1-c1",
+                    "type": "block",
+                    "kind": "check",
+                    "dcPenalty": 0,
+                    "overrideSkill": "",
+                    "overrideDc": 0
+                  }
+                ],
+                "groupId": "p1-g1",
+                "step": 0
+              }
+            ],
+            "maxChecks": 0
+          },
+          {
+            "id": "p1-g2",
+            "name": "Workshop Trials",
+            "checks": [
+              {
+                "id": "p1-g2-c1",
+                "name": "Fletching Balance",
+                "skill": "slt",
+                "description": "Fine-tune weight distribution for stable flight.",
+                "dc": 12,
+                "difficulty": "regular",
+                "target": 1,
+                "dependsOn": [],
+                "groupId": "p1-g2",
+                "step": 0
+              },
+              {
+                "id": "p1-g2-c2",
+                "name": "Impact Testing",
+                "skill": "ath",
+                "description": "Stress-test prototypes against armored dummies.",
+                "dc": 13,
+                "difficulty": "regular",
+                "target": 1,
+                "dependsOn": [
+                  {
+                    "id": "p1-g2-c1",
+                    "type": "block",
+                    "kind": "check",
+                    "dcPenalty": 0,
+                    "overrideSkill": "",
+                    "overrideDc": 0
+                  }
+                ],
+                "groupId": "p1-g2",
+                "step": 0
+              }
+            ],
+            "maxChecks": 0
+          },
+          {
+            "id": "p1-g3",
+            "name": "Field Practice",
+            "checks": [
+              {
+                "id": "p1-g3-c1",
+                "name": "Stability Shots",
+                "skill": "acr",
+                "description": "Fire test shots to verify stability under pressure.",
+                "dc": 12,
+                "difficulty": "regular",
+                "target": 1,
+                "dependsOn": [
+                  {
+                    "id": "p1-g2-c1",
+                    "type": "block",
+                    "kind": "check",
+                    "dcPenalty": 0,
+                    "overrideSkill": "",
+                    "overrideDc": 0
+                  },
+                  {
+                    "id": "p1-g1-c1",
+                    "type": "block",
+                    "kind": "check",
+                    "dcPenalty": 0,
+                    "overrideSkill": "",
+                    "overrideDc": 0
+                  }
+                ],
+                "groupId": "p1-g3",
+                "step": 0
+              },
+              {
+                "id": "p1-g3-c2",
+                "name": "Impact Read",
+                "skill": "ins",
+                "description": "Assess the knockdown effect on different targets.",
+                "dc": 13,
+                "difficulty": "regular",
+                "target": 1,
+                "dependsOn": [
+                  {
+                    "id": "p1-g3-c1",
+                    "type": "block",
+                    "kind": "check",
+                    "dcPenalty": 0,
+                    "overrideSkill": "",
+                    "overrideDc": 0
+                  },
+                  {
+                    "id": "p1-g2-c2",
+                    "type": "block",
+                    "kind": "check",
+                    "dcPenalty": 0,
+                    "overrideSkill": "",
+                    "overrideDc": 0
+                  },
+                  {
+                    "id": "p1-g1-c2",
+                    "type": "block",
+                    "kind": "check",
+                    "dcPenalty": 0,
+                    "overrideSkill": "",
+                    "overrideDc": 0
+                  }
+                ],
+                "groupId": "p1-g3",
+                "step": 0
+              }
+            ],
+            "maxChecks": 0
+          }
+        ],
+        "successLines": [
+          {
+            "id": "p1-s1",
+            "text": "The head rings true; the knockdown force is clean.",
+            "dependsOnChecks": [],
+            "dependsOnGroups": []
+          }
+        ],
+        "failureLines": [
+          {
+            "id": "p1-f1",
+            "text": "The head fractures on impact. Back to the anvil.",
+            "dependsOnChecks": [],
+            "dependsOnGroups": []
+          }
+        ]
+      },
+      {
+        "id": "phase2",
+        "name": "Knockback Arrow",
+        "narrativeDuration": "2 weeks",
+        "expectedGain": "",
+        "target": 4,
+        "allowCriticalBonus": true,
+        "failureEvents": false,
+        "failureEventTable": "",
+        "image": "",
+        "phaseCompleteMessage": "You learn to craft Knockback Arrows.",
+        "phaseCompleteMacro": "",
+        "groups": [
+          {
+            "id": "p2-g1",
+            "name": "Force Dynamics",
+            "checks": [
+              {
+                "id": "p2-g1-c1",
+                "name": "Impulse Geometry",
+                "skill": "arc",
+                "description": "Shape the force vector to push, not shatter.",
+                "dc": 13,
+                "difficulty": "regular",
+                "target": 1,
+                "dependsOn": [],
+                "groupId": "p2-g1",
+                "step": 0
+              },
+              {
+                "id": "p2-g1-c2",
+                "name": "Wind Tunnel Calculations",
+                "skill": "inv",
+                "description": "Model how airflow affects push distance.",
+                "dc": 13,
+                "difficulty": "regular",
+                "target": 1,
+                "dependsOn": [
+                  {
+                    "id": "p2-g1-c1",
+                    "type": "block",
+                    "kind": "check",
+                    "dcPenalty": 0,
+                    "overrideSkill": "",
+                    "overrideDc": 0
+                  }
+                ],
+                "groupId": "p2-g1",
+                "step": 0
+              }
+            ],
+            "maxChecks": 0
+          },
+          {
+            "id": "p2-g2",
+            "name": "Range Testing",
+            "checks": [
+              {
+                "id": "p2-g2-c1",
+                "name": "Trajectory Read",
+                "skill": "prc",
+                "description": "Track push distance across varied ranges.",
+                "dc": 13,
+                "difficulty": "regular",
+                "target": 1,
+                "dependsOn": [],
+                "groupId": "p2-g2",
+                "step": 0
+              },
+              {
+                "id": "p2-g2-c2",
+                "name": "Field Demonstration",
+                "skill": "per",
+                "description": "Convince a veteran archer to test the prototype.",
+                "dc": 12,
+                "difficulty": "regular",
+                "target": 1,
+                "dependsOn": [
+                  {
+                    "id": "p2-g2-c1",
+                    "type": "block",
+                    "kind": "check",
+                    "dcPenalty": 0,
+                    "overrideSkill": "",
+                    "overrideDc": 0
+                  }
+                ],
+                "groupId": "p2-g2",
+                "step": 0
+              }
+            ],
+            "maxChecks": 0
+          },
+          {
+            "id": "p2-g3",
+            "name": "Safety & Calibration",
+            "checks": [
+              {
+                "id": "p2-g3-c1",
+                "name": "Recoil Control",
+                "skill": "ath",
+                "description": "Measure safe recoil thresholds.",
+                "dc": 13,
+                "difficulty": "regular",
+                "target": 1,
+                "dependsOn": [
+                  {
+                    "id": "p2-g2-c1",
+                    "type": "block",
+                    "kind": "check",
+                    "dcPenalty": 0,
+                    "overrideSkill": "",
+                    "overrideDc": 0
+                  },
+                  {
+                    "id": "p2-g1-c1",
+                    "type": "block",
+                    "kind": "check",
+                    "dcPenalty": 0,
+                    "overrideSkill": "",
+                    "overrideDc": 0
+                  }
+                ],
+                "groupId": "p2-g3",
+                "step": 0
+              },
+              {
+                "id": "p2-g3-c2",
+                "name": "Material Stress",
+                "skill": "nat",
+                "description": "Select shafts that survive repeated knockback.",
+                "dc": 14,
+                "difficulty": "regular",
+                "target": 1,
+                "dependsOn": [
+                  {
+                    "id": "p2-g2-c2",
+                    "type": "block",
+                    "kind": "check",
+                    "dcPenalty": 0,
+                    "overrideSkill": "",
+                    "overrideDc": 0
+                  },
+                  {
+                    "id": "p2-g1-c2",
+                    "type": "block",
+                    "kind": "check",
+                    "dcPenalty": 0,
+                    "overrideSkill": "",
+                    "overrideDc": 0
+                  }
+                ],
+                "groupId": "p2-g3",
+                "step": 0
+              }
+            ],
+            "maxChecks": 0
+          }
+        ],
+        "successLines": [
+          {
+            "id": "p2-s1",
+            "text": "The arrow shoves targets back without breaking apart.",
+            "dependsOnChecks": [],
+            "dependsOnGroups": []
+          }
+        ],
+        "failureLines": [
+          {
+            "id": "p2-f1",
+            "text": "Push force is inconsistent; the design needs refinement.",
+            "dependsOnChecks": [],
+            "dependsOnGroups": []
+          }
+        ]
+      },
+      {
+        "id": "phase3",
+        "name": "Tethering Arrow",
+        "narrativeDuration": "3 weeks",
+        "expectedGain": "",
+        "target": 4,
+        "allowCriticalBonus": true,
+        "failureEvents": false,
+        "failureEventTable": "",
+        "image": "",
+        "phaseCompleteMessage": "You learn to craft Tethering Arrows.",
+        "phaseCompleteMacro": "",
+        "groups": [
+          {
+            "id": "p3-g1",
+            "name": "Cordage Craft",
+            "checks": [
+              {
+                "id": "p3-g1-c1",
+                "name": "Fiber Selection",
+                "skill": "nat",
+                "description": "Choose fibers that can hold tension without fraying.",
+                "dc": 13,
+                "difficulty": "regular",
+                "target": 1,
+                "dependsOn": [],
+                "groupId": "p3-g1",
+                "step": 0
+              },
+              {
+                "id": "p3-g1-c2",
+                "name": "Anchor Design",
+                "skill": "inv",
+                "description": "Build a head that locks without tearing free.",
+                "dc": 14,
+                "difficulty": "regular",
+                "target": 1,
+                "dependsOn": [
+                  {
+                    "id": "p3-g1-c1",
+                    "type": "block",
+                    "kind": "check",
+                    "dcPenalty": 0,
+                    "overrideSkill": "",
+                    "overrideDc": 0
+                  }
+                ],
+                "groupId": "p3-g1",
+                "step": 0
+              }
+            ],
+            "maxChecks": 0
+          },
+          {
+            "id": "p3-g2",
+            "name": "Deployment Drills",
+            "checks": [
+              {
+                "id": "p3-g2-c1",
+                "name": "Silent Launch",
+                "skill": "ste",
+                "description": "Reduce whine and snap of the tether on release.",
+                "dc": 13,
+                "difficulty": "regular",
+                "target": 1,
+                "dependsOn": [],
+                "groupId": "p3-g2",
+                "step": 0
+              },
+              {
+                "id": "p3-g2-c2",
+                "name": "Tracking Line",
+                "skill": "sur",
+                "description": "Maintain line control while moving.",
+                "dc": 14,
+                "difficulty": "regular",
+                "target": 1,
+                "dependsOn": [
+                  {
+                    "id": "p3-g2-c1",
+                    "type": "block",
+                    "kind": "check",
+                    "dcPenalty": 0,
+                    "overrideSkill": "",
+                    "overrideDc": 0
+                  }
+                ],
+                "groupId": "p3-g2",
+                "step": 0
+              }
+            ],
+            "maxChecks": 0
+          },
+          {
+            "id": "p3-g3",
+            "name": "Rigging & Retrieval",
+            "checks": [
+              {
+                "id": "p3-g3-c1",
+                "name": "Anchor Knot",
+                "skill": "slt",
+                "description": "Tie a knot that locks without snagging.",
+                "dc": 13,
+                "difficulty": "regular",
+                "target": 1,
+                "dependsOn": [
+                  {
+                    "id": "p3-g2-c1",
+                    "type": "block",
+                    "kind": "check",
+                    "dcPenalty": 0,
+                    "overrideSkill": "",
+                    "overrideDc": 0
+                  },
+                  {
+                    "id": "p3-g1-c1",
+                    "type": "block",
+                    "kind": "check",
+                    "dcPenalty": 0,
+                    "overrideSkill": "",
+                    "overrideDc": 0
+                  }
+                ],
+                "groupId": "p3-g3",
+                "step": 0
+              },
+              {
+                "id": "p3-g3-c2",
+                "name": "Recovery Route",
+                "skill": "ins",
+                "description": "Plan the cleanest line for retrieval.",
+                "dc": 14,
+                "difficulty": "regular",
+                "target": 1,
+                "dependsOn": [
+                  {
+                    "id": "p3-g2-c2",
+                    "type": "block",
+                    "kind": "check",
+                    "dcPenalty": 0,
+                    "overrideSkill": "",
+                    "overrideDc": 0
+                  },
+                  {
+                    "id": "p3-g1-c2",
+                    "type": "block",
+                    "kind": "check",
+                    "dcPenalty": 0,
+                    "overrideSkill": "",
+                    "overrideDc": 0
+                  }
+                ],
+                "groupId": "p3-g3",
+                "step": 0
+              }
+            ],
+            "maxChecks": 0
+          }
+        ],
+        "successLines": [
+          {
+            "id": "p3-s1",
+            "text": "The tether bites and holds under strain.",
+            "dependsOnChecks": [],
+            "dependsOnGroups": []
+          }
+        ],
+        "failureLines": [
+          {
+            "id": "p3-f1",
+            "text": "The line slips and frays; the anchor needs rework.",
+            "dependsOnChecks": [],
+            "dependsOnGroups": []
+          }
+        ]
+      },
+      {
+        "id": "phase4",
+        "name": "Smoke Arrow",
+        "narrativeDuration": "2 weeks",
+        "expectedGain": "",
+        "target": 4,
+        "allowCriticalBonus": true,
+        "failureEvents": false,
+        "failureEventTable": "",
+        "image": "",
+        "phaseCompleteMessage": "You learn to craft Smoke Arrows.",
+        "phaseCompleteMacro": "",
+        "groups": [
+          {
+            "id": "p4-g1",
+            "name": "Reagent Blend",
+            "checks": [
+              {
+                "id": "p4-g1-c1",
+                "name": "Safe Mixture",
+                "skill": "med",
+                "description": "Balance irritants without poisoning the user.",
+                "dc": 13,
+                "difficulty": "regular",
+                "target": 1,
+                "dependsOn": [],
+                "groupId": "p4-g1",
+                "step": 0
+              },
+              {
+                "id": "p4-g1-c2",
+                "name": "Ignition Control",
+                "skill": "arc",
+                "description": "Tune the ignition so it blooms on impact.",
+                "dc": 14,
+                "difficulty": "regular",
+                "target": 1,
+                "dependsOn": [
+                  {
+                    "id": "p4-g1-c1",
+                    "type": "block",
+                    "kind": "check",
+                    "dcPenalty": 0,
+                    "overrideSkill": "",
+                    "overrideDc": 0
+                  }
+                ],
+                "groupId": "p4-g1",
+                "step": 0
+              }
+            ],
+            "maxChecks": 0
+          },
+          {
+            "id": "p4-g2",
+            "name": "Concealment Practice",
+            "checks": [
+              {
+                "id": "p4-g2-c1",
+                "name": "Silent Positioning",
+                "skill": "ste",
+                "description": "Use the smoke to mask movement.",
+                "dc": 13,
+                "difficulty": "regular",
+                "target": 1,
+                "dependsOn": [],
+                "groupId": "p4-g2",
+                "step": 0
+              },
+              {
+                "id": "p4-g2-c2",
+                "name": "Tactical Read",
+                "skill": "ins",
+                "description": "Judge when to deploy for maximum cover.",
+                "dc": 14,
+                "difficulty": "regular",
+                "target": 1,
+                "dependsOn": [
+                  {
+                    "id": "p4-g2-c1",
+                    "type": "block",
+                    "kind": "check",
+                    "dcPenalty": 0,
+                    "overrideSkill": "",
+                    "overrideDc": 0
+                  }
+                ],
+                "groupId": "p4-g2",
+                "step": 0
+              }
+            ],
+            "maxChecks": 0
+          },
+          {
+            "id": "p4-g3",
+            "name": "Wind Testing",
+            "checks": [
+              {
+                "id": "p4-g3-c1",
+                "name": "Dispersion Study",
+                "skill": "inv",
+                "description": "Test smoke spread patterns in open air.",
+                "dc": 13,
+                "difficulty": "regular",
+                "target": 1,
+                "dependsOn": [
+                  {
+                    "id": "p4-g2-c1",
+                    "type": "block",
+                    "kind": "check",
+                    "dcPenalty": 0,
+                    "overrideSkill": "",
+                    "overrideDc": 0
+                  },
+                  {
+                    "id": "p4-g1-c1",
+                    "type": "block",
+                    "kind": "check",
+                    "dcPenalty": 0,
+                    "overrideSkill": "",
+                    "overrideDc": 0
+                  }
+                ],
+                "groupId": "p4-g3",
+                "step": 0
+              },
+              {
+                "id": "p4-g3-c2",
+                "name": "Cover Timing",
+                "skill": "dec",
+                "description": "Time the detonation for peak concealment.",
+                "dc": 14,
+                "difficulty": "regular",
+                "target": 1,
+                "dependsOn": [
+                  {
+                    "id": "p4-g2-c2",
+                    "type": "block",
+                    "kind": "check",
+                    "dcPenalty": 0,
+                    "overrideSkill": "",
+                    "overrideDc": 0
+                  },
+                  {
+                    "id": "p4-g1-c2",
+                    "type": "block",
+                    "kind": "check",
+                    "dcPenalty": 0,
+                    "overrideSkill": "",
+                    "overrideDc": 0
+                  }
+                ],
+                "groupId": "p4-g3",
+                "step": 0
+              }
+            ],
+            "maxChecks": 0
+          }
+        ],
+        "successLines": [
+          {
+            "id": "p4-s1",
+            "text": "The bloom is thick and controllable.",
+            "dependsOnChecks": [],
+            "dependsOnGroups": []
+          }
+        ],
+        "failureLines": [
+          {
+            "id": "p4-f1",
+            "text": "The smoke is thin and quick to disperse.",
+            "dependsOnChecks": [],
+            "dependsOnGroups": []
+          }
+        ]
+      },
+      {
+        "id": "phase5",
+        "name": "Gravity Well Arrow",
+        "narrativeDuration": "4 weeks",
+        "expectedGain": "",
+        "target": 4,
+        "allowCriticalBonus": true,
+        "failureEvents": false,
+        "failureEventTable": "",
+        "image": "",
+        "phaseCompleteMessage": "You learn to craft Gravity Well Arrows.",
+        "phaseCompleteMacro": "",
+        "groups": [
+          {
+            "id": "p5-g1",
+            "name": "Gravitic Theory",
+            "checks": [
+              {
+                "id": "p5-g1-c1",
+                "name": "Singularity Model",
+                "skill": "arc",
+                "description": "Solve the arcane math behind localized pull.",
+                "dc": 13,
+                "difficulty": "regular",
+                "target": 1,
+                "dependsOn": [],
+                "groupId": "p5-g1",
+                "step": 0
+              },
+              {
+                "id": "p5-g1-c2",
+                "name": "Historical Notes",
+                "skill": "his",
+                "description": "Study prior attempts at gravity binding.",
+                "dc": 14,
+                "difficulty": "regular",
+                "target": 1,
+                "dependsOn": [
+                  {
+                    "id": "p5-g1-c1",
+                    "type": "block",
+                    "kind": "check",
+                    "dcPenalty": 0,
+                    "overrideSkill": "",
+                    "overrideDc": 0
+                  }
+                ],
+                "groupId": "p5-g1",
+                "step": 0
+              }
+            ],
+            "maxChecks": 0
+          },
+          {
+            "id": "p5-g2",
+            "name": "Ritual & Precision",
+            "checks": [
+              {
+                "id": "p5-g2-c1",
+                "name": "Ritual Alignment",
+                "skill": "arc",
+                "description": "Align the inscribed runes correctly.",
+                "dc": 13,
+                "difficulty": "regular",
+                "target": 1,
+                "dependsOn": [],
+                "groupId": "p5-g2",
+                "step": 0
+              },
+              {
+                "id": "p5-g2-c2",
+                "name": "Precision Trigger",
+                "skill": "slt",
+                "description": "Build a trigger that survives the release.",
+                "dc": 15,
+                "difficulty": "regular",
+                "target": 1,
+                "dependsOn": [
+                  {
+                    "id": "p5-g2-c1",
+                    "type": "block",
+                    "kind": "check",
+                    "dcPenalty": 0,
+                    "overrideSkill": "",
+                    "overrideDc": 0
+                  }
+                ],
+                "groupId": "p5-g2",
+                "step": 0
+              }
+            ],
+            "maxChecks": 0
+          },
+          {
+            "id": "p5-g3",
+            "name": "Containment & Safety",
+            "checks": [
+              {
+                "id": "p5-g3-c1",
+                "name": "Arcane Containment",
+                "skill": "arc",
+                "description": "Ensure the well collapses safely after use.",
+                "dc": 14,
+                "difficulty": "regular",
+                "target": 1,
+                "dependsOn": [
+                  {
+                    "id": "p5-g2-c1",
+                    "type": "block",
+                    "kind": "check",
+                    "dcPenalty": 0,
+                    "overrideSkill": "",
+                    "overrideDc": 0
+                  },
+                  {
+                    "id": "p5-g1-c1",
+                    "type": "block",
+                    "kind": "check",
+                    "dcPenalty": 0,
+                    "overrideSkill": "",
+                    "overrideDc": 0
+                  }
+                ],
+                "groupId": "p5-g3",
+                "step": 0
+              },
+              {
+                "id": "p5-g3-c2",
+                "name": "Failure Scenarios",
+                "skill": "ins",
+                "description": "Predict how the well behaves under stress.",
+                "dc": 15,
+                "difficulty": "regular",
+                "target": 1,
+                "dependsOn": [
+                  {
+                    "id": "p5-g3-c1",
+                    "type": "block",
+                    "kind": "check",
+                    "dcPenalty": 0,
+                    "overrideSkill": "",
+                    "overrideDc": 0
+                  },
+                  {
+                    "id": "p5-g2-c2",
+                    "type": "block",
+                    "kind": "check",
+                    "dcPenalty": 0,
+                    "overrideSkill": "",
+                    "overrideDc": 0
+                  },
+                  {
+                    "id": "p5-g1-c2",
+                    "type": "block",
+                    "kind": "check",
+                    "dcPenalty": 0,
+                    "overrideSkill": "",
+                    "overrideDc": 0
+                  }
+                ],
+                "groupId": "p5-g3",
+                "step": 0
+              }
+            ],
+            "maxChecks": 0
+          }
+        ],
+        "successLines": [
+          {
+            "id": "p5-s1",
+            "text": "The arrow bends space as intended.",
+            "dependsOnChecks": [],
+            "dependsOnGroups": []
+          }
+        ],
+        "failureLines": [
+          {
+            "id": "p5-f1",
+            "text": "The binding fails; the pull collapses early.",
+            "dependsOnChecks": [],
+            "dependsOnGroups": []
+          }
+        ]
+      }
+    ]
+  }
+}

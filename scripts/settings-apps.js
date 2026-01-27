@@ -5,9 +5,11 @@ import {
   DEFAULT_INTERVAL_LABEL,
   DEFAULT_TAB_ICON,
   DEFAULT_TRACKER_NAME,
+  DEFAULT_STATE,
   MODULE_ID,
   MANUAL_SKILL_OVERRIDES_SETTING,
   DEFAULT_PHASE_CONFIG,
+  TRACKERS_SETTING,
 } from "./constants.js";
 import {
   addTracker,
@@ -77,6 +79,7 @@ import {
   rerenderSettingsApps,
   updateTidyTabLabel,
 } from "./ui.js";
+import { normalizeProjectState } from "./core/state.js";
 
 const confirmDialogV2 = ({ title, content, yesLabel = "Yes", noLabel = "Cancel" }) =>
   new Promise((resolve) => {
@@ -504,8 +507,31 @@ class DowntimeRepSettings extends HandlebarsApplicationMixin(ApplicationV2) {
               ui.notifications.error("Indy Downtime Tracker: invalid tracker payload.");
               return;
             }
+            const currentTracker = getTrackerById(trackerId) ?? getCurrentTracker();
+            const incomingNameRaw = typeof payload.name === "string" ? payload.name : "";
+            const incomingName = incomingNameRaw
+              ? sanitizeLabel(incomingNameRaw, DEFAULT_TRACKER_NAME)
+              : "";
+            const currentName = typeof currentTracker?.name === "string" ? currentTracker.name.trim() : "";
+            const shouldCreateNew = Boolean(incomingName && currentName && incomingName !== currentName);
+
+            const ensureUniqueTrackerId = (baseId) => {
+              const trackers = getTrackers();
+              const existing = new Set(trackers.map((entry) => entry.id));
+              let nextId = String(baseId ?? "").trim();
+              if (!nextId) {
+                nextId = `tracker-${trackers.length + 1}`;
+              }
+              if (!existing.has(nextId)) return nextId;
+              let index = 2;
+              while (existing.has(`${nextId}-${index}`)) {
+                index += 1;
+              }
+              return `${nextId}-${index}`;
+            };
+
             const updates = {};
-            if (typeof payload.name === "string") updates.name = sanitizeLabel(payload.name, DEFAULT_TRACKER_NAME);
+            if (incomingName) updates.name = incomingName;
             if (typeof payload.headerLabel === "string") updates.headerLabel = sanitizeLabel(payload.headerLabel, DEFAULT_HEADER_LABEL);
             if (typeof payload.tabLabel === "string") updates.tabLabel = sanitizeLabel(payload.tabLabel, DEFAULT_TAB_LABEL);
             if (typeof payload.intervalLabel === "string") updates.intervalLabel = sanitizeLabel(payload.intervalLabel, DEFAULT_INTERVAL_LABEL);
@@ -521,6 +547,42 @@ class DowntimeRepSettings extends HandlebarsApplicationMixin(ApplicationV2) {
             }
             if (payload.manualSkillOverrides && typeof payload.manualSkillOverrides === "object") {
               await game.settings.set(MODULE_ID, MANUAL_SKILL_OVERRIDES_SETTING, payload.manualSkillOverrides);
+            }
+            if (shouldCreateNew) {
+              const phaseConfig = Array.isArray(payload.phaseConfig)
+                ? normalizePhaseConfig(payload.phaseConfig)
+                : normalizePhaseConfig(DEFAULT_PHASE_CONFIG);
+              const newTrackerId = ensureUniqueTrackerId(
+                typeof payload.id === "string" ? payload.id : ""
+              );
+              const newTracker = {
+                id: newTrackerId,
+                name: updates.name ?? DEFAULT_TRACKER_NAME,
+                headerLabel: updates.headerLabel ?? DEFAULT_HEADER_LABEL,
+                tabLabel: updates.tabLabel ?? DEFAULT_TAB_LABEL,
+                intervalLabel: updates.intervalLabel ?? DEFAULT_INTERVAL_LABEL,
+                tabIcon: updates.tabIcon ?? DEFAULT_TAB_ICON,
+                hideDcFromPlayers: updates.hideDcFromPlayers ?? false,
+                showLockedChecksToPlayers: updates.showLockedChecksToPlayers ?? true,
+                showPhasePlanToPlayers: updates.showPhasePlanToPlayers ?? false,
+                showCheckTooltipsToPlayers: updates.showCheckTooltipsToPlayers ?? false,
+                showFlowRelationships: updates.showFlowRelationships ?? true,
+                showFlowLines: updates.showFlowLines ?? true,
+                restrictedActorUuids: updates.restrictedActorUuids ?? [],
+                phaseConfig,
+                state: normalizeProjectState(DEFAULT_STATE, phaseConfig),
+              };
+              const trackers = getTrackers();
+              trackers.push(newTracker);
+              await game.settings.set(MODULE_ID, TRACKERS_SETTING, trackers);
+              setCurrentTrackerId(newTrackerId);
+              registerSheetTab();
+              updateTidyTabLabel();
+              refreshSheetTabLabel();
+              rerenderCharacterSheets();
+              rerenderSettingsApps();
+              ui.notifications.info("Indy Downtime Tracker: tracker imported as new.");
+              return;
             }
             if (Object.keys(updates).length) {
               updateTrackerSettings(trackerId, updates);
