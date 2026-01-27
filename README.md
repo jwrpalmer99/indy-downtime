@@ -18,14 +18,15 @@ Building the Plan:
 - Dependency effects: block, prevents (blocks when completed), harder (DC penalty), advantage, disadvantage, and override skill/DC.
 - Group max successes to cap progress in a group.
 - Success and failure narrative lines tied to checks, groups, or left unassigned as fallbacks.
-- Player permissions: hide DCs, hide locked checks, allow Phase Plan view, show/hide relationships and narrative lines in the plan, and show success chance tooltips (GM-only by default).
+- Player permissions: hide DCs, hide locked checks, allow Phase Plan view, view future plans, show/hide relationships and narrative lines in the plan, and show success chance tooltips (GM-only by default).
 - Per-tracker labels and icon: header, tab label, interval label, Font Awesome icon.
 - Restrict a trackers visibility to specific actor UUIDs.
 - Roll summaries in chat, activity log, and manual progress editing/maintenance.
-- System-agnostic support: manual success/failure results, manual skill/ability overrides, and selectable d20/d100 check modes.
+- System-agnostic support: manual success/failure results, manual skill/ability overrides, and selectable d20/d100/narrative check modes (with per-tracker override).
 - Optional sheet injection toggle (most system sheets should work but you can disable this and open the plan from Token Controls if yours doesn't)
 - Import/export for a tracker, a phase, all settings, or all state.
-- Compatible with default DnD5e sheets, Tidy5e, and PF2e character sheets.
+- Checks can optionally complete their group or phase when they succeed.
+- Compatible with default DnD5e sheets, Tidy5e, and PF2e character sheets and many other system sheets.
 
 > [!TIP]
 > for tutorial see https://github.com/jwrpalmer99/indy-downtime/blob/main/tutorial.md

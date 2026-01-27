@@ -32,12 +32,14 @@ Open Game Settings -> Module Settings -> Indy Downtime Tracker **as GM**. You wi
 - Header Label: header text at the top of the tracker tab.
 - Tab Label: label shown on the character sheet tab.
 - Interval Label: used in button labels and chat messages (example: Weekly).
+- Check Roll Mode: per-tracker override for d20/d100/narrative (leave empty to use the module default).
 - Restrict to Actor UUIDs: limit visibility to specific actors; drop actor sheets into the field or enter one UUID per line.
 
 ### Player Permissions
 - Hide DCs from players: hides DCs in the tracker tab and Phase Plan view.
 - Show locked checks to players: if disabled, locked checks are removed from the dropdown and redacted in the Phase Plan.
 - View Phase Plan: allows players to open the read-only Phase Plan view from the tracker tab.
+- View future plans: allows players to navigate forward to later phases in the read-only Phase Plan.
 - Show check chance tooltips: allows players to see success chance tooltips on DC labels in the Phase Plan (default off).
 - Show relationships on phase flow view: toggles dependency chips in the read-only Phase Plan.
 - Show success/failure lines on phase flow view: toggles narrative lines in the read-only Phase Plan.
@@ -108,6 +110,7 @@ The Phase Flow editor is where you add and edit groups, checks, dependencies, an
 - Double click to edit check name, skill, DC, or description.
 - The skill picker includes system skills plus ability checks.
 - Remove check: deletes the check.
+- Completion options (collapsed by default): set a check to complete its group or phase when it succeeds.
 
 ### Dependencies
 - Drag a check onto another check to add a dependency.
@@ -123,6 +126,7 @@ Dependency types and effects:
 - Advantage when completed.
 - Disadvantage until completed.
 - Change skill/DC when completed.
+- Narrative dependencies (Triumph/Success/Failure/Despair) are treated as OR, while other dependency types are AND.
 
 ### Success and Failure Lines
 - `+ Line`: add unassigned success or failure lines.
@@ -137,6 +141,7 @@ Dependency types and effects:
 ### Phase Plan (Read Only)
 - The tracker tab button View Phase Plan opens a read-only Flow view.
 - Player visibility is controlled by the permissions listed above.
+- Prev/Next phase navigation is available; future phases require the “View future plans” permission.
 - Hover DC labels to see success chance tooltips (GM always, players if permitted).
 
 ## Dependency Editor Dialog
