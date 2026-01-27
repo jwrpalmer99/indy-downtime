@@ -75,6 +75,18 @@
                     <span class="drep-flow-check-dc drep-flow-editable" data-edit="check-dc" data-check-id="{{this.id}}" data-dc="{{this.dc}}" data-difficulty="{{this.difficulty}}"{{#if this.dcTooltip}} title="{{this.dcTooltip}}"{{/if}}>{{this.dcLabel}}</span>
                   {{/if}}
                 </div>
+                {{#unless @root.readOnly}}
+                  <div class="drep-flow-check-flags">
+                    <label class="drep-flow-check-flag">
+                      <input type="checkbox" data-drep-action="toggle-check-flag" data-flag="completeGroupOnSuccess" data-check-id="{{this.id}}" {{#if this.completeGroupOnSuccess}}checked{{/if}} />
+                      Complete group
+                    </label>
+                    <label class="drep-flow-check-flag">
+                      <input type="checkbox" data-drep-action="toggle-check-flag" data-flag="completePhaseOnSuccess" data-check-id="{{this.id}}" {{#if this.completePhaseOnSuccess}}checked{{/if}} />
+                      Complete phase
+                    </label>
+                  </div>
+                {{/unless}}
                 {{#if (or this.description (not @root.readOnly))}}
                   <div class="drep-flow-check-desc drep-flow-editable" data-edit="check-description" data-check-id="{{this.id}}" data-value="{{this.rawDescription}}">
                     {{#if this.description}}{{this.description}}{{else}}(description){{/if}}

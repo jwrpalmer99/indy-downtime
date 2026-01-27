@@ -17,6 +17,8 @@ import {
   getDifficultyLabel,
   getPhaseProgress,
   getPhaseChecks,
+  completeGroupProgress,
+  completePhaseProgress,
   isGroupComplete,
   isPhaseComplete,
   pickLineForCheck,
@@ -286,6 +288,12 @@ function applyLogEntryToState(entry, state, phaseConfig, trackerId) {
         phaseState.checkProgress[check.id] = nextValue;
       } else {
         criticalBonusApplied = false;
+      }
+      if (check.completeGroupOnSuccess) {
+        completeGroupProgress(phase, check.groupId, phaseState.checkProgress);
+      }
+      if (check.completePhaseOnSuccess) {
+        completePhaseProgress(phase, phaseState.checkProgress);
       }
       phaseState.failuresInRow = 0;
       const afterGroupComplete = isGroupComplete(phase, groupId, phaseState.checkProgress);

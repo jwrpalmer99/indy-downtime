@@ -68,6 +68,12 @@ function applyPhaseConfigFormData(phaseConfig, formData) {
             typeof checkData?.description === "string" ? checkData.description.trim() : "";
           const existingGroup = (phase.groups ?? []).find((entry) => entry.id === groupId);
           const existingCheck = (existingGroup?.checks ?? []).find((entry) => entry.id === checkId);
+          const completeGroupOnSuccess = Object.prototype.hasOwnProperty.call(checkData ?? {}, "completeGroupOnSuccess")
+            ? Boolean(checkData.completeGroupOnSuccess)
+            : Boolean(existingCheck?.completeGroupOnSuccess ?? existingCheck?.completeGroup ?? false);
+          const completePhaseOnSuccess = Object.prototype.hasOwnProperty.call(checkData ?? {}, "completePhaseOnSuccess")
+            ? Boolean(checkData.completePhaseOnSuccess)
+            : Boolean(existingCheck?.completePhaseOnSuccess ?? existingCheck?.completePhase ?? false);
           const hasDependsOn = Object.prototype.hasOwnProperty.call(checkData ?? {}, "dependsOn");
           let dependsOn = normalizeCheckDependencies(existingCheck?.dependsOn ?? []);
           if (hasDependsOn) {
@@ -81,6 +87,8 @@ function applyPhaseConfigFormData(phaseConfig, formData) {
             description,
             dc: Number.isFinite(dc) ? dc : 0,
             value: 1,
+            completeGroupOnSuccess,
+            completePhaseOnSuccess,
             dependsOn,
           });
         }

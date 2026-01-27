@@ -217,6 +217,8 @@ function normalizeChecks(checks, groupId, usedCheckIds) {
       dc: Number.isFinite(dc) ? dc : DEFAULT_CHECK_DC,
       difficulty: normalizeDifficulty(check?.difficulty ?? check?.difficultyLevel ?? ""),
       target,
+      completeGroupOnSuccess: Boolean(check?.completeGroupOnSuccess ?? check?.completeGroup ?? false),
+      completePhaseOnSuccess: Boolean(check?.completePhaseOnSuccess ?? check?.completePhase ?? false),
       dependsOn,
       groupId,
       step: Number.isFinite(Number(check?.step)) ? Number(check.step) : null,
@@ -821,6 +823,38 @@ function getPhaseAvailableChecks(phase, checkProgress, resolvedChecks = {}) {
   });
 }
 
+function completeGroupProgress(phase, groupId, checkProgress) {
+  if (!phase || !groupId) return false;
+  const group = resolveGroupByIdOrName(phase, groupId);
+  if (!group) return false;
+  const progress = checkProgress ?? {};
+  let changed = false;
+  for (const check of group.checks ?? []) {
+    const target = getPhaseCheckTarget(check);
+    const current = Number(progress?.[check.id] ?? 0);
+    if (current < target) {
+      progress[check.id] = target;
+      changed = true;
+    }
+  }
+  return changed;
+}
+
+function completePhaseProgress(phase, checkProgress) {
+  if (!phase) return false;
+  const progress = checkProgress ?? {};
+  let changed = false;
+  for (const check of getPhaseChecks(phase)) {
+    const target = getPhaseCheckTarget(check);
+    const current = Number(progress?.[check.id] ?? 0);
+    if (current < target) {
+      progress[check.id] = target;
+      changed = true;
+    }
+  }
+  return changed;
+}
+
 function pickLineForCheck(lines, checkId, groupId, options = {}) {
   if (!Array.isArray(lines) || !lines.length) return "";
   const allowGroup = options?.allowGroup !== false;
@@ -890,6 +924,8 @@ export {
   getPhaseDc,
   getPhaseCheckChoices,
   getPhaseAvailableChecks,
+  completeGroupProgress,
+  completePhaseProgress,
   pickLineForCheck,
   pickLineForGroup,
   normalizeDifficulty,

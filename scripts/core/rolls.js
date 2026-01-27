@@ -16,6 +16,8 @@ import {
   isGroupComplete,
   getDifficultyLabel,
   normalizeDifficulty,
+  completeGroupProgress,
+  completePhaseProgress,
 } from "./phase.js";
 import {
   getNextIncompletePhaseId,
@@ -460,6 +462,12 @@ async function runIntervalRoll({ actor, checkChoice, trackerId }) {
       }
       activePhase.checkProgress[selectedCheck.id] = nextValue;
     }
+    if (selectedCheck.completeGroupOnSuccess) {
+      completeGroupProgress(activePhase, selectedCheck.groupId, activePhase.checkProgress);
+    }
+    if (selectedCheck.completePhaseOnSuccess) {
+      completePhaseProgress(activePhase, activePhase.checkProgress);
+    }
     activePhase.progress = getPhaseProgress(activePhase, activePhase.checkProgress);
     activePhase.completed = isPhaseComplete({ ...activePhase, progress: activePhase.progress });
     activePhase.failuresInRow = 0;
@@ -633,6 +641,12 @@ async function runManualIntervalResult({ actor, checkId, checkChoice, trackerId,
       progressGained = 1;
       const nextValue = Math.min(currentValue + 1, target);
       activePhase.checkProgress[selectedCheck.id] = nextValue;
+    }
+    if (selectedCheck.completeGroupOnSuccess) {
+      completeGroupProgress(activePhase, selectedCheck.groupId, activePhase.checkProgress);
+    }
+    if (selectedCheck.completePhaseOnSuccess) {
+      completePhaseProgress(activePhase, activePhase.checkProgress);
     }
     activePhase.progress = getPhaseProgress(activePhase, activePhase.checkProgress);
     activePhase.completed = isPhaseComplete({ ...activePhase, progress: activePhase.progress });

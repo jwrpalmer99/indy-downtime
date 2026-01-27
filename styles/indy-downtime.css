@@ -1155,6 +1155,21 @@
   margin-top: 2px;
 }
 
+.drep-flow-check-flags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 4px;
+  font-size: 11px;
+  --color: var(--color-text-dark-secondary);
+}
+
+.drep-flow-check-flag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
 .drep-flow-check-desc {
   font-size: 12px;
   --color: var(--color-text-dark-secondary);

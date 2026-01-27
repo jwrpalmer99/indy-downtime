@@ -1728,6 +1728,8 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
           complete,
           locked: isLocked,
           groupMaxed: groupMaxed && !complete,
+          completeGroupOnSuccess: Boolean(check.completeGroupOnSuccess),
+          completePhaseOnSuccess: Boolean(check.completePhaseOnSuccess),
           dc: dcValue,
           dcLabel,
           difficulty,
@@ -2032,6 +2034,21 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
       return true;
     };
 
+    html.on("change.drepFlow", "[data-drep-action='toggle-check-flag']", (event) => {
+      if (this._readOnly) return;
+      const input = event.currentTarget;
+      const checkId = input?.dataset?.checkId;
+      const flag = input?.dataset?.flag;
+      if (!checkId || !flag) return;
+      const phaseConfig = getPhaseConfig(this._trackerId);
+      const phase = phaseConfig.find((entry) => entry.id === this._phaseId) ?? phaseConfig[0];
+      if (!phase) return;
+      const updates = { [flag]: Boolean(input.checked) };
+      if (updateCheckField(phase, checkId, updates)) {
+        savePhaseConfig(phase);
+      }
+    });
+
     const beginInlineEdit = (element, config) => {
       const $el = $(element);
       if ($el.data("editing")) return;
@@ -2178,6 +2195,8 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
         dc: 13,
         difficulty: (rollMode === "d100" || rollMode === "narrative") ? "regular" : "",
         value: 1,
+        completeGroupOnSuccess: false,
+        completePhaseOnSuccess: false,
         dependsOn: [],
       });
       if (this._onUpdate) {
