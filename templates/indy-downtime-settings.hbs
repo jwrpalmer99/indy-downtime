@@ -52,6 +52,17 @@
     </div>
 
     <div class="form-group">
+      <label>Check Roll Mode</label>
+      <select name="checkRollMode">
+        <option value="" {{#unless trackerCheckRollMode}}selected{{/unless}}>Use module default ({{moduleCheckRollMode}})</option>
+        <option value="d20" {{#if (eq trackerCheckRollMode "d20")}}selected{{/if}}>d20</option>
+        <option value="d100" {{#if (eq trackerCheckRollMode "d100")}}selected{{/if}}>d100</option>
+        <option value="narrative" {{#if (eq trackerCheckRollMode "narrative")}}selected{{/if}}>Narrative</option>
+      </select>
+      <p class="notes">Overrides the module check roll mode for this tracker only.</p>
+    </div>
+
+    <div class="form-group">
       <label>Restrict to Actor UUIDs</label>
       <textarea name="restrictedActorUuids" rows="4" class="drep-json" data-drep-drop="actor-uuids">{{restrictedActorUuidsText}}</textarea>
       <p class="notes">Optional. Drop actor sheets here or enter one UUID per line. When set, only these actors see the tab.</p>

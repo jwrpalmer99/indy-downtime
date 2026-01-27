@@ -391,7 +391,7 @@ function buildTrackerData({
   const showDc = game.user?.isGM || !shouldHideDc(resolvedTrackerId);
 
   const showLockedChecks = game.user?.isGM || shouldShowLockedChecks(resolvedTrackerId);
-  const rollMode = getCheckRollMode();
+  const rollMode = getCheckRollMode(resolvedTrackerId);
 
   const groupCounts = getGroupCheckCounts(state.log, activePhase.id);
 
@@ -403,7 +403,7 @@ function buildTrackerData({
     if (entry.dcLabel && entry.dcLabelType) {
       return outcomeLabel ? { ...entry, outcomeLabel } : entry;
     }
-    if (rollMode === "d100") {
+    if (rollMode === "d100" || rollMode === "narrative") {
       const difficultyLabel = entry.difficulty
         ? getDifficultyLabel(entry.difficulty)
         : (entry.dcLabel ?? "");
@@ -424,13 +424,9 @@ function buildTrackerData({
 
 
   const checkChoices = getPhaseCheckChoices(
-
     activePhase,
-
     activePhase.checkProgress,
-
-    { groupCounts, resolvedChecks: activePhase.resolvedChecks ?? {} }
-
+    { groupCounts, resolvedChecks: activePhase.resolvedChecks ?? {}, trackerId: resolvedTrackerId }
   ).map((choice) => ({
 
     ...choice,
@@ -522,7 +518,7 @@ function buildTrackerData({
         const isLocked = isGroup ? !detail.complete : (Boolean(status?.locked) && !status?.complete);
         const displaySource = (!showLockedChecks && isLocked) ? "???" : detail.source;
         if (detail.type === "harder") {
-          if (rollMode === "d100") {
+          if (rollMode === "d100" || rollMode === "narrative") {
             const steps = Number.isFinite(detail.dcPenalty) ? Math.max(1, Math.round(detail.dcPenalty)) : 1;
             return `Increase Difficulty${steps > 1 ? ` (+${steps})` : ""} (from ${displaySource})`;
           }
@@ -865,7 +861,7 @@ async function handleRoll(root, { render, actorOverride, trackerId, app } = {}) 
     requestTabRestore(app, activeTabId);
   }
 
-  const rollMode = getCheckRollMode();
+    const rollMode = getCheckRollMode(resolvedTrackerId);
   const useManual = rollMode === "narrative" || shouldUseManualRolls(resolvedTrackerId);
   if (useManual) {
     const availableChecks = getPhaseAvailableChecks(
@@ -888,7 +884,8 @@ async function handleRoll(root, { render, actorOverride, trackerId, app } = {}) 
       activePhase,
       selectedCheck,
       activePhase.checkProgress,
-      activePhase.resolvedChecks
+      activePhase.resolvedChecks,
+      resolvedTrackerId
     );
     const checkLabel = getPhaseCheckLabel(selectedCheck);
     const skillLabel = rollData.skill ? getSkillLabel(rollData.skill) : selectedCheck.skill;

@@ -84,8 +84,8 @@ function getActorCheckBonus(actor, skillKey) {
   const bonus = Number(raw);
   return Number.isFinite(bonus) ? bonus : null;
 }
-function getCheckSuccessChance({ dc, bonus, advantage, disadvantage } = {}) {
-  if (getCheckRollMode() !== "d20") return null;
+function getCheckSuccessChance({ dc, bonus, advantage, disadvantage, trackerId } = {}) {
+  if (getCheckRollMode(trackerId) !== "d20") return null;
   const dcValue = Number(dc);
   const bonusValue = Number(bonus);
   if (!Number.isFinite(dcValue) || !Number.isFinite(bonusValue)) return null;
@@ -385,11 +385,12 @@ async function runIntervalRoll({ actor, checkChoice, trackerId }) {
     activePhase,
     selectedCheck,
     activePhase.checkProgress,
-    activePhase.resolvedChecks
+    activePhase.resolvedChecks,
+    resolvedTrackerId
   );
   const skillKey = rollData.skill || selectedCheck.skill || "";
   const skillLabel = skillKey ? getSkillLabel(skillKey) : selectedCheck.skill;
-  const rollMode = getCheckRollMode();
+  const rollMode = getCheckRollMode(resolvedTrackerId);
   if (rollMode === "narrative") {
     ui.notifications.warn("Indy Downtime Tracker: narrative checks must be resolved manually.");
     return;
@@ -595,16 +596,18 @@ async function runManualIntervalResult({ actor, checkId, checkChoice, trackerId,
     activePhase,
     selectedCheck,
     activePhase.checkProgress,
-    activePhase.resolvedChecks
+    activePhase.resolvedChecks,
+    resolvedTrackerId
   );
   const skillKey = rollData.skill || selectedCheck.skill || "";
   const skillLabel = skillKey ? getSkillLabel(skillKey) : selectedCheck.skill;
-  const rollMode = getCheckRollMode();
+  const rollMode = getCheckRollMode(resolvedTrackerId);
   const dc = rollData.dc;
   const difficulty = rollData.difficulty ?? "";
   const difficultyLabel = rollData.difficultyLabel ?? getDifficultyLabel(difficulty);
-  const dcLabel = rollMode === "d100" ? difficultyLabel : (Number.isFinite(dc) ? String(dc) : "");
-  const dcLabelType = rollMode === "d100" ? "Difficulty" : "DC";
+  const useDifficultyLabel = rollMode === "d100" || rollMode === "narrative";
+  const dcLabel = useDifficultyLabel ? difficultyLabel : (Number.isFinite(dc) ? String(dc) : "");
+  const dcLabelType = useDifficultyLabel ? "Difficulty" : "DC";
   const normalizedOutcome = rollMode === "narrative" ? normalizeNarrativeOutcome(outcome) : "";
   const resolvedOutcome = rollMode === "narrative" ? (normalizedOutcome || "failure") : "";
   const outcomeLabel = rollMode === "narrative" ? getNarrativeOutcomeLabel(resolvedOutcome) : "";
@@ -897,6 +900,9 @@ async function runPhaseCompleteMacro({ phase, actor, actorId, actorName, actorUu
   }
 }
 async function handleCompletion(state, activePhase, actor, trackerId) {
+  if (!Array.isArray(state.log)) {
+    state.log = [];
+  }
   const nextPhaseId = getNextIncompletePhaseId(state, trackerId);
   const nextPhase = nextPhaseId
     ? getPhaseDefinition(nextPhaseId, trackerId)

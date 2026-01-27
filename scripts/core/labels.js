@@ -135,7 +135,7 @@ function shouldInjectIntoSheet(trackerId) {
 }
 
 function shouldUseManualRolls(trackerId) {
-  if (getCheckRollMode() === "narrative") return true;
+  if (getCheckRollMode(trackerId) === "narrative") return true;
   if (game.system?.id === "dnd5e" || game.system?.id === "pf2e") return false;
   const settingKey = `${MODULE_ID}.${MANUAL_ROLL_SETTING}`;
   if (game?.settings?.settings?.has(settingKey)) {
@@ -148,7 +148,7 @@ function shouldUseManualRolls(trackerId) {
   return true;
 }
 
-function getCheckRollMode() {
+function getModuleCheckRollMode() {
   const settingKey = `${MODULE_ID}.${CHECK_ROLL_MODE_SETTING}`;
   if (game?.settings?.settings?.has(settingKey)) {
     return String(game.settings.get(MODULE_ID, CHECK_ROLL_MODE_SETTING) ?? "d20");
@@ -156,12 +156,23 @@ function getCheckRollMode() {
   return "d20";
 }
 
-function isD100RollMode() {
-  return getCheckRollMode() === "d100";
+function getCheckRollMode(trackerId) {
+  const tracker = trackerId ? getTrackerById(trackerId) : getCurrentTracker();
+  const trackerMode = typeof tracker?.checkRollMode === "string"
+    ? tracker.checkRollMode.trim().toLowerCase()
+    : "";
+  if (trackerMode === "d20" || trackerMode === "d100" || trackerMode === "narrative") {
+    return trackerMode;
+  }
+  return getModuleCheckRollMode();
 }
 
-function isNarrativeRollMode() {
-  return getCheckRollMode() === "narrative";
+function isD100RollMode(trackerId) {
+  return getCheckRollMode(trackerId) === "d100";
+}
+
+function isNarrativeRollMode(trackerId) {
+  return getCheckRollMode(trackerId) === "narrative";
 }
 
 const NARRATIVE_OUTCOMES = ["triumph", "success", "failure", "despair"];
@@ -533,6 +544,7 @@ export {
   shouldShowCheckTooltips,
   shouldInjectIntoSheet,
   shouldUseManualRolls,
+  getModuleCheckRollMode,
   getCheckRollMode,
   isD100RollMode,
   isNarrativeRollMode,

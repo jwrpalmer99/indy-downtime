@@ -99,14 +99,12 @@ The Phase Flow editor is where you add and edit groups, checks, dependencies, an
 
 ### Groups
 - `+ Group`: create a new group lane.
-- Drag a group header to reorder groups.
 - Double click a group name to edit it.
 - Max: set a maximum number of successful checks that can count in the group.
 - Remove group: only available if the group has no checks.
 
 ### Checks
 - `+ Check`: create a new check in a group.
-- Drag checks to reorder within a group.
 - Double click to edit check name, skill, DC, or description.
 - The skill picker includes system skills plus ability checks.
 - Remove check: deletes the check.

@@ -36,6 +36,7 @@ function getSettingsExportPayload() {
     tabLabel: tracker.tabLabel,
     intervalLabel: tracker.intervalLabel,
     tabIcon: tracker.tabIcon,
+    checkRollMode: tracker.checkRollMode,
     hideDcFromPlayers: tracker.hideDcFromPlayers,
     showLockedChecksToPlayers: tracker.showLockedChecksToPlayers,
     showPhasePlanToPlayers: tracker.showPhasePlanToPlayers,
@@ -146,6 +147,7 @@ async function applySettingsImportPayload(payload) {
           DEFAULT_INTERVAL_LABEL
         ),
         tabIcon: sanitizeLabel(tracker?.tabIcon, DEFAULT_TAB_ICON),
+        checkRollMode: typeof tracker?.checkRollMode === "string" ? tracker.checkRollMode : "",
         hideDcFromPlayers: Boolean(tracker?.hideDcFromPlayers),
         showLockedChecksToPlayers: tracker?.showLockedChecksToPlayers !== false,
         showPhasePlanToPlayers: Boolean(tracker?.showPhasePlanToPlayers),
@@ -181,6 +183,9 @@ async function applySettingsImportPayload(payload) {
     }
     if (typeof settings.tabIcon === "string") {
       updates.tabIcon = sanitizeLabel(settings.tabIcon, DEFAULT_TAB_ICON);
+    }
+    if (typeof settings.checkRollMode === "string") {
+      updates.checkRollMode = settings.checkRollMode.trim();
     }
     if (typeof settings.hideDcFromPlayers !== "undefined") {
       updates.hideDcFromPlayers = Boolean(settings.hideDcFromPlayers);

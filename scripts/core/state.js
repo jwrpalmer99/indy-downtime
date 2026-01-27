@@ -199,7 +199,7 @@ function recalculateStateFromLog(state, trackerId) {
   const rebuiltLog = [];
   for (const entry of sorted) {
     rebuiltLog.push(
-      applyLogEntryToState(entry, rebuilt, phaseConfig)
+      applyLogEntryToState(entry, rebuilt, phaseConfig, trackerId)
     );
   }
 
@@ -227,7 +227,7 @@ function recalculateStateFromLog(state, trackerId) {
   return rebuilt;
 }
 
-function applyLogEntryToState(entry, state, phaseConfig) {
+function applyLogEntryToState(entry, state, phaseConfig, trackerId) {
   if (entry?.type === "phase-complete") {
     return entry;
   }
@@ -249,12 +249,12 @@ function applyLogEntryToState(entry, state, phaseConfig) {
   const success = normalizedOutcome
     ? isNarrativeOutcomeSuccess(normalizedOutcome)
     : Boolean(entry.success);
-  const rollMode = getCheckRollMode();
+  const rollMode = getCheckRollMode(trackerId);
   const dc = getPhaseDc(phase, check);
   const difficulty = entry.difficulty ?? check?.difficulty ?? "";
   let dcLabel = entry.dcLabel ?? "";
   let dcLabelType = entry.dcLabelType ?? "";
-  if (rollMode === "d100") {
+  if (rollMode === "d100" || rollMode === "narrative") {
     dcLabel = dcLabel || (difficulty ? getDifficultyLabel(difficulty) : "");
     dcLabelType = "Difficulty";
   } else {

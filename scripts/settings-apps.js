@@ -62,6 +62,7 @@ import {
   shouldShowCheckTooltips,
   shouldShowFuturePlans,
   shouldShowLockedChecks,
+  getModuleCheckRollMode,
   getCheckRollMode,
   getDifficultyLabel,
   getDifficultyOptions,
@@ -145,12 +146,12 @@ const formatSignedNumber = (value) => {
   return numeric >= 0 ? `+${numeric}` : `${numeric}`;
 };
 
-const buildPotentialRollData = (phase, check, checkProgress, resolvedChecks = {}) => {
+const buildPotentialRollData = (phase, check, checkProgress, resolvedChecks = {}, trackerId = null) => {
   const deps = normalizeCheckDependencies(check?.dependsOn ?? []);
   if (!deps.length) return null;
   const hasIncomplete = deps.some((dep) => !isDependencyComplete(phase, dep, checkProgress, resolvedChecks));
   if (!hasIncomplete) return null;
-  const rollMode = getCheckRollMode();
+  const rollMode = getCheckRollMode(trackerId);
   let advantage = false;
   let disadvantage = false;
   let overrideSkill = "";
@@ -179,7 +180,7 @@ const buildPotentialRollData = (phase, check, checkProgress, resolvedChecks = {}
     advantage = false;
     disadvantage = false;
   }
-  if (rollMode === "d100") {
+  if (rollMode === "d100" || rollMode === "narrative") {
     const baseDifficulty = check?.difficulty ?? "";
     const difficulty = overrideDifficulty || baseDifficulty;
     return {
@@ -209,32 +210,10 @@ const buildPotentialRollData = (phase, check, checkProgress, resolvedChecks = {}
   };
 };
 
-const buildDcTooltip = ({ actor, rollData, baseDc, redacted, potentialRollData, allowTooltip }) => {
+const buildDcTooltip = ({ actor, rollData, baseDc, redacted, potentialRollData, allowTooltip, trackerId }) => {
   if (!allowTooltip || !actor || !rollData || !rollData.skill || redacted) return "";
-  const rollMode = getCheckRollMode();
-  if (rollMode === "narrative") {
-    const lines = [];
-    const skillLabel = getSkillLabel(rollData.skill);
-    if (skillLabel) {
-      lines.push(`Skill: ${skillLabel}`);
-    }
-    const dcValue = Number(rollData.dc);
-    const baseValue = Number(baseDc);
-    if (Number.isFinite(dcValue)) {
-      if (Number.isFinite(baseValue) && baseValue && baseValue !== dcValue) {
-        lines.push(`DC: ${dcValue} (base ${baseValue})`);
-      } else {
-        lines.push(`DC: ${dcValue}`);
-      }
-    }
-    if (Number.isFinite(potentialRollData?.dc) && potentialRollData.dc !== rollData.dc) {
-      lines.push(`If deps complete: DC ${potentialRollData.dc}`);
-    }
-    if (rollData.advantage) lines.push("Advantage");
-    if (rollData.disadvantage) lines.push("Disadvantage");
-    return lines.join("\n");
-  }
-  if (rollMode === "d100") {
+  const rollMode = getCheckRollMode(trackerId);
+  if (rollMode === "d100" || rollMode === "narrative") {
     const lines = [];
     const skillLabel = getSkillLabel(rollData.skill);
     if (skillLabel) {
@@ -258,6 +237,7 @@ const buildDcTooltip = ({ actor, rollData, baseDc, redacted, potentialRollData, 
     bonus,
     advantage: rollData.advantage,
     disadvantage: rollData.disadvantage,
+    trackerId,
   });
   if (!Number.isFinite(chance)) return "";
   const lines = [];
@@ -287,6 +267,7 @@ const buildDcTooltip = ({ actor, rollData, baseDc, redacted, potentialRollData, 
       bonus: potentialBonus,
       advantage: potentialRollData.advantage,
       disadvantage: potentialRollData.disadvantage,
+      trackerId,
     });
     if (Number.isFinite(potentialChance)) {
       const currentPercent = Math.round(chance * 100);
@@ -366,6 +347,7 @@ class DowntimeRepSettings extends HandlebarsApplicationMixin(ApplicationV2) {
       id: entry.id,
       label: entry.name ? `${entry.name}` : `Tracker ${index + 1}`,
     }));
+    const moduleCheckRollMode = getModuleCheckRollMode();
 
     return {
       ...context,
@@ -373,6 +355,8 @@ class DowntimeRepSettings extends HandlebarsApplicationMixin(ApplicationV2) {
       currentTrackerId: trackerId,
       trackerName: tracker?.name ?? DEFAULT_TRACKER_NAME,
       trackerTabIcon: getTabIcon(trackerId),
+      trackerCheckRollMode: tracker?.checkRollMode ?? "",
+      moduleCheckRollMode,
       hideDcFromPlayers: Boolean(tracker?.hideDcFromPlayers),
       showLockedChecksToPlayers: tracker?.showLockedChecksToPlayers !== false,
       showPhasePlanToPlayers: Boolean(tracker?.showPhasePlanToPlayers),
@@ -383,7 +367,7 @@ class DowntimeRepSettings extends HandlebarsApplicationMixin(ApplicationV2) {
       isSingleTracker: trackerOptions.length <= 1,
       state: displayState,
       criticalBonusEnabled: state.criticalBonusEnabled,
-      isNarrativeMode: getCheckRollMode() === "narrative",
+      isNarrativeMode: getCheckRollMode(trackerId) === "narrative",
       headerLabel,
       tabLabel,
       intervalLabel,
@@ -453,7 +437,7 @@ class DowntimeRepSettings extends HandlebarsApplicationMixin(ApplicationV2) {
       const action = event.currentTarget?.dataset?.drepAction;
       if (!action) return;
       if (action === "add-tracker") {
-        addTracker();
+        await addTracker();
         registerSheetTab();
         updateTidyTabLabel();
         rerenderCharacterSheets();
@@ -494,6 +478,7 @@ class DowntimeRepSettings extends HandlebarsApplicationMixin(ApplicationV2) {
               tabLabel: tracker?.tabLabel,
               intervalLabel: tracker?.intervalLabel,
               tabIcon: tracker?.tabIcon,
+              checkRollMode: tracker?.checkRollMode,
               hideDcFromPlayers: tracker?.hideDcFromPlayers,
               showLockedChecksToPlayers: tracker?.showLockedChecksToPlayers,
               showPhasePlanToPlayers: tracker?.showPhasePlanToPlayers,
@@ -540,6 +525,7 @@ class DowntimeRepSettings extends HandlebarsApplicationMixin(ApplicationV2) {
             if (typeof payload.tabLabel === "string") updates.tabLabel = sanitizeLabel(payload.tabLabel, DEFAULT_TAB_LABEL);
             if (typeof payload.intervalLabel === "string") updates.intervalLabel = sanitizeLabel(payload.intervalLabel, DEFAULT_INTERVAL_LABEL);
             if (typeof payload.tabIcon === "string") updates.tabIcon = sanitizeLabel(payload.tabIcon, DEFAULT_TAB_ICON);
+            if (typeof payload.checkRollMode === "string") updates.checkRollMode = payload.checkRollMode.trim();
             if (typeof payload.hideDcFromPlayers !== "undefined") updates.hideDcFromPlayers = Boolean(payload.hideDcFromPlayers);
             if (typeof payload.showLockedChecksToPlayers !== "undefined") updates.showLockedChecksToPlayers = Boolean(payload.showLockedChecksToPlayers);
             if (typeof payload.showPhasePlanToPlayers !== "undefined") updates.showPhasePlanToPlayers = Boolean(payload.showPhasePlanToPlayers);
@@ -567,6 +553,7 @@ class DowntimeRepSettings extends HandlebarsApplicationMixin(ApplicationV2) {
                 tabLabel: updates.tabLabel ?? DEFAULT_TAB_LABEL,
                 intervalLabel: updates.intervalLabel ?? DEFAULT_INTERVAL_LABEL,
                 tabIcon: updates.tabIcon ?? DEFAULT_TAB_ICON,
+                checkRollMode: updates.checkRollMode ?? "",
                 hideDcFromPlayers: updates.hideDcFromPlayers ?? false,
                 showLockedChecksToPlayers: updates.showLockedChecksToPlayers ?? true,
                 showPhasePlanToPlayers: updates.showPhasePlanToPlayers ?? false,
@@ -661,6 +648,7 @@ class DowntimeRepSettings extends HandlebarsApplicationMixin(ApplicationV2) {
       tabLabel: sanitizeLabel(formData.tabLabel, DEFAULT_TAB_LABEL),
       intervalLabel: sanitizeLabel(formData.intervalLabel, DEFAULT_INTERVAL_LABEL),
       tabIcon: sanitizeLabel(formData.tabIcon, DEFAULT_TAB_ICON),
+      checkRollMode: typeof formData.checkRollMode === "string" ? formData.checkRollMode.trim() : "",
       hideDcFromPlayers: Boolean(formData.hideDcFromPlayers),
       showLockedChecksToPlayers: Boolean(formData.showLockedChecksToPlayers),
       showPhasePlanToPlayers: Boolean(formData.showPhasePlanToPlayers),
@@ -763,7 +751,7 @@ class DowntimeRepSettings extends HandlebarsApplicationMixin(ApplicationV2) {
       state.log.splice(index, 1);
     } else if (action === "log-toggle") {
       const entry = state.log[index];
-      if (getCheckRollMode() === "narrative") {
+      if (getCheckRollMode(trackerId) === "narrative") {
         const outcomes = ["triumph", "success", "failure", "despair"];
         const current = normalizeNarrativeOutcome(entry.outcome)
           || (entry.success ? "success" : "failure");
@@ -1554,7 +1542,7 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
     const phaseCount = phaseConfig.length;
     const actor = this._actor ?? null;
     const allowTooltips = game.user?.isGM || shouldShowCheckTooltips(this._trackerId);
-    const rollMode = getCheckRollMode();
+    const rollMode = getCheckRollMode(this._trackerId);
 
     const state = getWorldState(this._trackerId);
     const activePhase = getActivePhase(state, this._trackerId);
@@ -1599,7 +1587,7 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
       const type = dep?.type ?? "block";
       if (type === "harder") {
         const penalty = Number.isFinite(dep?.dcPenalty) && dep.dcPenalty > 0 ? dep.dcPenalty : 1;
-        if (rollMode === "d100") {
+        if (rollMode === "d100" || rollMode === "narrative") {
           return `Harder until completed (Increase Difficulty${penalty > 1 ? ` +${penalty}` : ""})`;
         }
         return `Harder until completed (+${penalty} DC)`;
@@ -1629,7 +1617,7 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
       if (type === "prevents") return `${base} (Blocks when completed)`;
       if (type === "harder") {
         const penalty = Number.isFinite(dep?.dcPenalty) && dep.dcPenalty > 0 ? dep.dcPenalty : 1;
-        if (rollMode === "d100") {
+        if (rollMode === "d100" || rollMode === "narrative") {
           return `${base} (Increase Difficulty${penalty > 1 ? ` +${penalty}` : ""})`;
         }
         return `${base} (DC +${penalty})`;
@@ -1693,8 +1681,8 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
 
     const groups = getPhaseGroups(phase).map((group) => {
       const checks = (group.checks ?? []).map((check) => {
-        const rollMode = getCheckRollMode();
-        const rollData = getCheckRollData(phase, check, checkProgress, resolvedChecks);
+        const rollMode = getCheckRollMode(this._trackerId);
+        const rollData = getCheckRollData(phase, check, checkProgress, resolvedChecks, this._trackerId);
         const skillLabel = check.skill ? getSkillLabel(check.skill) : "";
         const name = check.name || skillLabel || "Check";
         const rawName = check.name || "";
@@ -1711,8 +1699,8 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
         const displayName = shouldRedact ? "???" : name;
         const displaySkillLabel = shouldRedact ? "???" : skillLabel;
         const displayDescription = shouldRedact ? "???" : rawDescription;
-        const potentialRollData = buildPotentialRollData(phase, check, checkProgress, resolvedChecks);
-        const baseDcValue = rollMode === "d100" ? check.difficulty : check.dc;
+        const potentialRollData = buildPotentialRollData(phase, check, checkProgress, resolvedChecks, this._trackerId);
+        const baseDcValue = (rollMode === "d100" || rollMode === "narrative") ? check.difficulty : check.dc;
         const dcTooltip = buildDcTooltip({
           actor,
           rollData,
@@ -1720,12 +1708,13 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
           redacted: shouldRedact,
           potentialRollData,
           allowTooltip: allowTooltips,
+          trackerId: this._trackerId,
         });
         checkLabels[check.id] = displayName;
         const difficulty = check?.difficulty ?? "";
         const difficultyLabel = getDifficultyLabel(difficulty);
         const dcValue = Number(check.dc ?? 0);
-        const dcLabel = rollMode === "d100"
+        const dcLabel = (rollMode === "d100" || rollMode === "narrative")
           ? `Difficulty: ${difficultyLabel}`
           : (Number.isFinite(dcValue) ? `DC ${dcValue}` : "");
         return {
@@ -1764,7 +1753,8 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
 
     for (const group of groups) {
       for (const check of group.checks) {
-        check.dependsOnEntries = (check.dependsOn ?? []).map((dep) => ({
+        check.dependsOnEntries = (check.dependsOn ?? []).map((dep, index) => ({
+          index,
           id: dep.id,
           label: formatDependencyLabel(dep),
           detail: formatDependencyDetail(dep),
@@ -2099,8 +2089,8 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
           return;
         }
         if (config.edit === "check-dc") {
-          const rollMode = getCheckRollMode();
-          if (rollMode === "d100") {
+          const rollMode = getCheckRollMode(this._trackerId);
+          if (rollMode === "d100" || rollMode === "narrative") {
             const difficulty = newValue || "regular";
             debugLog("Inline edit save", { edit: config.edit, checkId: config.checkId, value: difficulty });
             if (updateCheckField(phase, config.checkId, { difficulty })) {
@@ -2176,7 +2166,7 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
       const group = (phase.groups ?? []).find((entry) => entry.id === groupId);
       if (!group) return;
       group.checks = Array.isArray(group.checks) ? group.checks : [];
-      const rollMode = getCheckRollMode();
+      const rollMode = getCheckRollMode(this._trackerId);
       const options = getSkillOptions();
       const defaultSkill = options[0]?.key ?? "";
       const defaultLabel = defaultSkill ? getSkillLabel(defaultSkill) : "";
@@ -2186,7 +2176,7 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
         skill: defaultSkill,
         description: "",
         dc: 13,
-        difficulty: rollMode === "d100" ? "regular" : "",
+        difficulty: (rollMode === "d100" || rollMode === "narrative") ? "regular" : "",
         value: 1,
         dependsOn: [],
       });
@@ -2532,8 +2522,8 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
         } else if (edit === "check-skill") {
           beginInlineEdit(target, { edit, type: "select", value: target.dataset.value ?? target.dataset.skill ?? "", checkId });
         } else if (edit === "check-dc") {
-          const rollMode = getCheckRollMode();
-          if (rollMode === "d100") {
+          const rollMode = getCheckRollMode(this._trackerId);
+          if (rollMode === "d100" || rollMode === "narrative") {
             beginInlineEdit(target, {
               edit,
               type: "select",
@@ -2703,6 +2693,8 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
       event.stopPropagation();
       const chip = event.currentTarget?.closest(".drep-flow-dep");
       const depId = chip?.dataset?.depId;
+      const depIndexRaw = chip?.dataset?.depIndex;
+      const depIndex = Number.isFinite(Number(depIndexRaw)) ? Number(depIndexRaw) : null;
       const targetCheckId = chip?.dataset?.targetCheckId;
       if (!depId || !targetCheckId) return;
 
@@ -2716,7 +2708,9 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
       }
       if (!targetCheck) return;
       const current = normalizeCheckDependencies(targetCheck.dependsOn ?? []);
-      const nextDepends = current.filter((dep) => dep.id !== depId);
+      const nextDepends = Number.isFinite(depIndex)
+        ? current.filter((_, index) => index !== depIndex)
+        : current.filter((dep) => dep.id !== depId);
       if (nextDepends.length === current.length) return;
       targetCheck.dependsOn = nextDepends;
       if (this._onUpdate) {
@@ -2740,6 +2734,8 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
       event.stopPropagation();
       const chip = event.currentTarget?.closest(".drep-flow-dep");
       const depId = chip?.dataset?.depId;
+      const depIndexRaw = chip?.dataset?.depIndex;
+      const depIndex = Number.isFinite(Number(depIndexRaw)) ? Number(depIndexRaw) : null;
       const targetCheckId = chip?.dataset?.targetCheckId;
       if (!depId || !targetCheckId) return;
 
@@ -2755,7 +2751,18 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
 
       const current = normalizeCheckDependencies(targetCheck.dependsOn ?? []);
       const applyDependency = (newDep) => {
-        const nextDepends = current.map((entry) => entry.id === depId ? newDep : entry);
+        const nextDepends = [...current];
+        if (Number.isFinite(depIndex)) {
+          if (!nextDepends[depIndex]) return;
+          nextDepends[depIndex] = newDep;
+        } else {
+          for (let i = 0; i < nextDepends.length; i += 1) {
+            if (nextDepends[i].id === depId) {
+              nextDepends[i] = newDep;
+              break;
+            }
+          }
+        }
         targetCheck.dependsOn = nextDepends;
         if (this._onUpdate) {
           this._onUpdate({
@@ -2770,10 +2777,14 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
         this.render(true);
       };
 
-      const depEntry = current.find((entry) => entry.id === depId) ?? { id: depId, type: "block" };
+      const depEntry = Number.isFinite(depIndex)
+        ? current[depIndex]
+        : current.find((entry) => entry.id === depId);
+      const resolvedDepEntry = depEntry ?? { id: depId, type: "block" };
       new DowntimeRepDepEditor({
-        dep: depEntry,
+        dep: resolvedDepEntry,
         onSave: applyDependency,
+        trackerId: this._trackerId,
       }).render(true);
     });
 
@@ -2910,7 +2921,9 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
         }
         if (!targetCheck) return;
         const current = normalizeCheckDependencies(targetCheck.dependsOn ?? []);
-        if (current.some((dep) => dep.id === sourceGroupId && dep.kind === "group")) return;
+        if (current.some((dep) => dep.id === sourceGroupId && dep.kind === "group" && (dep.type ?? "block") === "block")) {
+          return;
+        }
         const nextDepends = [...current, { id: sourceGroupId, type: "block", kind: "group" }];
         targetCheck.dependsOn = nextDepends;
         if (this._onUpdate) {
@@ -2941,7 +2954,7 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
           return;
         }
         const current = normalizeCheckDependencies(targetCheck.dependsOn ?? []);
-        if (current.some((dep) => dep.id === sourceCheckId && (dep.kind ?? "check") === "check")) {
+        if (current.some((dep) => dep.id === sourceCheckId && (dep.kind ?? "check") === "check" && (dep.type ?? "block") === "block")) {
           debugLog("Flow drop check already linked", { sourceCheckId, targetCheckId });
           return;
         }
@@ -3019,6 +3032,7 @@ class DowntimeRepDepEditor extends HandlebarsApplicationMixin(ApplicationV2) {
     super(options);
     this._dep = options.dep ?? { id: "", type: "block" };
     this._onSave = typeof options.onSave === "function" ? options.onSave : null;
+    this._trackerId = options.trackerId ?? getCurrentTrackerId();
     this._forceType = null;
   }
 
@@ -3058,7 +3072,7 @@ class DowntimeRepDepEditor extends HandlebarsApplicationMixin(ApplicationV2) {
     const overrideDc = typeof dep.overrideDc === "string"
       ? dep.overrideDc
       : (Number.isFinite(dep.overrideDc) ? dep.overrideDc : "");
-    const rollMode = getCheckRollMode();
+    const rollMode = getCheckRollMode(this._trackerId);
     return {
       ...context,
       depId: dep.id ?? "",
@@ -3067,7 +3081,7 @@ class DowntimeRepDepEditor extends HandlebarsApplicationMixin(ApplicationV2) {
       overrideSkill,
       overrideDc,
       skillOptions: getSkillOptions(),
-      isD100Mode: rollMode === "d100",
+      isD100Mode: rollMode === "d100" || rollMode === "narrative",
       isNarrativeMode: rollMode === "narrative",
       difficultyOptions: getDifficultyOptions(),
     };
@@ -3127,8 +3141,8 @@ class DowntimeRepDepEditor extends HandlebarsApplicationMixin(ApplicationV2) {
     if (type === "override") {
       const skillValue = String(data.overrideSkill ?? "").trim();
       if (skillValue) nextDep.overrideSkill = skillValue;
-      const rollMode = getCheckRollMode();
-      if (rollMode === "d100") {
+      const rollMode = getCheckRollMode(app._trackerId);
+      if (rollMode === "d100" || rollMode === "narrative") {
         const difficultyValue = String(data.overrideDc ?? "").trim();
         if (difficultyValue) nextDep.overrideDc = difficultyValue;
       } else {

@@ -102,6 +102,7 @@ function normalizeTrackers(trackers) {
       showLockedChecksToPlayers: tracker?.showLockedChecksToPlayers !== false,
       showPhasePlanToPlayers: Boolean(tracker?.showPhasePlanToPlayers),
       showFuturePlansToPlayers: Boolean(tracker?.showFuturePlansToPlayers),
+      checkRollMode: typeof tracker?.checkRollMode === "string" ? tracker.checkRollMode : "",
       showCheckTooltipsToPlayers: Boolean(tracker?.showCheckTooltipsToPlayers),
       showFlowRelationships: tracker?.showFlowRelationships !== false,
       showFlowLines: tracker?.showFlowLines !== false,
@@ -138,7 +139,7 @@ function setTrackerState(trackerId, state) {
 }
 
 
-function addTracker() {
+async function addTracker() {
   const trackers = getTrackers();
   const existing = new Set(trackers.map((tracker) => tracker.id));
   let index = trackers.length + 1;
@@ -159,6 +160,7 @@ function addTracker() {
     showLockedChecksToPlayers: true,
     showPhasePlanToPlayers: false,
     showFuturePlansToPlayers: false,
+    checkRollMode: "",
     showCheckTooltipsToPlayers: false,
     showFlowRelationships: true,
     showFlowLines: true,
@@ -167,7 +169,7 @@ function addTracker() {
     state: normalizeProjectState(DEFAULT_STATE, [blankPhase]),
   };
   trackers.push(tracker);
-  game.settings.set(MODULE_ID, TRACKERS_SETTING, trackers);
+  await game.settings.set(MODULE_ID, TRACKERS_SETTING, trackers);
   setCurrentTrackerId(tracker.id);
 }
 
@@ -212,6 +214,7 @@ function buildDefaultTrackerFromLegacy() {
     showLockedChecksToPlayers: true,
     showPhasePlanToPlayers: false,
     showFuturePlansToPlayers: false,
+    checkRollMode: "",
     showCheckTooltipsToPlayers: false,
     showFlowRelationships: true,
     showFlowLines: true,

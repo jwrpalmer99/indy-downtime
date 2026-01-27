@@ -585,8 +585,8 @@ function isDependencyComplete(phase, dep, checkProgress, resolvedChecks = {}) {
     const matchesRequirement = (outcome, requirement) => {
       const normalized = normalizeNarrativeOutcome(outcome);
       if (!normalized) return false;
-      if (requirement === "success") return normalized === "success" || normalized === "triumph";
-      if (requirement === "failure") return normalized === "failure" || normalized === "despair";
+      if (requirement === "success") return normalized === "success";
+      if (requirement === "failure") return normalized === "failure";
       return normalized === requirement;
     };
     if (kind === "group") {
@@ -702,11 +702,11 @@ function getCheckDependencyDetails(phase, check, checkProgress, resolvedChecks =
   return details;
 }
 
-function getCheckRollData(phase, check, checkProgress, resolvedChecks = {}) {
+function getCheckRollData(phase, check, checkProgress, resolvedChecks = {}, trackerId = null) {
   const effects = getCheckDependencyEffects(phase, check, checkProgress, resolvedChecks);
   const skill = effects.overrideSkill || check?.skill || "";
-  const rollMode = getCheckRollMode();
-  if (rollMode === "d100") {
+  const rollMode = getCheckRollMode(trackerId);
+  if (rollMode === "d100" || rollMode === "narrative") {
     let difficulty = normalizeDifficulty(check?.difficulty ?? "");
     if (typeof effects.overrideDc === "string") {
       difficulty = normalizeDifficulty(effects.overrideDc);
@@ -750,8 +750,14 @@ function getCheckRollData(phase, check, checkProgress, resolvedChecks = {}) {
 function isCheckUnlocked(phase, check, checkProgress, resolvedChecks = {}) {
   if (resolvedChecks && resolvedChecks[check?.id]) return false;
   const deps = getCheckDependencies(check);
-  const blockers = deps.filter((dep) => dep.type === "block" || NARRATIVE_DEPENDENCY_TYPES.has(dep.type));
+  const blockers = deps.filter((dep) => dep.type === "block");
   if (blockers.length && !blockers.every((dep) => isDependencyComplete(phase, dep, checkProgress, resolvedChecks))) {
+    return false;
+  }
+  const narrativeDeps = deps.filter((dep) => NARRATIVE_DEPENDENCY_TYPES.has(dep.type));
+  if (narrativeDeps.length && !narrativeDeps.some((dep) =>
+    isDependencyComplete(phase, dep, checkProgress, resolvedChecks)
+  )) {
     return false;
   }
   const lockouts = deps.filter((dep) => dep.type === "prevents");
@@ -771,7 +777,9 @@ function getPhaseDc(phase, checkId) {
 function getPhaseCheckChoices(phase, checkProgress, options = {}) {
   const groupCounts = options.groupCounts ?? {};
   const resolvedChecks = options.resolvedChecks ?? {};
-  const rollMode = getCheckRollMode();
+  const trackerId = options.trackerId ?? null;
+  const rollMode = getCheckRollMode(trackerId);
+  const isDifficultyMode = rollMode === "d100" || rollMode === "narrative";
   return getPhaseChecks(phase).map((check) => {
     const complete = isCheckComplete(check, checkProgress);
     const unlocked = isCheckUnlocked(phase, check, checkProgress, resolvedChecks);
@@ -779,10 +787,10 @@ function getPhaseCheckChoices(phase, checkProgress, options = {}) {
     const groupLimit = Number(group?.maxChecks ?? 0);
     const groupUsed = Number(groupCounts?.[check.groupId] ?? 0);
     const groupAvailable = !groupLimit || groupUsed < groupLimit;
-    const rollData = getCheckRollData(phase, check, checkProgress, resolvedChecks);
+    const rollData = getCheckRollData(phase, check, checkProgress, resolvedChecks, trackerId);
     const skillLabel = rollData.skill ? getSkillLabel(rollData.skill) : "";
-    const difficultyLabel = rollMode === "d100" ? getDifficultyLabel(rollData.difficulty) : "";
-    const dcLabel = rollMode === "d100"
+    const difficultyLabel = isDifficultyMode ? getDifficultyLabel(rollData.difficulty) : "";
+    const dcLabel = isDifficultyMode
       ? difficultyLabel
       : (Number.isFinite(rollData.dc) ? `DC ${rollData.dc}` : "");
     return {
@@ -793,7 +801,7 @@ function getPhaseCheckChoices(phase, checkProgress, options = {}) {
       skillLabel,
       dc: rollData.dc,
       dcLabel,
-      difficulty: rollMode === "d100" ? rollData.difficulty : "",
+      difficulty: isDifficultyMode ? rollData.difficulty : "",
       difficultyLabel,
       groupId: check.groupId,
       groupName: check.groupName,
