@@ -109,6 +109,11 @@ function shouldShowPhasePlan(trackerId) {
   return Boolean(tracker?.showPhasePlanToPlayers);
 }
 
+function shouldShowFuturePlans(trackerId) {
+  const tracker = trackerId ? getTrackerById(trackerId) : getCurrentTracker();
+  return Boolean(tracker?.showFuturePlansToPlayers);
+}
+
 function shouldShowCheckTooltips(trackerId) {
   const tracker = trackerId ? getTrackerById(trackerId) : getCurrentTracker();
   return Boolean(tracker?.showCheckTooltipsToPlayers);
@@ -524,6 +529,7 @@ export {
   shouldHideDc,
   shouldShowLockedChecks,
   shouldShowPhasePlan,
+  shouldShowFuturePlans,
   shouldShowCheckTooltips,
   shouldInjectIntoSheet,
   shouldUseManualRolls,

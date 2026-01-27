@@ -27,6 +27,7 @@ import {
   getPhaseConfig,
   getPhaseGroups,
   getPhaseNumber,
+  getActivePhase,
   getPhaseChecks,
   getCheckRollData,
   getPhaseDc,
@@ -59,6 +60,7 @@ import {
   normalizeManualSkillOverrides,
   shouldHideDc,
   shouldShowCheckTooltips,
+  shouldShowFuturePlans,
   shouldShowLockedChecks,
   getCheckRollMode,
   getDifficultyLabel,
@@ -374,6 +376,7 @@ class DowntimeRepSettings extends HandlebarsApplicationMixin(ApplicationV2) {
       hideDcFromPlayers: Boolean(tracker?.hideDcFromPlayers),
       showLockedChecksToPlayers: tracker?.showLockedChecksToPlayers !== false,
       showPhasePlanToPlayers: Boolean(tracker?.showPhasePlanToPlayers),
+      showFuturePlansToPlayers: Boolean(tracker?.showFuturePlansToPlayers),
       showCheckTooltipsToPlayers: Boolean(tracker?.showCheckTooltipsToPlayers),
       showFlowRelationships: tracker?.showFlowRelationships !== false,
       showFlowLines: tracker?.showFlowLines !== false,
@@ -494,6 +497,7 @@ class DowntimeRepSettings extends HandlebarsApplicationMixin(ApplicationV2) {
               hideDcFromPlayers: tracker?.hideDcFromPlayers,
               showLockedChecksToPlayers: tracker?.showLockedChecksToPlayers,
               showPhasePlanToPlayers: tracker?.showPhasePlanToPlayers,
+              showFuturePlansToPlayers: tracker?.showFuturePlansToPlayers,
               showCheckTooltipsToPlayers: tracker?.showCheckTooltipsToPlayers,
               showFlowRelationships: tracker?.showFlowRelationships,
               showFlowLines: tracker?.showFlowLines,
@@ -539,6 +543,7 @@ class DowntimeRepSettings extends HandlebarsApplicationMixin(ApplicationV2) {
             if (typeof payload.hideDcFromPlayers !== "undefined") updates.hideDcFromPlayers = Boolean(payload.hideDcFromPlayers);
             if (typeof payload.showLockedChecksToPlayers !== "undefined") updates.showLockedChecksToPlayers = Boolean(payload.showLockedChecksToPlayers);
             if (typeof payload.showPhasePlanToPlayers !== "undefined") updates.showPhasePlanToPlayers = Boolean(payload.showPhasePlanToPlayers);
+            if (typeof payload.showFuturePlansToPlayers !== "undefined") updates.showFuturePlansToPlayers = Boolean(payload.showFuturePlansToPlayers);
             if (typeof payload.showCheckTooltipsToPlayers !== "undefined") updates.showCheckTooltipsToPlayers = Boolean(payload.showCheckTooltipsToPlayers);
             if (typeof payload.showFlowRelationships !== "undefined") updates.showFlowRelationships = Boolean(payload.showFlowRelationships);
             if (typeof payload.showFlowLines !== "undefined") updates.showFlowLines = Boolean(payload.showFlowLines);
@@ -565,6 +570,7 @@ class DowntimeRepSettings extends HandlebarsApplicationMixin(ApplicationV2) {
                 hideDcFromPlayers: updates.hideDcFromPlayers ?? false,
                 showLockedChecksToPlayers: updates.showLockedChecksToPlayers ?? true,
                 showPhasePlanToPlayers: updates.showPhasePlanToPlayers ?? false,
+                showFuturePlansToPlayers: updates.showFuturePlansToPlayers ?? false,
                 showCheckTooltipsToPlayers: updates.showCheckTooltipsToPlayers ?? false,
                 showFlowRelationships: updates.showFlowRelationships ?? true,
                 showFlowLines: updates.showFlowLines ?? true,
@@ -658,6 +664,7 @@ class DowntimeRepSettings extends HandlebarsApplicationMixin(ApplicationV2) {
       hideDcFromPlayers: Boolean(formData.hideDcFromPlayers),
       showLockedChecksToPlayers: Boolean(formData.showLockedChecksToPlayers),
       showPhasePlanToPlayers: Boolean(formData.showPhasePlanToPlayers),
+      showFuturePlansToPlayers: Boolean(formData.showFuturePlansToPlayers),
       showCheckTooltipsToPlayers: Boolean(formData.showCheckTooltipsToPlayers),
       showFlowRelationships: Boolean(formData.showFlowRelationships),
       showFlowLines: Boolean(formData.showFlowLines),
@@ -1543,11 +1550,26 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
     const phase = phaseConfig.find((entry) => entry.id === this._phaseId) ?? phaseConfig[0];
     const phaseNumber = phase ? getPhaseNumber(phase.id, this._trackerId) : 1;
     const phaseName = phase?.name ?? "Phase";
+    const phaseIndex = phase ? phaseConfig.findIndex((entry) => entry.id === phase.id) : -1;
+    const phaseCount = phaseConfig.length;
     const actor = this._actor ?? null;
     const allowTooltips = game.user?.isGM || shouldShowCheckTooltips(this._trackerId);
     const rollMode = getCheckRollMode();
 
     const state = getWorldState(this._trackerId);
+    const activePhase = getActivePhase(state, this._trackerId);
+    const activeIndex = activePhase
+      ? phaseConfig.findIndex((entry) => entry.id === activePhase.id)
+      : -1;
+    const canViewFuturePlans = game.user?.isGM || shouldShowFuturePlans(this._trackerId);
+    const canNavigatePrev = phaseIndex > 0;
+    const canNavigateNext = phaseIndex >= 0
+      && phaseIndex < phaseCount - 1
+      && (canViewFuturePlans || (activeIndex >= 0 && phaseIndex < activeIndex));
+    const prevPhase = canNavigatePrev ? phaseConfig[phaseIndex - 1] : null;
+    const nextPhase = phaseIndex >= 0 && phaseIndex < phaseCount - 1 ? phaseConfig[phaseIndex + 1] : null;
+    const prevPhaseLabel = prevPhase ? `Phase ${getPhaseNumber(prevPhase.id, this._trackerId)}: ${prevPhase.name ?? "Phase"}` : "";
+    const nextPhaseLabel = nextPhase ? `Phase ${getPhaseNumber(nextPhase.id, this._trackerId)}: ${nextPhase.name ?? "Phase"}` : "";
     const phaseState = state?.phases?.[phase?.id] ?? {};
     const checkProgress = phaseState?.checkProgress ?? {};
     const resolvedChecks = phaseState?.resolvedChecks ?? {};
@@ -1771,6 +1793,11 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
       ...context,
       phaseNumber,
       phaseName,
+      phaseCount,
+      canNavigatePrev,
+      canNavigateNext,
+      prevPhaseLabel,
+      nextPhaseLabel,
       groups,
       unassignedSuccess,
       unassignedFailure,
@@ -1925,6 +1952,47 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
     html.on("click.drepFlow", "[data-drep-action=\"flow-zoom-reset\"]", (event) => {
       event.preventDefault();
       applyFlowZoom(100);
+    });
+
+    const resolvePhaseNavTarget = (direction) => {
+      const phaseConfig = getPhaseConfig(this._trackerId);
+      const currentIndex = phaseConfig.findIndex((entry) => entry.id === this._phaseId);
+      if (currentIndex < 0) return null;
+      const nextIndex = direction === "next" ? currentIndex + 1 : currentIndex - 1;
+      if (nextIndex < 0 || nextIndex >= phaseConfig.length) return null;
+      const state = getWorldState(this._trackerId);
+      const activePhase = getActivePhase(state, this._trackerId);
+      const activeIndex = activePhase
+        ? phaseConfig.findIndex((entry) => entry.id === activePhase.id)
+        : -1;
+      const resolvedActiveIndex = activeIndex >= 0 ? activeIndex : currentIndex;
+      const canViewFuture = game.user?.isGM || shouldShowFuturePlans(this._trackerId);
+      if (direction === "next" && !canViewFuture && nextIndex > resolvedActiveIndex) {
+        return null;
+      }
+      return phaseConfig[nextIndex] ?? null;
+    };
+
+    const goToPhase = (target) => {
+      if (!target?.id) return;
+      captureFlowCollapse();
+      this._phaseId = target.id;
+      this._phase = target ?? null;
+      this.render(true);
+    };
+
+    html.on("click.drepFlow", "[data-drep-action=\"flow-prev-phase\"]", (event) => {
+      event.preventDefault();
+      const target = resolvePhaseNavTarget("prev");
+      if (!target) return;
+      goToPhase(target);
+    });
+
+    html.on("click.drepFlow", "[data-drep-action=\"flow-next-phase\"]", (event) => {
+      event.preventDefault();
+      const target = resolvePhaseNavTarget("next");
+      if (!target) return;
+      goToPhase(target);
     });
 
     html.on("mouseenter.drepFlow", ".drep-flow-dep", (event) => {

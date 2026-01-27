@@ -39,6 +39,7 @@ function getSettingsExportPayload() {
     hideDcFromPlayers: tracker.hideDcFromPlayers,
     showLockedChecksToPlayers: tracker.showLockedChecksToPlayers,
     showPhasePlanToPlayers: tracker.showPhasePlanToPlayers,
+    showFuturePlansToPlayers: tracker.showFuturePlansToPlayers,
     showCheckTooltipsToPlayers: tracker.showCheckTooltipsToPlayers,
     showFlowRelationships: tracker.showFlowRelationships,
     showFlowLines: tracker.showFlowLines,
@@ -148,6 +149,7 @@ async function applySettingsImportPayload(payload) {
         hideDcFromPlayers: Boolean(tracker?.hideDcFromPlayers),
         showLockedChecksToPlayers: tracker?.showLockedChecksToPlayers !== false,
         showPhasePlanToPlayers: Boolean(tracker?.showPhasePlanToPlayers),
+        showFuturePlansToPlayers: Boolean(tracker?.showFuturePlansToPlayers),
         showCheckTooltipsToPlayers: Boolean(tracker?.showCheckTooltipsToPlayers),
         showFlowRelationships: tracker?.showFlowRelationships !== false,
         showFlowLines: tracker?.showFlowLines !== false,
@@ -188,6 +190,9 @@ async function applySettingsImportPayload(payload) {
     }
     if (typeof settings.showPhasePlanToPlayers !== "undefined") {
       updates.showPhasePlanToPlayers = Boolean(settings.showPhasePlanToPlayers);
+    }
+    if (typeof settings.showFuturePlansToPlayers !== "undefined") {
+      updates.showFuturePlansToPlayers = Boolean(settings.showFuturePlansToPlayers);
     }
     if (typeof settings.showCheckTooltipsToPlayers !== "undefined") {
       updates.showCheckTooltipsToPlayers = Boolean(settings.showCheckTooltipsToPlayers);

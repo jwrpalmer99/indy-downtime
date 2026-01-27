@@ -1,6 +1,17 @@
 <section class="drep-flow">
   <header class="drep-flow-header">
     <h2>Phase {{phaseNumber}}: {{phaseName}}</h2>
+    <div class="drep-flow-phase-nav" role="group" aria-label="Phase navigation">
+      <button type="button" class="drep-flow-phase-prev" data-drep-action="flow-prev-phase" {{#unless canNavigatePrev}}disabled{{/unless}} title="{{#if prevPhaseLabel}}Previous: {{prevPhaseLabel}}{{/if}}">
+        <i class="fa-solid fa-chevron-left"></i>
+        Prev
+      </button>
+      <span class="drep-flow-phase-current">Phase {{phaseNumber}} of {{phaseCount}}</span>
+      <button type="button" class="drep-flow-phase-next" data-drep-action="flow-next-phase" {{#unless canNavigateNext}}disabled{{/unless}} title="{{#if nextPhaseLabel}}Next: {{nextPhaseLabel}}{{/if}}">
+        Next
+        <i class="fa-solid fa-chevron-right"></i>
+      </button>
+    </div>
     <div class="drep-flow-zoom" role="group" aria-label="Flow zoom">
       <button type="button" class="drep-flow-zoom-out" data-drep-action="flow-zoom-out" title="Zoom out">-</button>
       <input class="drep-flow-zoom-range" type="range" min="50" max="200" step="5" value="{{flowZoom}}" />

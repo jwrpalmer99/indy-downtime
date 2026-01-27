@@ -1004,6 +1004,32 @@
   font-size: 20px;
 }
 
+.drep-flow-phase-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  --color: var(--color-text-dark-secondary);
+}
+
+.drep-flow-phase-nav button {
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  --background: rgba(0, 0, 0, 0.25);
+  --color: inherit;
+  border-radius: 6px;
+  padding: 2px 8px;
+  cursor: pointer;
+}
+
+.drep-flow-phase-nav button:hover:enabled {
+  --color: var(--color-text-light-0);
+}
+
+.drep-flow-phase-current {
+  font-weight: 600;
+  color: var(--color-text-light-0);
+}
+
 .drep-flow-zoom {
   display: inline-flex;
   align-items: center;
