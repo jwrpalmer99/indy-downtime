@@ -1,0 +1,606 @@
+{
+  "module": "indy-downtime",
+  "version": "1.0.0",
+  "exportedAt": "2026-01-27T10:50:40.176Z",
+  "tracker": {
+    "id": "tracker-potioncraft",
+    "name": "Potioncraft Apprenticeship",
+    "headerLabel": "Potioncraft Training",
+    "tabLabel": "Potioncraft",
+    "intervalLabel": "Day",
+    "tabIcon": "fas fa-flask",
+    "hideDcFromPlayers": false,
+    "showLockedChecksToPlayers": true,
+    "showPhasePlanToPlayers": true,
+    "showCheckTooltipsToPlayers": true,
+    "showFlowRelationships": true,
+    "showFlowLines": true,
+    "restrictedActorUuids": [],
+    "phaseConfig": [
+      {
+        "id": "phase1",
+        "name": "Climbing & Swimming Draughts",
+        "narrativeDuration": "2 weeks",
+        "expectedGain": "",
+        "target": 6,
+        "allowCriticalBonus": true,
+        "failureEvents": false,
+        "failureEventTable": "",
+        "image": "",
+        "phaseCompleteMessage": "You learn to craft Potions of Climbing and Potions of Swimming. Each potion takes 1 day to craft and costs 30 gp in ingredients. You can create 1 of each for these costs as part of this phase activity.",
+        "phaseCompleteMacro": "",
+        "groups": [
+          {
+            "id": "p1-g1",
+            "name": "Reagent Fundamentals",
+            "checks": [
+              {
+                "id": "p1-g1-c1",
+                "name": "Herb Identification",
+                "skill": "nat",
+                "description": "Catalog climbing ivy, riverweed, and binders. Requires 20 gp in sample reagents.",
+                "dc": 12,
+                "difficulty": "regular",
+                "target": 1,
+                "dependsOn": [],
+                "groupId": "p1-g1",
+                "step": 0
+              },
+              {
+                "id": "p1-g1-c2",
+                "name": "Purification Method",
+                "skill": "arc",
+                "description": "Distill impurities from raw reagents. Consumes 15 gp in solvents and filters.",
+                "dc": 12,
+                "difficulty": "regular",
+                "target": 1,
+                "dependsOn": [
+                  {
+                    "id": "p1-g1-c1",
+                    "type": "block",
+                    "kind": "check",
+                    "dcPenalty": 0,
+                    "overrideSkill": "",
+                    "overrideDc": 0
+                  }
+                ],
+                "groupId": "p1-g1",
+                "step": 0
+              }
+            ],
+            "maxChecks": 0
+          },
+          {
+            "id": "p1-g2",
+            "name": "Formula Crafting",
+            "checks": [
+              {
+                "id": "p1-g2-c1",
+                "name": "Viscosity Balance",
+                "skill": "inv",
+                "description": "Match syrup thickness for reliable dosing. Requires 10 gp in binders.",
+                "dc": 12,
+                "difficulty": "regular",
+                "target": 1,
+                "dependsOn": [],
+                "groupId": "p1-g2",
+                "step": 0
+              },
+              {
+                "id": "p1-g2-c2",
+                "name": "Stability Test",
+                "skill": "med",
+                "description": "Confirm the draught remains safe over time. Consumes 10 gp in preservatives.",
+                "dc": 13,
+                "difficulty": "regular",
+                "target": 1,
+                "dependsOn": [
+                  {
+                    "id": "p1-g2-c1",
+                    "type": "block",
+                    "kind": "check",
+                    "dcPenalty": 0,
+                    "overrideSkill": "",
+                    "overrideDc": 0
+                  }
+                ],
+                "groupId": "p1-g2",
+                "step": 0
+              }
+            ],
+            "maxChecks": 0
+          },
+          {
+            "id": "p1-g3",
+            "name": "Field Trials",
+            "checks": [
+              {
+                "id": "p1-g3-c1",
+                "name": "Climb Trial",
+                "skill": "ath",
+                "description": "Test draught on steep terrain. Requires 10 gp in safety gear repairs.",
+                "dc": 12,
+                "difficulty": "regular",
+                "target": 1,
+                "dependsOn": [
+                  {
+                    "id": "p1-g2-c1",
+                    "type": "block",
+                    "kind": "check",
+                    "dcPenalty": 0,
+                    "overrideSkill": "",
+                    "overrideDc": 0
+                  },
+                  {
+                    "id": "p1-g1-c1",
+                    "type": "block",
+                    "kind": "check",
+                    "dcPenalty": 0,
+                    "overrideSkill": "",
+                    "overrideDc": 0
+                  }
+                ],
+                "groupId": "p1-g3",
+                "step": 0
+              },
+              {
+                "id": "p1-g3-c2",
+                "name": "Swim Trial",
+                "skill": "sur",
+                "description": "Evaluate endurance and buoyancy. Requires 10 gp in test supplies.",
+                "dc": 12,
+                "difficulty": "regular",
+                "target": 1,
+                "dependsOn": [
+                  {
+                    "id": "p1-g3-c1",
+                    "type": "block",
+                    "kind": "check",
+                    "dcPenalty": 0,
+                    "overrideSkill": "",
+                    "overrideDc": 0
+                  }
+                ],
+                "groupId": "p1-g3",
+                "step": 0
+              }
+            ],
+            "maxChecks": 0
+          }
+        ],
+        "successLines": [
+          {
+            "id": "p1-s1",
+            "text": "The draughts hold their effect without side reactions.",
+            "dependsOnChecks": [],
+            "dependsOnGroups": []
+          }
+        ],
+        "failureLines": [
+          {
+            "id": "p1-f1",
+            "text": "The mixture separates; rework the binders.",
+            "dependsOnChecks": [],
+            "dependsOnGroups": []
+          }
+        ]
+      },
+      {
+        "id": "phase2",
+        "name": "Alchemist's Fire",
+        "narrativeDuration": "2 weeks",
+        "expectedGain": "",
+        "target": 6,
+        "allowCriticalBonus": true,
+        "failureEvents": false,
+        "failureEventTable": "",
+        "image": "",
+        "phaseCompleteMessage": "You learn to craft Alchemist's Fire. Each vial takes 1 day to craft and costs 20 gp in reagents. You can create 1 of each for these costs as part of this phase activity.",
+        "phaseCompleteMacro": "",
+        "groups": [
+          {
+            "id": "p2-g1",
+            "name": "Combustion Chemistry",
+            "checks": [
+              {
+                "id": "p2-g1-c1",
+                "name": "Ignition Threshold",
+                "skill": "arc",
+                "description": "Calibrate burn temperature. Requires 30 gp in accelerants.",
+                "dc": 14,
+                "difficulty": "regular",
+                "target": 1,
+                "dependsOn": [],
+                "groupId": "p2-g1",
+                "step": 0
+              },
+              {
+                "id": "p2-g1-c2",
+                "name": "Stability Buffer",
+                "skill": "inv",
+                "description": "Prevent premature ignition. Consumes 15 gp in stabilizers.",
+                "dc": 13,
+                "difficulty": "regular",
+                "target": 1,
+                "dependsOn": [],
+                "groupId": "p2-g1",
+                "step": 0
+              }
+            ],
+            "maxChecks": 0
+          },
+          {
+            "id": "p2-g2",
+            "name": "Containment",
+            "checks": [
+              {
+                "id": "p2-g2-c1",
+                "name": "Vial Hardening",
+                "skill": "slt",
+                "description": "Reinforce vials for transport. Requires 20 gp in treated glass.",
+                "dc": 13,
+                "difficulty": "regular",
+                "target": 1,
+                "dependsOn": [],
+                "groupId": "p2-g2",
+                "step": 0
+              },
+              {
+                "id": "p2-g2-c2",
+                "name": "Seal Integrity",
+                "skill": "ins",
+                "description": "Inspect seals under pressure. Consumes 20 gp in wax and pitch.",
+                "dc": 12,
+                "difficulty": "regular",
+                "target": 1,
+                "dependsOn": [],
+                "groupId": "p2-g2",
+                "step": 0
+              }
+            ],
+            "maxChecks": 0
+          },
+          {
+            "id": "p2-g3",
+            "name": "Safety Drills",
+            "checks": [
+              {
+                "id": "p2-g3-c1",
+                "name": "Controlled Toss",
+                "skill": "ath",
+                "description": "Practice safe throws. Requires 20 gp in test vials.",
+                "dc": 12,
+                "difficulty": "regular",
+                "target": 1,
+                "dependsOn": [],
+                "groupId": "p2-g3",
+                "step": 0
+              },
+              {
+                "id": "p2-g3-c2",
+                "name": "Firebreak Setup",
+                "skill": "sur",
+                "description": "Prepare a safe testing area. Requires 10 gp in sand and blankets.",
+                "dc": 13,
+                "difficulty": "regular",
+                "target": 1,
+                "dependsOn": [],
+                "groupId": "p2-g3",
+                "step": 0
+              }
+            ],
+            "maxChecks": 0
+          }
+        ],
+        "successLines": [
+          {
+            "id": "p2-s1",
+            "text": "The fire clings and burns at the intended rate.",
+            "dependsOnChecks": [],
+            "dependsOnGroups": []
+          }
+        ],
+        "failureLines": [
+          {
+            "id": "p2-f1",
+            "text": "The mixture flashes too early—recalibrate the buffer.",
+            "dependsOnChecks": [],
+            "dependsOnGroups": []
+          }
+        ]
+      },
+      {
+        "id": "phase3",
+        "name": "Resistance & Growth Tonics",
+        "narrativeDuration": "3 weeks",
+        "expectedGain": "",
+        "target": 6,
+        "allowCriticalBonus": true,
+        "failureEvents": false,
+        "failureEventTable": "",
+        "image": "",
+        "phaseCompleteMessage": "You learn to craft Potions of Resistance and Potions of Growth. Each potion takes 1 day to craft and costs 125 gp in ingredients. You can create 1 of each for these costs as part of this phase activity.",
+        "phaseCompleteMacro": "",
+        "groups": [
+          {
+            "id": "p3-g1",
+            "name": "Elemental Essences",
+            "checks": [
+              {
+                "id": "p3-g1-c1",
+                "name": "Essence Extraction",
+                "skill": "arc",
+                "description": "Extract elemental residues. Requires 60 gp in rare reagents.",
+                "dc": 15,
+                "difficulty": "regular",
+                "target": 1,
+                "dependsOn": [],
+                "groupId": "p3-g1",
+                "step": 0
+              },
+              {
+                "id": "p3-g1-c2",
+                "name": "Toxicity Screen",
+                "skill": "med",
+                "description": "Ensure safe exposure thresholds. Consumes 20 gp in testing supplies.",
+                "dc": 14,
+                "difficulty": "regular",
+                "target": 1,
+                "dependsOn": [
+                  {
+                    "id": "p3-g1-c1",
+                    "type": "block",
+                    "kind": "check",
+                    "dcPenalty": 0,
+                    "overrideSkill": "",
+                    "overrideDc": 0
+                  }
+                ],
+                "groupId": "p3-g1",
+                "step": 0
+              }
+            ],
+            "maxChecks": 0
+          },
+          {
+            "id": "p3-g2",
+            "name": "Growth Catalysts",
+            "checks": [
+              {
+                "id": "p3-g2-c1",
+                "name": "Catalyst Ratio",
+                "skill": "arc",
+                "description": "Balance the expanding agent. Requires 50 gp in growth catalysts.",
+                "dc": 15,
+                "difficulty": "regular",
+                "target": 1,
+                "dependsOn": [],
+                "groupId": "p3-g2",
+                "step": 0
+              },
+              {
+                "id": "p3-g2-c2",
+                "name": "Containment Test",
+                "skill": "inv",
+                "description": "Verify the tonic does not rupture containers.",
+                "dc": 14,
+                "difficulty": "regular",
+                "target": 1,
+                "dependsOn": [
+                  {
+                    "id": "p3-g2-c1",
+                    "type": "block",
+                    "kind": "check",
+                    "dcPenalty": 0,
+                    "overrideSkill": "",
+                    "overrideDc": 0
+                  }
+                ],
+                "groupId": "p3-g2",
+                "step": 0
+              }
+            ],
+            "maxChecks": 0
+          },
+          {
+            "id": "p3-g3",
+            "name": "Stability & Duration",
+            "checks": [
+              {
+                "id": "p3-g3-c1",
+                "name": "Shelf Life",
+                "skill": "nat",
+                "description": "Preserve potency over time. Requires 25 gp in preservatives.",
+                "dc": 14,
+                "difficulty": "regular",
+                "target": 1,
+                "dependsOn": [
+                  {
+                    "id": "p3-g2-c1",
+                    "type": "block",
+                    "kind": "check",
+                    "dcPenalty": 0,
+                    "overrideSkill": "",
+                    "overrideDc": 0
+                  },
+                  {
+                    "id": "p3-g1-c1",
+                    "type": "block",
+                    "kind": "check",
+                    "dcPenalty": 0,
+                    "overrideSkill": "",
+                    "overrideDc": 0
+                  }
+                ],
+                "groupId": "p3-g3",
+                "step": 0
+              },
+              {
+                "id": "p3-g3-c2",
+                "name": "Dose Timing",
+                "skill": "ins",
+                "description": "Track duration curves for consistency.",
+                "dc": 13,
+                "difficulty": "regular",
+                "target": 1,
+                "dependsOn": [
+                  {
+                    "id": "p3-g3-c1",
+                    "type": "block",
+                    "kind": "check",
+                    "dcPenalty": 0,
+                    "overrideSkill": "",
+                    "overrideDc": 0
+                  }
+                ],
+                "groupId": "p3-g3",
+                "step": 0
+              }
+            ],
+            "maxChecks": 0
+          }
+        ],
+        "successLines": [
+          {
+            "id": "p3-s1",
+            "text": "The tonics hold firm and predictable.",
+            "dependsOnChecks": [],
+            "dependsOnGroups": []
+          }
+        ],
+        "failureLines": [
+          {
+            "id": "p3-f1",
+            "text": "The mixture destabilizes—rebalance the catalysts.",
+            "dependsOnChecks": [],
+            "dependsOnGroups": []
+          }
+        ]
+      },
+      {
+        "id": "phase4",
+        "name": "Fire Breath, Smoke, and Blasting Powder",
+        "narrativeDuration": "4 weeks",
+        "expectedGain": "",
+        "target": 6,
+        "allowCriticalBonus": true,
+        "failureEvents": false,
+        "failureEventTable": "",
+        "image": "",
+        "phaseCompleteMessage": "You learn to craft Potions of Fire Breath (1 day, 75 gp), Smoke Grenades (1 day, 40 gp), and Blasting Powder (1 day, 75 gp). You can create 1 of each for these costs as part of this phase activity.",
+        "phaseCompleteMacro": "",
+        "groups": [
+          {
+            "id": "p4-g1",
+            "name": "Volatile Reagents",
+            "checks": [
+              {
+                "id": "p4-g1-c1",
+                "name": "Ignition Control",
+                "skill": "arc",
+                "description": "Stabilize combustion triggers. Requires 80 gp in volatile reagents.",
+                "dc": 16,
+                "difficulty": "regular",
+                "target": 1,
+                "dependsOn": [],
+                "groupId": "p4-g1",
+                "step": 0
+              },
+              {
+                "id": "p4-g1-c2",
+                "name": "Pressure Safety",
+                "skill": "inv",
+                "description": "Prevent blowback in sealed containers. Consumes 40 gp in stabilizers.",
+                "dc": 15,
+                "difficulty": "regular",
+                "target": 1,
+                "dependsOn": [],
+                "groupId": "p4-g1",
+                "step": 0
+              }
+            ],
+            "maxChecks": 0
+          },
+          {
+            "id": "p4-g2",
+            "name": "Delivery Systems",
+            "checks": [
+              {
+                "id": "p4-g2-c1",
+                "name": "Breath Ampoule",
+                "skill": "med",
+                "description": "Prepare safe dosing for fire breath. Requires 60 gp in ampoules.",
+                "dc": 15,
+                "difficulty": "regular",
+                "target": 1,
+                "dependsOn": [],
+                "groupId": "p4-g2",
+                "step": 0
+              },
+              {
+                "id": "p4-g2-c2",
+                "name": "Smoke Canister",
+                "skill": "slt",
+                "description": "Build a compact smoke delivery shell. Requires 30 gp in canisters.",
+                "dc": 14,
+                "difficulty": "regular",
+                "target": 1,
+                "dependsOn": [],
+                "groupId": "p4-g2",
+                "step": 0
+              }
+            ],
+            "maxChecks": 0
+          },
+          {
+            "id": "p4-g3",
+            "name": "Testing Grounds",
+            "checks": [
+              {
+                "id": "p4-g3-c1",
+                "name": "Blast Measurement",
+                "skill": "inv",
+                "description": "Measure blast radius and force. Requires 60 gp in test charges.",
+                "dc": 15,
+                "difficulty": "regular",
+                "target": 1,
+                "dependsOn": [],
+                "groupId": "p4-g3",
+                "step": 0
+              },
+              {
+                "id": "p4-g3-c2",
+                "name": "Field Safety",
+                "skill": "ins",
+                "description": "Set a safe perimeter and emergency response. Requires 75 gp in safety supplies.",
+                "dc": 14,
+                "difficulty": "regular",
+                "target": 1,
+                "dependsOn": [],
+                "groupId": "p4-g3",
+                "step": 0
+              }
+            ],
+            "maxChecks": 0
+          }
+        ],
+        "successLines": [
+          {
+            "id": "p4-s1",
+            "text": "The formulas hit hard and remain controllable.",
+            "dependsOnChecks": [],
+            "dependsOnGroups": []
+          }
+        ],
+        "failureLines": [
+          {
+            "id": "p4-f1",
+            "text": "Volatility spikes—reduce the ignition mix.",
+            "dependsOnChecks": [],
+            "dependsOnGroups": []
+          }
+        ]
+      }
+    ]
+  }
+}

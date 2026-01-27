@@ -581,6 +581,7 @@ class DowntimeRepSettings extends HandlebarsApplicationMixin(ApplicationV2) {
               refreshSheetTabLabel();
               rerenderCharacterSheets();
               rerenderSettingsApps();
+              this.render();
               ui.notifications.info("Indy Downtime Tracker: tracker imported as new.");
               return;
             }
@@ -593,6 +594,7 @@ class DowntimeRepSettings extends HandlebarsApplicationMixin(ApplicationV2) {
             refreshSheetTabLabel();
             rerenderCharacterSheets();
             rerenderSettingsApps();
+            this.render();
             ui.notifications.info("Indy Downtime Tracker: tracker imported.");
           },
         }).render(true);

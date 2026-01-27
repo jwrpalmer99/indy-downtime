@@ -1,46 +1,46 @@
 {
   "module": "indy-downtime",
   "version": "1.0.0",
-  "exportedAt": "2026-01-27T10:56:19.208Z",
+  "exportedAt": "2026-01-27T10:23:21.675Z",
   "tracker": {
-    "id": "tracker-3",
-    "name": "Fletching",
-    "headerLabel": "Learning to Fletch",
-    "tabLabel": "Fletching",
+    "id": "tracker-blacksmithing",
+    "name": "Blacksmithing Mastery",
+    "headerLabel": "Blacksmith Training",
+    "tabLabel": "Smithing",
     "intervalLabel": "Twice Weekly",
-    "tabIcon": "fa-solid fa-bow-arrow",
+    "tabIcon": "fa-duotone fa-solid fa-hammer",
     "hideDcFromPlayers": false,
     "showLockedChecksToPlayers": true,
     "showPhasePlanToPlayers": true,
-    "showCheckTooltipsToPlayers": false,
+    "showCheckTooltipsToPlayers": true,
     "showFlowRelationships": true,
     "showFlowLines": true,
     "restrictedActorUuids": [
-      "Actor.bGs06XThpOug90X5"
+      "Actor.KAxnmn4dhkmSDe2y"
     ],
     "phaseConfig": [
       {
         "id": "phase1",
-        "name": "Walloping Arrow",
-        "narrativeDuration": "2 weeks",
+        "name": "Apprentice Forge Work",
+        "narrativeDuration": "3 weeks",
         "expectedGain": "",
-        "target": 6,
+        "target": 4,
         "allowCriticalBonus": true,
         "failureEvents": false,
         "failureEventTable": "",
         "image": "",
-        "phaseCompleteMessage": "You learn to craft Walloping Arrows (can knock a target prone). Each arrow takes 1 day to craft and costs 3 gp in materials. You create 3 Walloping arrows on completion of this phase.",
+        "phaseCompleteMessage": "You can safely operate the forge and produce basic fittings.",
         "phaseCompleteMacro": "",
         "groups": [
           {
             "id": "p1-g1",
-            "name": "Material Study",
+            "name": "Forge Basics",
             "checks": [
               {
                 "id": "p1-g1-c1",
-                "name": "Arcane Resonance",
-                "skill": "arc",
-                "description": "Map how the head channels kinetic force. Requires 5 gp in materials.",
+                "name": "Heat Control",
+                "skill": "inv",
+                "description": "Maintain proper heat and airflow. Requires 20 gp in coal and bellows maintenance.",
                 "dc": 12,
                 "difficulty": "regular",
                 "target": 1,
@@ -50,10 +50,10 @@
               },
               {
                 "id": "p1-g1-c2",
-                "name": "Stonehead Geometry",
-                "skill": "inv",
-                "description": "Design a shape that spreads impact without shattering. Requires 5 gp in materials.",
-                "dc": 13,
+                "name": "Hammer Practice",
+                "skill": "ath",
+                "description": "Practice consistent hammer blows on scrap stock.",
+                "dc": 12,
                 "difficulty": "regular",
                 "target": 1,
                 "dependsOn": [
@@ -74,13 +74,13 @@
           },
           {
             "id": "p1-g2",
-            "name": "Workshop Trials",
+            "name": "Material Handling",
             "checks": [
               {
                 "id": "p1-g2-c1",
-                "name": "Fletching Balance",
-                "skill": "slt",
-                "description": "Fine-tune weight distribution for stable flight. Requires 10 gp in materials.",
+                "name": "Metal Selection",
+                "skill": "nat",
+                "description": "Identify suitable steels and alloys. Requires 25 gp in test billets.",
                 "dc": 12,
                 "difficulty": "regular",
                 "target": 1,
@@ -90,9 +90,9 @@
               },
               {
                 "id": "p1-g2-c2",
-                "name": "Impact Testing",
-                "skill": "ath",
-                "description": "Stress-test prototypes against armored dummies. Requires 10 gp in materials.",
+                "name": "Quenching Trials",
+                "skill": "arc",
+                "description": "Test quenching solutions. Consumes 15 gp in oils and salts.",
                 "dc": 13,
                 "difficulty": "regular",
                 "target": 1,
@@ -114,14 +114,14 @@
           },
           {
             "id": "p1-g3",
-            "name": "Field Practice",
+            "name": "Safety & Workflow",
             "checks": [
               {
                 "id": "p1-g3-c1",
-                "name": "Stability Shots",
-                "skill": "acr",
-                "description": "Fire test shots to verify stability under pressure. Requires 15 gp in materials.",
-                "dc": 12,
+                "name": "Tool Care",
+                "skill": "ins",
+                "description": "Maintain tongs, hammers, and anvils. Requires 10 gp in maintenance supplies.",
+                "dc": 11,
                 "difficulty": "regular",
                 "target": 1,
                 "dependsOn": [
@@ -147,31 +147,15 @@
               },
               {
                 "id": "p1-g3-c2",
-                "name": "Impact Read",
-                "skill": "ins",
-                "description": "Assess the knockdown effect on different targets. Requires 15 gp in materials.",
-                "dc": 13,
+                "name": "Shop Discipline",
+                "skill": "inv",
+                "description": "Plan an efficient workflow for forge tasks.",
+                "dc": 11,
                 "difficulty": "regular",
                 "target": 1,
                 "dependsOn": [
                   {
                     "id": "p1-g3-c1",
-                    "type": "block",
-                    "kind": "check",
-                    "dcPenalty": 0,
-                    "overrideSkill": "",
-                    "overrideDc": 0
-                  },
-                  {
-                    "id": "p1-g2-c2",
-                    "type": "block",
-                    "kind": "check",
-                    "dcPenalty": 0,
-                    "overrideSkill": "",
-                    "overrideDc": 0
-                  },
-                  {
-                    "id": "p1-g1-c2",
                     "type": "block",
                     "kind": "check",
                     "dcPenalty": 0,
@@ -189,7 +173,7 @@
         "successLines": [
           {
             "id": "p1-s1",
-            "text": "The head rings true; the knockdown force is clean.",
+            "text": "Your strikes are true and the forge runs clean.",
             "dependsOnChecks": [],
             "dependsOnGroups": []
           }
@@ -197,7 +181,7 @@
         "failureLines": [
           {
             "id": "p1-f1",
-            "text": "The head fractures on impact. Back to the anvil.",
+            "text": "The heat fluctuates - reset and stabilize the forge.",
             "dependsOnChecks": [],
             "dependsOnGroups": []
           }
@@ -205,27 +189,27 @@
       },
       {
         "id": "phase2",
-        "name": "Knockback Arrow",
-        "narrativeDuration": "2 weeks",
+        "name": "Weapon Crafting",
+        "narrativeDuration": "4 weeks",
         "expectedGain": "",
-        "target": 6,
+        "target": 4,
         "allowCriticalBonus": true,
         "failureEvents": false,
         "failureEventTable": "",
         "image": "",
-        "phaseCompleteMessage": "You learn to craft Knockback Arrows. Each arrow takes 1 day to craft and costs 25 gp in materials. You create 3 Knockback arrows on completion of this phase.",
+        "phaseCompleteMessage": "You can improve a weapon to +1 (cost: 300 gp in quality steel, quenching oils, and artisan fees).",
         "phaseCompleteMacro": "",
         "groups": [
           {
             "id": "p2-g1",
-            "name": "Force Dynamics",
+            "name": "Edge & Balance",
             "checks": [
               {
                 "id": "p2-g1-c1",
-                "name": "Impulse Geometry",
-                "skill": "arc",
-                "description": "Shape the force vector to push, not shatter. Requires 10 gp in materials.",
-                "dc": 13,
+                "name": "Edge Geometry",
+                "skill": "inv",
+                "description": "Refine edge angles. Requires 50 gp in honing stones and abrasives.",
+                "dc": 14,
                 "difficulty": "regular",
                 "target": 1,
                 "dependsOn": [],
@@ -234,9 +218,9 @@
               },
               {
                 "id": "p2-g1-c2",
-                "name": "Wind Tunnel Calculations",
-                "skill": "inv",
-                "description": "Model how airflow affects push distance. Requires 15 gp in materials.",
+                "name": "Balance Test",
+                "skill": "ins",
+                "description": "Verify weight distribution on the weapon blank.",
                 "dc": 13,
                 "difficulty": "regular",
                 "target": 1,
@@ -258,14 +242,14 @@
           },
           {
             "id": "p2-g2",
-            "name": "Range Testing",
+            "name": "Tempering",
             "checks": [
               {
                 "id": "p2-g2-c1",
-                "name": "Trajectory Read",
-                "skill": "prc",
-                "description": "Track push distance across varied ranges. Requires 15 gp in materials.",
-                "dc": 13,
+                "name": "Heat Cycling",
+                "skill": "arc",
+                "description": "Cycle heat for hardness. Consumes 40 gp in fuels and salts.",
+                "dc": 14,
                 "difficulty": "regular",
                 "target": 1,
                 "dependsOn": [],
@@ -274,10 +258,10 @@
               },
               {
                 "id": "p2-g2-c2",
-                "name": "Field Demonstration",
-                "skill": "per",
-                "description": "Convince a veteran archer to test the prototype. Requires 10 gp in materials.",
-                "dc": 12,
+                "name": "Stress Testing",
+                "skill": "ath",
+                "description": "Test resilience under load. Requires 25 gp in test stock.",
+                "dc": 13,
                 "difficulty": "regular",
                 "target": 1,
                 "dependsOn": [
@@ -298,13 +282,13 @@
           },
           {
             "id": "p2-g3",
-            "name": "Safety & Calibration",
+            "name": "Finishing Work",
             "checks": [
               {
                 "id": "p2-g3-c1",
-                "name": "Recoil Control",
-                "skill": "ath",
-                "description": "Measure safe recoil thresholds. Requires 20 gp in materials.",
+                "name": "Polish & Seal",
+                "skill": "nat",
+                "description": "Apply a protective finish. Requires 30 gp in oils and sealants.",
                 "dc": 13,
                 "difficulty": "regular",
                 "target": 1,
@@ -331,23 +315,15 @@
               },
               {
                 "id": "p2-g3-c2",
-                "name": "Material Stress",
-                "skill": "nat",
-                "description": "Select shafts that survive repeated knockback. Requires 20 gp in materials.",
-                "dc": 14,
+                "name": "Marking the Blade",
+                "skill": "his",
+                "description": "Record the maker�s mark and quality notes.",
+                "dc": 12,
                 "difficulty": "regular",
                 "target": 1,
                 "dependsOn": [
                   {
-                    "id": "p2-g2-c2",
-                    "type": "block",
-                    "kind": "check",
-                    "dcPenalty": 0,
-                    "overrideSkill": "",
-                    "overrideDc": 0
-                  },
-                  {
-                    "id": "p2-g1-c2",
+                    "id": "p2-g3-c1",
                     "type": "block",
                     "kind": "check",
                     "dcPenalty": 0,
@@ -365,7 +341,7 @@
         "successLines": [
           {
             "id": "p2-s1",
-            "text": "The arrow shoves targets back without breaking apart.",
+            "text": "The weapon�s edge holds and the balance is true.",
             "dependsOnChecks": [],
             "dependsOnGroups": []
           }
@@ -373,7 +349,7 @@
         "failureLines": [
           {
             "id": "p2-f1",
-            "text": "Push force is inconsistent; the design needs refinement.",
+            "text": "The temper is uneven - reheat and refine.",
             "dependsOnChecks": [],
             "dependsOnGroups": []
           }
@@ -381,27 +357,27 @@
       },
       {
         "id": "phase3",
-        "name": "Tethering Arrow",
-        "narrativeDuration": "3 weeks",
+        "name": "Armor Fundamentals",
+        "narrativeDuration": "4 weeks",
         "expectedGain": "",
-        "target": 6,
+        "target": 4,
         "allowCriticalBonus": true,
         "failureEvents": false,
         "failureEventTable": "",
         "image": "",
-        "phaseCompleteMessage": "You learn to craft Tethering Arrows. Each arrow takes 1 day to craft and costs 50 gp in materials. You create 3 Tethering arrows on completion of this phase.",
+        "phaseCompleteMessage": "You can fit and repair armor with confidence.",
         "phaseCompleteMacro": "",
         "groups": [
           {
             "id": "p3-g1",
-            "name": "Cordage Craft",
+            "name": "Plate Forming",
             "checks": [
               {
                 "id": "p3-g1-c1",
-                "name": "Fiber Selection",
-                "skill": "nat",
-                "description": "Choose fibers that can hold tension without fraying. Requires 15 gp in materials.",
-                "dc": 13,
+                "name": "Curve and Shape",
+                "skill": "ath",
+                "description": "Form consistent curves. Requires 50 gp in sheet steel.",
+                "dc": 14,
                 "difficulty": "regular",
                 "target": 1,
                 "dependsOn": [],
@@ -410,10 +386,10 @@
               },
               {
                 "id": "p3-g1-c2",
-                "name": "Anchor Design",
+                "name": "Rivet Patterns",
                 "skill": "inv",
-                "description": "Build a head that locks without tearing free. Requires 20 gp in materials.",
-                "dc": 14,
+                "description": "Lay out rivet patterns. Requires 20 gp in rivets.",
+                "dc": 13,
                 "difficulty": "regular",
                 "target": 1,
                 "dependsOn": [
@@ -434,14 +410,14 @@
           },
           {
             "id": "p3-g2",
-            "name": "Deployment Drills",
+            "name": "Fit & Mobility",
             "checks": [
               {
                 "id": "p3-g2-c1",
-                "name": "Silent Launch",
-                "skill": "ste",
-                "description": "Reduce whine and snap of the tether on release. Requires 15 gp in materials.",
-                "dc": 13,
+                "name": "Articulation Test",
+                "skill": "ins",
+                "description": "Check movement and joint clearance.",
+                "dc": 12,
                 "difficulty": "regular",
                 "target": 1,
                 "dependsOn": [],
@@ -450,10 +426,10 @@
               },
               {
                 "id": "p3-g2-c2",
-                "name": "Tracking Line",
-                "skill": "sur",
-                "description": "Maintain line control while moving. Requires 20 gp in materials.",
-                "dc": 14,
+                "name": "Padding and Strap",
+                "skill": "slt",
+                "description": "Install straps and padding. Requires 25 gp in leathers and padding.",
+                "dc": 13,
                 "difficulty": "regular",
                 "target": 1,
                 "dependsOn": [
@@ -474,13 +450,13 @@
           },
           {
             "id": "p3-g3",
-            "name": "Rigging & Retrieval",
+            "name": "Quality Assurance",
             "checks": [
               {
                 "id": "p3-g3-c1",
-                "name": "Anchor Knot",
-                "skill": "slt",
-                "description": "Tie a knot that locks without snagging. Requires 15 gp in materials.",
+                "name": "Stress and Wear",
+                "skill": "sur",
+                "description": "Test durability under harsh conditions.",
                 "dc": 13,
                 "difficulty": "regular",
                 "target": 1,
@@ -507,23 +483,15 @@
               },
               {
                 "id": "p3-g3-c2",
-                "name": "Recovery Route",
-                "skill": "ins",
-                "description": "Plan the cleanest line for retrieval. Requires 20 gp in materials.",
-                "dc": 14,
+                "name": "Protective Finish",
+                "skill": "arc",
+                "description": "Apply anti-corrosion finish. Requires 30 gp in sealants.",
+                "dc": 15,
                 "difficulty": "regular",
                 "target": 1,
                 "dependsOn": [
                   {
-                    "id": "p3-g2-c2",
-                    "type": "block",
-                    "kind": "check",
-                    "dcPenalty": 0,
-                    "overrideSkill": "",
-                    "overrideDc": 0
-                  },
-                  {
-                    "id": "p3-g1-c2",
+                    "id": "p3-g3-c1",
                     "type": "block",
                     "kind": "check",
                     "dcPenalty": 0,
@@ -541,7 +509,7 @@
         "successLines": [
           {
             "id": "p3-s1",
-            "text": "The tether bites and holds under strain.",
+            "text": "The plates align cleanly and hold firm.",
             "dependsOnChecks": [],
             "dependsOnGroups": []
           }
@@ -549,7 +517,7 @@
         "failureLines": [
           {
             "id": "p3-f1",
-            "text": "The line slips and frays; the anchor needs rework.",
+            "text": "The fit binds - reform the plates and straps.",
             "dependsOnChecks": [],
             "dependsOnGroups": []
           }
@@ -557,27 +525,27 @@
       },
       {
         "id": "phase4",
-        "name": "Smoke Arrow",
-        "narrativeDuration": "2 weeks",
+        "name": "Masterwork Armor",
+        "narrativeDuration": "5 weeks",
         "expectedGain": "",
-        "target": 6,
+        "target": 4,
         "allowCriticalBonus": true,
         "failureEvents": false,
         "failureEventTable": "",
         "image": "",
-        "phaseCompleteMessage": "You learn to craft Smoke Arrows. Each arrow takes 1 day to craft and costs 25 gp in materials. You create 3 Smoke arrows on completion of this phase.",
+        "phaseCompleteMessage": "You can improve armor to +1 (cost: 600 gp in rare alloys, fittings, and artisan fees).",
         "phaseCompleteMacro": "",
         "groups": [
           {
             "id": "p4-g1",
-            "name": "Reagent Blend",
+            "name": "Alloy Crafting",
             "checks": [
               {
                 "id": "p4-g1-c1",
-                "name": "Safe Mixture",
-                "skill": "med",
-                "description": "Balance irritants without poisoning the user. Requires 10 gp in materials.",
-                "dc": 13,
+                "name": "Rare Alloy Blend",
+                "skill": "arc",
+                "description": "Blend rare alloys. Requires 150 gp in rare metals.",
+                "dc": 14,
                 "difficulty": "regular",
                 "target": 1,
                 "dependsOn": [],
@@ -586,10 +554,10 @@
               },
               {
                 "id": "p4-g1-c2",
-                "name": "Ignition Control",
-                "skill": "arc",
-                "description": "Tune the ignition so it blooms on impact. Requires 15 gp in materials.",
-                "dc": 14,
+                "name": "Heat Treatment",
+                "skill": "inv",
+                "description": "Heat-treat to lock strength. Requires 75 gp in fuels and salts.",
+                "dc": 15,
                 "difficulty": "regular",
                 "target": 1,
                 "dependsOn": [
@@ -610,14 +578,14 @@
           },
           {
             "id": "p4-g2",
-            "name": "Concealment Practice",
+            "name": "Precision Fit",
             "checks": [
               {
                 "id": "p4-g2-c1",
-                "name": "Silent Positioning",
-                "skill": "ste",
-                "description": "Use the smoke to mask movement. Requires 10 gp in materials.",
-                "dc": 13,
+                "name": "Micro-Riveting",
+                "skill": "slt",
+                "description": "Install micro-rivets. Requires 60 gp in fine fittings.",
+                "dc": 14,
                 "difficulty": "regular",
                 "target": 1,
                 "dependsOn": [],
@@ -626,10 +594,10 @@
               },
               {
                 "id": "p4-g2-c2",
-                "name": "Tactical Read",
+                "name": "Mobility Check",
                 "skill": "ins",
-                "description": "Judge when to deploy for maximum cover. Requires 15 gp in materials.",
-                "dc": 14,
+                "description": "Verify articulation and balance on the final piece.",
+                "dc": 15,
                 "difficulty": "regular",
                 "target": 1,
                 "dependsOn": [
@@ -650,14 +618,14 @@
           },
           {
             "id": "p4-g3",
-            "name": "Wind Testing",
+            "name": "Final Inspection",
             "checks": [
               {
                 "id": "p4-g3-c1",
-                "name": "Dispersion Study",
-                "skill": "inv",
-                "description": "Test smoke spread patterns in open air. Requires 15 gp in materials.",
-                "dc": 13,
+                "name": "Battle Simulation",
+                "skill": "ath",
+                "description": "Test armor under combat stress.",
+                "dc": 14,
                 "difficulty": "regular",
                 "target": 1,
                 "dependsOn": [
@@ -683,23 +651,15 @@
               },
               {
                 "id": "p4-g3-c2",
-                "name": "Cover Timing",
-                "skill": "dec",
-                "description": "Time the detonation for peak concealment. Requires 10 gp in materials.",
-                "dc": 14,
+                "name": "Masterwork Seal",
+                "skill": "his",
+                "description": "Record the masterwork process. Requires 25 gp in inks and stamps.",
+                "dc": 15,
                 "difficulty": "regular",
                 "target": 1,
                 "dependsOn": [
                   {
-                    "id": "p4-g2-c2",
-                    "type": "block",
-                    "kind": "check",
-                    "dcPenalty": 0,
-                    "overrideSkill": "",
-                    "overrideDc": 0
-                  },
-                  {
-                    "id": "p4-g1-c2",
+                    "id": "p4-g3-c1",
                     "type": "block",
                     "kind": "check",
                     "dcPenalty": 0,
@@ -717,7 +677,7 @@
         "successLines": [
           {
             "id": "p4-s1",
-            "text": "The bloom is thick and controllable.",
+            "text": "The armor bears the masterwork stamp with pride.",
             "dependsOnChecks": [],
             "dependsOnGroups": []
           }
@@ -725,191 +685,7 @@
         "failureLines": [
           {
             "id": "p4-f1",
-            "text": "The smoke is thin and quick to disperse.",
-            "dependsOnChecks": [],
-            "dependsOnGroups": []
-          }
-        ]
-      },
-      {
-        "id": "phase5",
-        "name": "Gravity Well Arrow",
-        "narrativeDuration": "4 weeks",
-        "expectedGain": "",
-        "target": 6,
-        "allowCriticalBonus": true,
-        "failureEvents": false,
-        "failureEventTable": "",
-        "image": "",
-        "phaseCompleteMessage": "You learn to craft Gravity Well Arrows. Each arrow takes 1 day to craft and costs 75 gp in materials. You create 3 Gravity Well arrows on completion of this phase.",
-        "phaseCompleteMacro": "",
-        "groups": [
-          {
-            "id": "p5-g1",
-            "name": "Gravitic Theory",
-            "checks": [
-              {
-                "id": "p5-g1-c1",
-                "name": "Singularity Model",
-                "skill": "arc",
-                "description": "Solve the arcane math behind localized pull. Requires 25 gp in materials.",
-                "dc": 13,
-                "difficulty": "regular",
-                "target": 1,
-                "dependsOn": [],
-                "groupId": "p5-g1",
-                "step": 0
-              },
-              {
-                "id": "p5-g1-c2",
-                "name": "Historical Notes",
-                "skill": "his",
-                "description": "Study prior attempts at gravity binding. Requires 25 gp in materials.",
-                "dc": 14,
-                "difficulty": "regular",
-                "target": 1,
-                "dependsOn": [
-                  {
-                    "id": "p5-g1-c1",
-                    "type": "block",
-                    "kind": "check",
-                    "dcPenalty": 0,
-                    "overrideSkill": "",
-                    "overrideDc": 0
-                  }
-                ],
-                "groupId": "p5-g1",
-                "step": 0
-              }
-            ],
-            "maxChecks": 0
-          },
-          {
-            "id": "p5-g2",
-            "name": "Ritual & Precision",
-            "checks": [
-              {
-                "id": "p5-g2-c1",
-                "name": "Ritual Alignment",
-                "skill": "arc",
-                "description": "Align the inscribed runes correctly. Requires 30 gp in materials.",
-                "dc": 13,
-                "difficulty": "regular",
-                "target": 1,
-                "dependsOn": [],
-                "groupId": "p5-g2",
-                "step": 0
-              },
-              {
-                "id": "p5-g2-c2",
-                "name": "Precision Trigger",
-                "skill": "slt",
-                "description": "Build a trigger that survives the release. Requires 25 gp in materials.",
-                "dc": 15,
-                "difficulty": "regular",
-                "target": 1,
-                "dependsOn": [
-                  {
-                    "id": "p5-g2-c1",
-                    "type": "block",
-                    "kind": "check",
-                    "dcPenalty": 0,
-                    "overrideSkill": "",
-                    "overrideDc": 0
-                  }
-                ],
-                "groupId": "p5-g2",
-                "step": 0
-              }
-            ],
-            "maxChecks": 0
-          },
-          {
-            "id": "p5-g3",
-            "name": "Containment & Safety",
-            "checks": [
-              {
-                "id": "p5-g3-c1",
-                "name": "Arcane Containment",
-                "skill": "arc",
-                "description": "Ensure the well collapses safely after use. Requires 35 gp in materials.",
-                "dc": 14,
-                "difficulty": "regular",
-                "target": 1,
-                "dependsOn": [
-                  {
-                    "id": "p5-g2-c1",
-                    "type": "block",
-                    "kind": "check",
-                    "dcPenalty": 0,
-                    "overrideSkill": "",
-                    "overrideDc": 0
-                  },
-                  {
-                    "id": "p5-g1-c1",
-                    "type": "block",
-                    "kind": "check",
-                    "dcPenalty": 0,
-                    "overrideSkill": "",
-                    "overrideDc": 0
-                  }
-                ],
-                "groupId": "p5-g3",
-                "step": 0
-              },
-              {
-                "id": "p5-g3-c2",
-                "name": "Failure Scenarios",
-                "skill": "ins",
-                "description": "Predict how the well behaves under stress. Requires 40 gp in materials.",
-                "dc": 15,
-                "difficulty": "regular",
-                "target": 1,
-                "dependsOn": [
-                  {
-                    "id": "p5-g3-c1",
-                    "type": "block",
-                    "kind": "check",
-                    "dcPenalty": 0,
-                    "overrideSkill": "",
-                    "overrideDc": 0
-                  },
-                  {
-                    "id": "p5-g2-c2",
-                    "type": "block",
-                    "kind": "check",
-                    "dcPenalty": 0,
-                    "overrideSkill": "",
-                    "overrideDc": 0
-                  },
-                  {
-                    "id": "p5-g1-c2",
-                    "type": "block",
-                    "kind": "check",
-                    "dcPenalty": 0,
-                    "overrideSkill": "",
-                    "overrideDc": 0
-                  }
-                ],
-                "groupId": "p5-g3",
-                "step": 0
-              }
-            ],
-            "maxChecks": 0
-          }
-        ],
-        "successLines": [
-          {
-            "id": "p5-s1",
-            "text": "The arrow bends space as intended.",
-            "dependsOnChecks": [],
-            "dependsOnGroups": []
-          }
-        ],
-        "failureLines": [
-          {
-            "id": "p5-f1",
-            "text": "The binding fails; the pull collapses early.",
+            "text": "A flaw appears - refine the plates and refit.",
             "dependsOnChecks": [],
             "dependsOnGroups": []
           }

@@ -1,0 +1,360 @@
+{
+  "module": "indy-downtime",
+  "version": "1.0.0",
+  "exportedAt": "2026-01-27T10:14:00.705Z",
+  "tracker": {
+    "id": "tracker-pistol-proficiency",
+    "name": "Pistol Proficiency Training",
+    "headerLabel": "Pistol Proficiency",
+    "tabLabel": "Pistol",
+    "intervalLabel": "Twice Weekly",
+    "tabIcon": "fas fa-gun",
+    "hideDcFromPlayers": false,
+    "showLockedChecksToPlayers": true,
+    "showPhasePlanToPlayers": true,
+    "showCheckTooltipsToPlayers": true,
+    "showFlowRelationships": true,
+    "showFlowLines": true,
+    "restrictedActorUuids": [
+      "Actor.DchclmJxvevWKQHt"
+    ],
+    "phaseConfig": [
+      {
+        "id": "phase1",
+        "name": "Foundations & Safety",
+        "narrativeDuration": "2 weeks",
+        "expectedGain": "",
+        "target": 4,
+        "allowCriticalBonus": true,
+        "failureEvents": false,
+        "failureEventTable": "",
+        "image": "",
+        "phaseCompleteMessage": "You can safely handle and maintain the artificer-built pistol.",
+        "phaseCompleteMacro": "",
+        "groups": [
+          {
+            "id": "p1-g1",
+            "name": "Maintenance & Tuning",
+            "checks": [
+              {
+                "id": "p1-g1-c1",
+                "name": "Mechanism Strip",
+                "skill": "inv",
+                "description": "Disassemble and reassemble the pistol. Requires 25 gp in cleaning oils and tools.",
+                "dc": 13,
+                "difficulty": "regular",
+                "target": 1,
+                "dependsOn": [],
+                "groupId": "p1-g1",
+                "step": 0
+              },
+              {
+                "id": "p1-g1-c2",
+                "name": "Arcane Regulator",
+                "skill": "arc",
+                "description": "Tune the arcane regulator. Consumes a 50 gp calibration crystal.",
+                "dc": 14,
+                "difficulty": "regular",
+                "target": 1,
+                "dependsOn": [
+                  {
+                    "id": "p1-g1-c1",
+                    "type": "block",
+                    "kind": "check",
+                    "dcPenalty": 0,
+                    "overrideSkill": "",
+                    "overrideDc": 0
+                  }
+                ],
+                "groupId": "p1-g1",
+                "step": 0
+              }
+            ],
+            "maxChecks": 0
+          },
+          {
+            "id": "p1-g2",
+            "name": "Handling & Safety",
+            "checks": [
+              {
+                "id": "p1-g2-c1",
+                "name": "Dry Fire Drills",
+                "skill": "ins",
+                "description": "Practice safe handling and trigger discipline.",
+                "dc": 12,
+                "difficulty": "regular",
+                "target": 1,
+                "dependsOn": [],
+                "groupId": "p1-g2",
+                "step": 0
+              },
+              {
+                "id": "p1-g2-c2",
+                "name": "Range Protocol",
+                "skill": "per",
+                "description": "Establish safety protocols. Requires 10 gp in range supplies and signage.",
+                "dc": 12,
+                "difficulty": "regular",
+                "target": 1,
+                "dependsOn": [
+                  {
+                    "id": "p1-g2-c1",
+                    "type": "block",
+                    "kind": "check",
+                    "dcPenalty": 0,
+                    "overrideSkill": "",
+                    "overrideDc": 0
+                  }
+                ],
+                "groupId": "p1-g2",
+                "step": 0
+              }
+            ],
+            "maxChecks": 0
+          },
+          {
+            "id": "p1-g3",
+            "name": "Ammo & Load",
+            "checks": [
+              {
+                "id": "p1-g3-c1",
+                "name": "Powder Mix",
+                "skill": "arc",
+                "description": "Blend reliable propellant. Consumes 25 gp in reagents.",
+                "dc": 13,
+                "difficulty": "regular",
+                "target": 1,
+                "dependsOn": [
+                  {
+                    "id": "p1-g2-c1",
+                    "type": "block",
+                    "kind": "check",
+                    "dcPenalty": 0,
+                    "overrideSkill": "",
+                    "overrideDc": 0
+                  },
+                  {
+                    "id": "p1-g1-c1",
+                    "type": "block",
+                    "kind": "check",
+                    "dcPenalty": 0,
+                    "overrideSkill": "",
+                    "overrideDc": 0
+                  }
+                ],
+                "groupId": "p1-g3",
+                "step": 0
+              },
+              {
+                "id": "p1-g3-c2",
+                "name": "Ballistics Review",
+                "skill": "his",
+                "description": "Study early firearm designs to avoid misfire risks.",
+                "dc": 11,
+                "difficulty": "regular",
+                "target": 1,
+                "dependsOn": [
+                  {
+                    "id": "p1-g2-c2",
+                    "type": "block",
+                    "kind": "check",
+                    "dcPenalty": 0,
+                    "overrideSkill": "",
+                    "overrideDc": 0
+                  }
+                ],
+                "groupId": "p1-g3",
+                "step": 0
+              }
+            ],
+            "maxChecks": 0
+          }
+        ],
+        "successLines": [
+          {
+            "id": "p1-s1",
+            "text": "The pistol runs clean and stable under standard loads.",
+            "dependsOnChecks": [],
+            "dependsOnGroups": []
+          }
+        ],
+        "failureLines": [
+          {
+            "id": "p1-f1",
+            "text": "A misfire trace suggests a tuning problem - recalibrate.",
+            "dependsOnChecks": [],
+            "dependsOnGroups": []
+          }
+        ]
+      },
+      {
+        "id": "phase2",
+        "name": "Field Proficiency",
+        "narrativeDuration": "3 weeks",
+        "expectedGain": "",
+        "target": 4,
+        "allowCriticalBonus": true,
+        "failureEvents": false,
+        "failureEventTable": "",
+        "image": "",
+        "phaseCompleteMessage": "You gain proficiency with your artificer-built pistol.",
+        "phaseCompleteMacro": "",
+        "groups": [
+          {
+            "id": "p2-g1",
+            "name": "Accuracy & Control",
+            "checks": [
+              {
+                "id": "p2-g1-c1",
+                "name": "Precision Drills",
+                "skill": "prc",
+                "description": "Hit tight groupings at range. Requires 25 gp in practice ammunition.",
+                "dc": 13,
+                "difficulty": "regular",
+                "target": 1,
+                "dependsOn": [],
+                "groupId": "p2-g1",
+                "step": 0
+              },
+              {
+                "id": "p2-g1-c2",
+                "name": "Recoil Management",
+                "skill": "ath",
+                "description": "Master recoil control under repeated fire.",
+                "dc": 14,
+                "difficulty": "regular",
+                "target": 1,
+                "dependsOn": [
+                  {
+                    "id": "p2-g1-c1",
+                    "type": "block",
+                    "kind": "check",
+                    "dcPenalty": 0,
+                    "overrideSkill": "",
+                    "overrideDc": 0
+                  }
+                ],
+                "groupId": "p2-g1",
+                "step": 0
+              }
+            ],
+            "maxChecks": 0
+          },
+          {
+            "id": "p2-g2",
+            "name": "Live Exercises",
+            "checks": [
+              {
+                "id": "p2-g2-c1",
+                "name": "Target Identification",
+                "skill": "ins",
+                "description": "Engage targets in mixed cover scenarios.",
+                "dc": 13,
+                "difficulty": "regular",
+                "target": 1,
+                "dependsOn": [],
+                "groupId": "p2-g2",
+                "step": 0
+              },
+              {
+                "id": "p2-g2-c2",
+                "name": "Tactical Reload",
+                "skill": "slt",
+                "description": "Perform fast reloads. Requires 15 gp in spare parts and magazine springs.",
+                "dc": 14,
+                "difficulty": "regular",
+                "target": 1,
+                "dependsOn": [
+                  {
+                    "id": "p2-g2-c1",
+                    "type": "block",
+                    "kind": "check",
+                    "dcPenalty": 0,
+                    "overrideSkill": "",
+                    "overrideDc": 0
+                  }
+                ],
+                "groupId": "p2-g2",
+                "step": 0
+              }
+            ],
+            "maxChecks": 0
+          },
+          {
+            "id": "p2-g3",
+            "name": "Field Discipline",
+            "checks": [
+              {
+                "id": "p2-g3-c1",
+                "name": "Stress Test",
+                "skill": "ins",
+                "description": "Maintain focus while firing under pressure.",
+                "dc": 13,
+                "difficulty": "regular",
+                "target": 1,
+                "dependsOn": [
+                  {
+                    "id": "p2-g2-c1",
+                    "type": "block",
+                    "kind": "check",
+                    "dcPenalty": 0,
+                    "overrideSkill": "",
+                    "overrideDc": 0
+                  },
+                  {
+                    "id": "p2-g1-c1",
+                    "type": "block",
+                    "kind": "check",
+                    "dcPenalty": 0,
+                    "overrideSkill": "",
+                    "overrideDc": 0
+                  }
+                ],
+                "groupId": "p2-g3",
+                "step": 0
+              },
+              {
+                "id": "p2-g3-c2",
+                "name": "Maintenance in the Field",
+                "skill": "inv",
+                "description": "Clear jams and repair minor damage. Requires 20 gp in spares.",
+                "dc": 14,
+                "difficulty": "regular",
+                "target": 1,
+                "dependsOn": [
+                  {
+                    "id": "p2-g3-c1",
+                    "type": "block",
+                    "kind": "check",
+                    "dcPenalty": 0,
+                    "overrideSkill": "",
+                    "overrideDc": 0
+                  }
+                ],
+                "groupId": "p2-g3",
+                "step": 0
+              }
+            ],
+            "maxChecks": 0
+          }
+        ],
+        "successLines": [
+          {
+            "id": "p2-s1",
+            "text": "Your shots are steady and reliable even under pressure.",
+            "dependsOnChecks": [],
+            "dependsOnGroups": []
+          }
+        ],
+        "failureLines": [
+          {
+            "id": "p2-f1",
+            "text": "Accuracy falters; more drills are needed.",
+            "dependsOnChecks": [],
+            "dependsOnGroups": []
+          }
+        ]
+      }
+    ]
+  }
+}
