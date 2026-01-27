@@ -174,7 +174,7 @@ function resolveActorMethod(actor, methodName) {
   return null;
 }
 
-async function rollSkill(actor, skillKey, advantage, disadvantage) {
+async function rollSkill(actor, skillKey, advantage, disadvantage, difficulty = null) {
   if (advantage && disadvantage) {
     advantage = false;
     disadvantage = false;
@@ -190,6 +190,9 @@ async function rollSkill(actor, skillKey, advantage, disadvantage) {
       if (pf2eRoll) return pf2eRoll;
     } else {
       rollSkillFn = resolveActorMethod(actor, "setupSkillTest");
+      if (!rollSkillFn) {
+        rollSkillFn = resolveActorMethod(actor, "skillCheck");
+      }
     }
   }
 
@@ -234,6 +237,27 @@ async function rollSkill(actor, skillKey, advantage, disadvantage) {
         return rolls[0] ?? null;
       }
     }
+    else if (game.system?.id == "CoC7")
+    {
+      //coc7
+      let difstring  = "?";
+      switch (difficulty)
+      {
+        case "regular":
+          difstring = "0";
+          break;
+        case "hard":
+          difstring = "+";
+          break;
+        case "extreme":
+          difstring = "++";
+          break;
+      }
+      let options = { difficulty : difstring};
+      let skillString = skillKey.toString();
+      const rolls = await rollSkillFn.call(actor, skillString, true, options);        
+      return rolls ?? null;
+    }    
     else 
     {
       //system agnostic
@@ -363,7 +387,7 @@ async function runIntervalRoll({ actor, checkChoice, trackerId }) {
     activePhase.checkProgress,
     activePhase.resolvedChecks
   );
-  const skillKey = rollData.skill;
+  const skillKey = rollData.skill || selectedCheck.skill || "";
   const skillLabel = skillKey ? getSkillLabel(skillKey) : selectedCheck.skill;
   const rollMode = getCheckRollMode();
   if (rollMode === "narrative") {
@@ -377,11 +401,21 @@ async function runIntervalRoll({ actor, checkChoice, trackerId }) {
     actor,
     skillKey,
     rollData.advantage,
-    rollData.disadvantage
+    rollData.disadvantage,
+    rollData.difficulty
   );
   if (!roll) return;
-  const total = roll.total > 0 ? roll.total : roll._total ?? (roll.roll.total > 0 ? roll.roll.total : roll.roll._total ?? 0);
-  let success = false;
+  const firstPositive = (...values) =>
+  values.find(v => typeof v === "number" && v > 0) ?? 0;
+
+  const total = firstPositive(
+    roll.total,
+    roll._total,
+    roll.roll?.total,
+    roll.roll?._total,
+    roll.dice.total
+  );
+   let success = false;
   let dcLabel = Number.isFinite(dc) ? String(dc) : "";
   let dcLabelType = "DC";
   let targetValue = null;
@@ -563,7 +597,7 @@ async function runManualIntervalResult({ actor, checkId, checkChoice, trackerId,
     activePhase.checkProgress,
     activePhase.resolvedChecks
   );
-  const skillKey = rollData.skill;
+  const skillKey = rollData.skill || selectedCheck.skill || "";
   const skillLabel = skillKey ? getSkillLabel(skillKey) : selectedCheck.skill;
   const rollMode = getCheckRollMode();
   const dc = rollData.dc;

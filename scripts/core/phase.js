@@ -5,15 +5,15 @@ import { getCurrentTracker, getTrackerById } from "./tracker.js";
 
 const DEFAULT_CHECK_TARGET = 1;
 const DEFAULT_CHECK_DC = 13;
-const D100_DIFFICULTY_LEVELS = ["easy", "regular", "difficult", "extreme"];
+const D100_DIFFICULTY_LEVELS = ["easy", "regular", "hard", "extreme"];
 const D100_DIFFICULTY_LABELS = {
   easy: "Easy",
   regular: "Regular",
-  difficult: "Difficult",
+  hard: "Hard",
   extreme: "Extreme",
 };
 const D100_DIFFICULTY_ALIASES = {
-  hard: "difficult",
+  difficult: "hard",
   normal: "regular",
 };
 const DEPENDENCY_TYPES = new Set([
