@@ -30,6 +30,39 @@ const DEPENDENCY_TYPES = new Set([
 ]);
 const NARRATIVE_DEPENDENCY_TYPES = new Set(["triumph", "success", "failure", "despair"]);
 
+function normalizeItemRewards(raw) {
+  if (!raw) return [];
+  let entries = raw;
+  if (typeof raw === "string") {
+    const trimmed = raw.trim();
+    if (!trimmed) return [];
+    try {
+      const parsed = JSON.parse(trimmed);
+      entries = parsed;
+    } catch (error) {
+      return [];
+    }
+  }
+  if (!Array.isArray(entries)) return [];
+  const output = [];
+  for (const entry of entries) {
+    if (!entry) continue;
+    if (typeof entry === "string") {
+      const uuid = entry.trim();
+      if (!uuid) continue;
+      output.push({ uuid, qty: 1 });
+      continue;
+    }
+    if (typeof entry !== "object") continue;
+    const uuid = String(entry.uuid ?? entry.itemUuid ?? entry.id ?? "").trim();
+    if (!uuid) continue;
+    const qtyRaw = Number(entry.qty ?? entry.quantity ?? entry.count ?? 1);
+    const qty = Number.isFinite(qtyRaw) && qtyRaw > 0 ? Math.round(qtyRaw) : 1;
+    output.push({ uuid, qty });
+  }
+  return output;
+}
+
 function getPhaseConfig(trackerId) {
   const tracker = trackerId ? getTrackerById(trackerId) : getCurrentTracker();
   const stored = tracker?.phaseConfig;
@@ -106,6 +139,9 @@ function normalizePhaseConfig(config) {
       typeof merged.failureEventTable === "string"
         ? merged.failureEventTable
         : base.failureEventTable ?? "";
+    merged.phaseCompleteItems = normalizeItemRewards(
+      merged.phaseCompleteItems ?? base.phaseCompleteItems
+    );
 
     merged.groups = normalizePhaseGroups(merged, base);
     merged.successLines = normalizePhaseLines(
@@ -209,6 +245,9 @@ function normalizeChecks(checks, groupId, usedCheckIds) {
       typeof check?.checkCompleteMacro === "string"
         ? check.checkCompleteMacro.trim()
         : "";
+    const checkSuccessItems = normalizeItemRewards(
+      check?.checkSuccessItems ?? check?.checkCompleteItems ?? []
+    );
     const target = DEFAULT_CHECK_TARGET;
     const dependsOn = normalizeCheckDependencies(
       check?.dependsOn ?? check?.dependsOnChecks ?? ""
@@ -224,6 +263,7 @@ function normalizeChecks(checks, groupId, usedCheckIds) {
       completeGroupOnSuccess: Boolean(check?.completeGroupOnSuccess ?? check?.completeGroup ?? false),
       completePhaseOnSuccess: Boolean(check?.completePhaseOnSuccess ?? check?.completePhase ?? false),
       checkCompleteMacro,
+      checkSuccessItems,
       dependsOn,
       groupId,
       step: Number.isFinite(Number(check?.step)) ? Number(check.step) : null,
@@ -938,7 +978,8 @@ export {
   getDifficultyOptions,
   shiftDifficulty,
   isPhaseComplete,
-  isDependencyComplete
+  isDependencyComplete,
+  normalizeItemRewards
 };
 
 function buildEmptyPhase1() {
@@ -954,6 +995,7 @@ function buildEmptyPhase1() {
     image: "",
     phaseCompleteMessage: "",
     phaseCompleteMacro: "",
+    phaseCompleteItems: [],
     groups: [],
     successLines: [],
     failureLines: [],
@@ -973,6 +1015,7 @@ function buildNewPhase(baseIndex) {
       failureEvents: false,
       failureEventTable: "",
       image: "",
+      phaseCompleteItems: [],
       groups: [],
       successLines: [],
       failureLines: [],

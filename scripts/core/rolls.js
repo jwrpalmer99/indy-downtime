@@ -547,6 +547,13 @@ async function runIntervalRoll({ actor, checkChoice, trackerId }) {
   });
   state.log = state.log.slice(0, 50);
   await setWorldState(state, resolvedTrackerId);
+  await grantCheckSuccessItems({
+    check: selectedCheck,
+    actor,
+    actorId: actor?.id ?? "",
+    actorUuid: actor?.uuid ?? "",
+    result: macroResult,
+  });
   await runCheckCompleteMacro({
     phase: activePhase,
     check: selectedCheck,
@@ -748,6 +755,13 @@ async function runManualIntervalResult({ actor, checkId, checkChoice, trackerId,
   });
   state.log = state.log.slice(0, 50);
   await setWorldState(state, resolvedTrackerId);
+  await grantCheckSuccessItems({
+    check: selectedCheck,
+    actor,
+    actorId: actor?.id ?? "",
+    actorUuid: actor?.uuid ?? "",
+    result: macroResult,
+  });
   await runCheckCompleteMacro({
     phase: activePhase,
     check: selectedCheck,
@@ -896,6 +910,147 @@ async function postManualSummaryMessage({
     content,
   });
 }
+function normalizeRewardItems(items) {
+  if (!Array.isArray(items)) return [];
+  return items
+    .map((entry) => {
+      if (!entry) return null;
+      if (typeof entry === "string") {
+        const uuid = entry.trim();
+        if (!uuid) return null;
+        return { uuid, qty: 1 };
+      }
+      const uuid = String(entry.uuid ?? entry.itemUuid ?? entry.id ?? "").trim();
+      if (!uuid) return null;
+      const qtyRaw = Number(entry.qty ?? entry.quantity ?? entry.count ?? 1);
+      const qty = Number.isFinite(qtyRaw) && qtyRaw > 0 ? Math.round(qtyRaw) : 1;
+      return { uuid, qty };
+    })
+    .filter(Boolean);
+}
+
+function getItemQuantityInfo(item) {
+  if (!item) return null;
+  const valueField = Number(foundry.utils.getProperty(item, "system.quantity.value"));
+  if (Number.isFinite(valueField)) {
+    return { path: "system.quantity.value", value: valueField };
+  }
+  const value = Number(foundry.utils.getProperty(item, "system.quantity"));
+  if (Number.isFinite(value)) {
+    return { path: "system.quantity", value };
+  }
+  return null;
+}
+
+async function resolveRewardActor({ actor, actorId, actorUuid }) {
+  let resolvedActor = actor ?? null;
+  if (!resolvedActor || typeof resolvedActor.createEmbeddedDocuments !== "function") {
+    if (actorUuid) {
+      try {
+        const doc = await fromUuid(actorUuid);
+        resolvedActor = doc?.document ?? doc ?? resolvedActor;
+      } catch (error) {
+        // ignore
+      }
+    }
+  }
+  if ((!resolvedActor || typeof resolvedActor.createEmbeddedDocuments !== "function") && actorId && game.actors) {
+    resolvedActor = game.actors.get(actorId) ?? resolvedActor;
+  }
+  return resolvedActor;
+}
+
+async function grantRewardItemsToActor({ actor, items }) {
+  if (!actor || typeof actor.createEmbeddedDocuments !== "function") return;
+  const normalized = normalizeRewardItems(items);
+  if (!normalized.length) return;
+  const creates = [];
+  const updates = [];
+  for (const entry of normalized) {
+    const qty = Number(entry.qty ?? 1);
+    if (!Number.isFinite(qty) || qty <= 0) continue;
+    let itemDoc = null;
+    try {
+      const doc = await fromUuid(entry.uuid);
+      itemDoc = doc?.document ?? doc ?? null;
+    } catch (error) {
+      itemDoc = null;
+    }
+    if (!itemDoc || itemDoc.documentName !== "Item") continue;
+    const itemData = itemDoc.toObject();
+    const sourceId = itemData.flags?.core?.sourceId ?? itemDoc.uuid ?? "";
+    const existing = actor.items?.find((owned) => {
+      if (sourceId && owned.flags?.core?.sourceId === sourceId) return true;
+      return owned.name === itemData.name && owned.type === itemData.type;
+    }) ?? null;
+    if (existing) {
+      const qtyInfo = getItemQuantityInfo(existing);
+      if (qtyInfo?.path) {
+        updates.push({
+          _id: existing.id,
+          [qtyInfo.path]: Number(qtyInfo.value) + qty,
+        });
+        continue;
+      }
+    }
+    const qtyInfo = getItemQuantityInfo(itemData);
+    const baseData = foundry.utils.deepClone(itemData);
+    delete baseData._id;
+    if (qtyInfo?.path) {
+      foundry.utils.setProperty(baseData, qtyInfo.path, qty);
+      creates.push(baseData);
+    } else {
+      const count = Math.max(1, Math.round(qty));
+      for (let i = 0; i < count; i += 1) {
+        creates.push(foundry.utils.deepClone(baseData));
+      }
+    }
+  }
+  if (updates.length) {
+    try {
+      await actor.updateEmbeddedDocuments("Item", updates);
+    } catch (error) {
+      console.error(error);
+    }
+  }
+  if (creates.length) {
+    try {
+      await actor.createEmbeddedDocuments("Item", creates);
+    } catch (error) {
+      console.error(error);
+    }
+  }
+}
+
+async function grantCheckSuccessItems({
+  check,
+  actor,
+  actorId,
+  actorUuid,
+  result,
+}) {
+  if (!check || !game.user?.isGM) return;
+  if (result !== "success" && result !== "triumph") return;
+  const items = check.checkSuccessItems ?? [];
+  if (!Array.isArray(items) || !items.length) return;
+  const resolvedActor = await resolveRewardActor({ actor, actorId, actorUuid });
+  if (!resolvedActor) return;
+  await grantRewardItemsToActor({ actor: resolvedActor, items });
+}
+
+async function grantPhaseCompletionItems({
+  phase,
+  actor,
+  actorId,
+  actorUuid,
+}) {
+  if (!phase || !game.user?.isGM) return;
+  const items = phase.phaseCompleteItems ?? [];
+  if (!Array.isArray(items) || !items.length) return;
+  const resolvedActor = await resolveRewardActor({ actor, actorId, actorUuid });
+  if (!resolvedActor) return;
+  await grantRewardItemsToActor({ actor: resolvedActor, items });
+}
 async function runCheckCompleteMacro({
   phase,
   check,
@@ -1041,6 +1196,12 @@ async function handleCompletion(state, activePhase, actor, trackerId) {
       extraNote ? `<p class="drep-muted">${extraNote}</p>` : ""
     }</div>`,
   });
+  await grantPhaseCompletionItems({
+    phase: activePhase,
+    actor,
+    actorId: actor?.id ?? "",
+    actorUuid: actor?.uuid ?? "",
+  });
   await runPhaseCompleteMacro({
     phase: activePhase,
     actor,
@@ -1088,6 +1249,8 @@ export {
   getCheckSuccessChance,
   runIntervalRoll,
   runManualIntervalResult,
+  grantCheckSuccessItems,
+  grantPhaseCompletionItems,
   runCheckCompleteMacro,
   runPhaseCompleteMacro,
 };

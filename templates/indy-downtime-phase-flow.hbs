@@ -95,6 +95,24 @@
                       Check Complete Macro (UUID)
                       <input type="text" data-drep-action="check-complete-macro" data-check-id="{{this.id}}" value="{{this.checkCompleteMacro}}" data-drep-drop="macro" />
                     </label>
+                    <label class="drep-flow-check-flag">
+                      Check Success Items (UUID)
+                      <div class="drep-item-drop" data-drep-drop="item" data-check-id="{{this.id}}">
+                        <div class="drep-item-list">
+                          {{#if this.checkSuccessItems.length}}
+                            {{#each this.checkSuccessItems}}
+                              <div class="drep-item-row" data-item-index="{{@index}}">
+                                <input type="text" value="{{this.uuid}}" readonly />
+                                <input type="number" min="1" value="{{this.qty}}" data-drep-action="check-success-item-qty" data-check-id="{{../id}}" data-item-index="{{@index}}" />
+                                <button type="button" class="drep-item-remove" data-drep-action="remove-check-success-item" data-check-id="{{../id}}" data-item-index="{{@index}}">x</button>
+                              </div>
+                            {{/each}}
+                          {{else}}
+                            <div class="drep-muted">Drop items here.</div>
+                          {{/if}}
+                        </div>
+                      </div>
+                    </label>
                   </div>
                 {{/unless}}
                 {{#if (or this.description (not @root.readOnly))}}

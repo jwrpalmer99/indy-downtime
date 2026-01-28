@@ -80,6 +80,27 @@
             <input type="text" style="width: 100%" name="phases.{{this.id}}.phaseCompleteMacro" value="{{this.phaseCompleteMacro}}" data-drep-drop="macro" />
           </label>
         </div>
+        <div class="drep-grid">
+          <label>
+            Phase Complete Items (UUID)
+            <div class="drep-item-drop" data-drep-drop="item" data-phase-id="{{this.id}}">
+              <div class="drep-item-list">
+                {{#if this.phaseCompleteItems.length}}
+                  {{#each this.phaseCompleteItems}}
+                    <div class="drep-item-row" data-item-index="{{@index}}">
+                      <input type="text" value="{{this.uuid}}" readonly />
+                      <input type="number" min="1" value="{{this.qty}}" data-drep-action="phase-item-qty" data-phase-id="{{../id}}" data-item-index="{{@index}}" />
+                      <button type="button" class="drep-item-remove" data-drep-action="remove-phase-item" data-phase-id="{{../id}}" data-item-index="{{@index}}">x</button>
+                    </div>
+                  {{/each}}
+                {{else}}
+                  <div class="drep-muted">Drop items here.</div>
+                {{/if}}
+              </div>
+              <input type="hidden" name="phases.{{this.id}}.phaseCompleteItems" value='{{this.phaseCompleteItemsJson}}' />
+            </div>
+          </label>
+        </div>
 
       <div class="drep-phase-import">
         <button type="button" class="dialog-button" data-drep-action="phase-import-export">

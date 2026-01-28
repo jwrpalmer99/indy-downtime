@@ -48,6 +48,9 @@ function applyPhaseConfigFormData(phaseConfig, formData) {
     if (typeof data.phaseCompleteMacro === "string") {
       next.phaseCompleteMacro = data.phaseCompleteMacro.trim();
     }
+    if (typeof data.phaseCompleteItems === "string") {
+      next.phaseCompleteItems = data.phaseCompleteItems.trim();
+    }
 
     if (Object.prototype.hasOwnProperty.call(data, "groups")) {
       const groups = [];
@@ -68,6 +71,13 @@ function applyPhaseConfigFormData(phaseConfig, formData) {
             typeof checkData?.description === "string" ? checkData.description.trim() : "";
           const existingGroup = (phase.groups ?? []).find((entry) => entry.id === groupId);
           const existingCheck = (existingGroup?.checks ?? []).find((entry) => entry.id === checkId);
+          const checkCompleteMacro =
+            typeof existingCheck?.checkCompleteMacro === "string"
+              ? existingCheck.checkCompleteMacro
+              : "";
+          const checkSuccessItems = Array.isArray(existingCheck?.checkSuccessItems)
+            ? existingCheck.checkSuccessItems
+            : [];
           const completeGroupOnSuccess = Object.prototype.hasOwnProperty.call(checkData ?? {}, "completeGroupOnSuccess")
             ? Boolean(checkData.completeGroupOnSuccess)
             : Boolean(existingCheck?.completeGroupOnSuccess ?? existingCheck?.completeGroup ?? false);
@@ -89,6 +99,8 @@ function applyPhaseConfigFormData(phaseConfig, formData) {
             value: 1,
             completeGroupOnSuccess,
             completePhaseOnSuccess,
+            checkCompleteMacro,
+            checkSuccessItems,
             dependsOn,
           });
         }

@@ -915,6 +915,9 @@ class DowntimeRepPhaseConfig extends HandlebarsApplicationMixin(ApplicationV2) {
         dependsOnGroupsValue: (line.dependsOnGroups ?? []).join(", "),
       }));
 
+      const phaseCompleteItems = Array.isArray(phase.phaseCompleteItems)
+        ? phase.phaseCompleteItems
+        : [];
       return {
         ...phase,
         number: index + 1,
@@ -922,6 +925,8 @@ class DowntimeRepPhaseConfig extends HandlebarsApplicationMixin(ApplicationV2) {
         groups,
         successLines,
         failureLines,
+        phaseCompleteItems,
+        phaseCompleteItemsJson: JSON.stringify(phaseCompleteItems),
       };
     });
 
@@ -1476,6 +1481,88 @@ class DowntimeRepPhaseConfig extends HandlebarsApplicationMixin(ApplicationV2) {
       input.val(uuid);
     });
 
+    const parseItemRewards = (raw) => {
+      if (!raw) return [];
+      const trimmed = String(raw ?? "").trim();
+      if (!trimmed) return [];
+      try {
+        const parsed = JSON.parse(trimmed);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (error) {
+        return [];
+      }
+    };
+
+    const normalizeItemRewards = (items) => {
+      if (!Array.isArray(items)) return [];
+      return items
+        .map((entry) => {
+          if (!entry) return null;
+          const uuid = String(entry.uuid ?? entry.itemUuid ?? entry.id ?? "").trim();
+          if (!uuid) return null;
+          const qtyRaw = Number(entry.qty ?? entry.quantity ?? entry.count ?? 1);
+          const qty = Number.isFinite(qtyRaw) && qtyRaw > 0 ? Math.round(qtyRaw) : 1;
+          return { uuid, qty };
+        })
+        .filter(Boolean);
+    };
+
+    const updatePhaseItemInput = (phaseId, updater, { rerender = false } = {}) => {
+      const input = html.find(`[name='phases.${phaseId}.phaseCompleteItems']`).first();
+      if (!input.length) return;
+      const current = normalizeItemRewards(parseItemRewards(input.val()));
+      const next = normalizeItemRewards(updater(current));
+      input.val(JSON.stringify(next));
+      if (rerender) {
+        syncFormState();
+        captureScrollPosition();
+        captureCollapseState();
+        this.render(true);
+      }
+    };
+
+    html.find("[data-drep-drop='item']").on("dragover", (event) => {
+      event.preventDefault();
+    });
+    html.find("[data-drep-drop='item']").on("drop", (event) => {
+      event.preventDefault();
+      const phaseId = event.currentTarget?.dataset?.phaseId;
+      if (!phaseId) return;
+      const data = TextEditor.getDragEventData(event.originalEvent ?? event);
+      const uuid = data?.uuid ?? (data?.type === "Item" ? `Item.${data.id}` : "");
+      if (!uuid) return;
+      updatePhaseItemInput(phaseId, (items) => {
+        const existing = items.find((entry) => entry.uuid === uuid);
+        if (existing) {
+          existing.qty = Number(existing.qty ?? 1) + 1;
+          return items;
+        }
+        return [...items, { uuid, qty: 1 }];
+      }, { rerender: true });
+    });
+
+    html.on("change", "[data-drep-action='phase-item-qty']", (event) => {
+      const input = event.currentTarget;
+      const phaseId = input?.dataset?.phaseId;
+      const index = Number(input?.dataset?.itemIndex ?? -1);
+      if (!phaseId || index < 0) return;
+      const qtyRaw = Number(input.value ?? 1);
+      const qty = Number.isFinite(qtyRaw) && qtyRaw > 0 ? Math.round(qtyRaw) : 1;
+      updatePhaseItemInput(phaseId, (items) => {
+        if (!items[index]) return items;
+        items[index].qty = qty;
+        return items;
+      });
+    });
+
+    html.on("click", "[data-drep-action='remove-phase-item']", (event) => {
+      event.preventDefault();
+      const phaseId = event.currentTarget?.dataset?.phaseId;
+      const index = Number(event.currentTarget?.dataset?.itemIndex ?? -1);
+      if (!phaseId || index < 0) return;
+      updatePhaseItemInput(phaseId, (items) => items.filter((_, idx) => idx !== index), { rerender: true });
+    });
+
     restoreScrollPosition();
   }
 
@@ -1691,6 +1778,9 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
           typeof check.checkCompleteMacro === "string"
             ? check.checkCompleteMacro.trim()
             : "";
+        const checkSuccessItems = Array.isArray(check.checkSuccessItems)
+          ? check.checkSuccessItems
+          : [];
         const complete = isCheckComplete(check, checkProgress);
         const unlocked = isCheckUnlocked(phase, check, checkProgress, resolvedChecks);
         const group = getPhaseGroups(phase).find((entry) => entry.id === check.groupId);
@@ -1735,8 +1825,12 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
           completeGroupOnSuccess: Boolean(check.completeGroupOnSuccess),
           completePhaseOnSuccess: Boolean(check.completePhaseOnSuccess),
           checkCompleteMacro,
+          checkSuccessItems,
           hasCompletionFlags: Boolean(
-            check.completeGroupOnSuccess || check.completePhaseOnSuccess || checkCompleteMacro
+            check.completeGroupOnSuccess
+              || check.completePhaseOnSuccess
+              || checkCompleteMacro
+              || checkSuccessItems.length
           ),
           dc: dcValue,
           dcLabel,
@@ -1867,6 +1961,79 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
       const input = $(event.currentTarget);
       input.val(uuid);
       input.trigger("change");
+    });
+
+    const normalizeItemRewards = (items) => {
+      if (!Array.isArray(items)) return [];
+      return items
+        .map((entry) => {
+          if (!entry) return null;
+          const uuid = String(entry.uuid ?? entry.itemUuid ?? entry.id ?? "").trim();
+          if (!uuid) return null;
+          const qtyRaw = Number(entry.qty ?? entry.quantity ?? entry.count ?? 1);
+          const qty = Number.isFinite(qtyRaw) && qtyRaw > 0 ? Math.round(qtyRaw) : 1;
+          return { uuid, qty };
+        })
+        .filter(Boolean);
+    };
+
+    const updateCheckSuccessItems = (checkId, updater) => {
+      if (!checkId) return;
+      const phaseConfig = getPhaseConfig(this._trackerId);
+      const phase = phaseConfig.find((entry) => entry.id === this._phaseId) ?? phaseConfig[0];
+      if (!phase) return;
+      const check = getPhaseChecks(phase).find((entry) => entry.id === checkId);
+      if (!check) return;
+      const current = normalizeItemRewards(check.checkSuccessItems ?? []);
+      const next = normalizeItemRewards(updater(current));
+      if (updateCheckField(phase, checkId, { checkSuccessItems: next })) {
+        savePhaseConfig(phase);
+      }
+    };
+
+    html.on("dragover.drepFlow", "[data-drep-drop='item']", (event) => {
+      event.preventDefault();
+    });
+    html.on("drop.drepFlow", "[data-drep-drop='item']", (event) => {
+      event.preventDefault();
+      if (this._readOnly) return;
+      const checkId = event.currentTarget?.dataset?.checkId;
+      if (!checkId) return;
+      const data = TextEditor.getDragEventData(event.originalEvent ?? event);
+      const uuid = data?.uuid ?? (data?.type === "Item" ? `Item.${data.id}` : "");
+      if (!uuid) return;
+      updateCheckSuccessItems(checkId, (items) => {
+        const existing = items.find((entry) => entry.uuid === uuid);
+        if (existing) {
+          existing.qty = Number(existing.qty ?? 1) + 1;
+          return items;
+        }
+        return [...items, { uuid, qty: 1 }];
+      });
+    });
+
+    html.on("change.drepFlow", "[data-drep-action='check-success-item-qty']", (event) => {
+      if (this._readOnly) return;
+      const input = event.currentTarget;
+      const checkId = input?.dataset?.checkId;
+      const index = Number(input?.dataset?.itemIndex ?? -1);
+      if (!checkId || index < 0) return;
+      const qtyRaw = Number(input.value ?? 1);
+      const qty = Number.isFinite(qtyRaw) && qtyRaw > 0 ? Math.round(qtyRaw) : 1;
+      updateCheckSuccessItems(checkId, (items) => {
+        if (!items[index]) return items;
+        items[index].qty = qty;
+        return items;
+      });
+    });
+
+    html.on("click.drepFlow", "[data-drep-action='remove-check-success-item']", (event) => {
+      event.preventDefault();
+      if (this._readOnly) return;
+      const checkId = event.currentTarget?.dataset?.checkId;
+      const index = Number(event.currentTarget?.dataset?.itemIndex ?? -1);
+      if (!checkId || index < 0) return;
+      updateCheckSuccessItems(checkId, (items) => items.filter((_, idx) => idx !== index));
     });
 
     const clampFlowZoom = (value) => {
@@ -2245,6 +2412,7 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
         completeGroupOnSuccess: false,
         completePhaseOnSuccess: false,
         checkCompleteMacro: "",
+        checkSuccessItems: [],
         dependsOn: [],
       });
       if (this._onUpdate) {

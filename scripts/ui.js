@@ -69,6 +69,8 @@ import {
   runIntervalRoll,
   runManualIntervalResult,
 
+  grantCheckSuccessItems,
+  grantPhaseCompletionItems,
   runCheckCompleteMacro,
   runPhaseCompleteMacro,
 
@@ -1423,6 +1425,13 @@ async function applyRequestedState(state, trackerId) {
 
       }
 
+      await grantPhaseCompletionItems({
+        phase,
+        actor,
+        actorId: entry.actorId,
+        actorUuid: entry.actorUuid,
+      });
+
       await runPhaseCompleteMacro({
 
         phase,
@@ -1471,6 +1480,13 @@ async function applyRequestedState(state, trackerId) {
       } else if (entry.success === false) {
         result = "failure";
       }
+      await grantCheckSuccessItems({
+        check,
+        actor,
+        actorId: entry.actorId,
+        actorUuid: entry.actorUuid,
+        result,
+      });
       await runCheckCompleteMacro({
         phase,
         check,
