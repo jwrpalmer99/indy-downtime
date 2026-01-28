@@ -929,6 +929,12 @@ function normalizeRewardItems(items) {
     .filter(Boolean);
 }
 
+function getConsumableType(item) {
+  return foundry.utils.getProperty(item, "system.consumableType")
+    ?? foundry.utils.getProperty(item, "system.consumable.type")
+    ?? null;
+}
+
 function getItemQuantityInfo(item) {
   if (!item) return null;
   const valueField = Number(foundry.utils.getProperty(item, "system.quantity.value"));
@@ -965,7 +971,13 @@ async function grantRewardItemsToActor({ actor, items }) {
   const normalized = normalizeRewardItems(items);
   if (!normalized.length) return;
   const creates = [];
+  const createOverrides = [];
   const updates = [];
+  const summary = new Map();
+  const addSummary = (name, qty) => {
+    if (!name || !Number.isFinite(qty) || qty <= 0) return;
+    summary.set(name, (summary.get(name) ?? 0) + qty);
+  };
   for (const entry of normalized) {
     const qty = Number(entry.qty ?? 1);
     if (!Number.isFinite(qty) || qty <= 0) continue;
@@ -979,9 +991,12 @@ async function grantRewardItemsToActor({ actor, items }) {
     if (!itemDoc || itemDoc.documentName !== "Item") continue;
     const itemData = itemDoc.toObject();
     const sourceId = itemData.flags?.core?.sourceId ?? itemDoc.uuid ?? "";
+    const targetConsumableType = getConsumableType(itemData);
     const existing = actor.items?.find((owned) => {
       if (sourceId && owned.flags?.core?.sourceId === sourceId) return true;
-      return owned.name === itemData.name && owned.type === itemData.type;
+      if (owned.name !== itemData.name || owned.type !== itemData.type) return false;
+      const ownedConsumableType = getConsumableType(owned);
+      return ownedConsumableType === targetConsumableType;
     }) ?? null;
     if (existing) {
       const qtyInfo = getItemQuantityInfo(existing);
@@ -990,6 +1005,7 @@ async function grantRewardItemsToActor({ actor, items }) {
           _id: existing.id,
           [qtyInfo.path]: Number(qtyInfo.value) + qty,
         });
+        addSummary(existing.name, qty);
         continue;
       }
     }
@@ -999,11 +1015,15 @@ async function grantRewardItemsToActor({ actor, items }) {
     if (qtyInfo?.path) {
       foundry.utils.setProperty(baseData, qtyInfo.path, qty);
       creates.push(baseData);
+      createOverrides.push({ path: qtyInfo.path, qty });
+      addSummary(itemData.name, qty);
     } else {
       const count = Math.max(1, Math.round(qty));
       for (let i = 0; i < count; i += 1) {
         creates.push(foundry.utils.deepClone(baseData));
+        createOverrides.push(null);
       }
+      addSummary(itemData.name, count);
     }
   }
   if (updates.length) {
@@ -1015,7 +1035,39 @@ async function grantRewardItemsToActor({ actor, items }) {
   }
   if (creates.length) {
     try {
-      await actor.createEmbeddedDocuments("Item", creates);
+      const created = await actor.createEmbeddedDocuments("Item", creates);
+      if (Array.isArray(created) && created.length) {
+        const postUpdates = [];
+        for (let i = 0; i < created.length; i += 1) {
+          const override = createOverrides[i];
+          if (!override?.path) continue;
+          const doc = created[i];
+          if (!doc?.id) continue;
+          postUpdates.push({ _id: doc.id, [override.path]: override.qty });
+        }
+        if (postUpdates.length) {
+          await actor.updateEmbeddedDocuments("Item", postUpdates);
+        }
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  }
+  if (summary.size) {
+    const itemsList = Array.from(summary.entries())
+      .map(([name, qty]) => `<li>${qty} x ${name}</li>`)
+      .join("");
+    const content = `
+      <div class="drep-chat">
+        <h4>Items Granted</h4>
+        <p><strong>Actor:</strong> ${actor.name}</p>
+        <ul>${itemsList}</ul>
+      </div>`;
+    try {
+      await ChatMessage.create({
+        speaker: ChatMessage.getSpeaker({ actor }),
+        content,
+      });
     } catch (error) {
       console.error(error);
     }

@@ -559,6 +559,59 @@
   align-items: center;
 }
 
+.drep-item-row {
+  display: flex;
+}
+
+.drep-item-row-check {
+  display: flex;
+  align-items: center;
+}
+
+.drep-item-row-check input,
+.drep-item-row-check button {
+  height: 24px;
+  padding: 2px 6px;
+  box-sizing: border-box;
+}
+
+.drep-item-drop {
+  border-radius: 8px;
+   border-color: color-mix(
+    in srgb,
+    var(--color-tabs-border, rgba(0, 0, 0, 0.5)) 60%,
+    transparent
+  );
+  border-width: 1px;
+  border-style: solid;
+}
+
+.drep-item-remove {
+  flex: 0 0 20px;
+}
+
+.drep-item-qty {
+  flex: 0 0 30px;
+}
+
+.drep-item-name {
+  flex: 1 1 auto;
+}
+
+.drep-item-remove-check {
+  flex: 0 0 20px;
+  font-size: x-small;
+}
+
+.drep-item-qty-check {
+  flex: 0 0 30px;
+  font-size: x-small;
+}
+
+.drep-item-name-check {
+  flex: 1 1 auto;
+  font-size: x-small;
+}
 
 .phase-checkbox {
   width: fit-content;

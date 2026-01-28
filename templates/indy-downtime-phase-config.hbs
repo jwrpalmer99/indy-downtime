@@ -85,11 +85,11 @@
             Phase Complete Items (UUID)
             <div class="drep-item-drop" data-drep-drop="item" data-phase-id="{{this.id}}">
               <div class="drep-item-list">
-                {{#if this.phaseCompleteItems.length}}
-                  {{#each this.phaseCompleteItems}}
+                {{#if this.phaseCompleteItemsDisplay.length}}
+                  {{#each this.phaseCompleteItemsDisplay}}
                     <div class="drep-item-row" data-item-index="{{@index}}">
-                      <input type="text" value="{{this.uuid}}" readonly />
-                      <input type="number" min="1" value="{{this.qty}}" data-drep-action="phase-item-qty" data-phase-id="{{../id}}" data-item-index="{{@index}}" />
+                      <input type="text" class="drep-item-name" value="{{this.name}}" title="{{this.uuid}}" readonly />
+                      <input type="number" class="drep-item-qty" min="1" value="{{this.qty}}" data-drep-action="phase-item-qty" data-phase-id="{{../id}}" data-item-index="{{@index}}" />
                       <button type="button" class="drep-item-remove" data-drep-action="remove-phase-item" data-phase-id="{{../id}}" data-item-index="{{@index}}">x</button>
                     </div>
                   {{/each}}

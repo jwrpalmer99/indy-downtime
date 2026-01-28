@@ -146,6 +146,50 @@ const formatSignedNumber = (value) => {
   return numeric >= 0 ? `+${numeric}` : `${numeric}`;
 };
 
+const normalizeRewardItemsForDisplay = (items) => {
+  if (!Array.isArray(items)) return [];
+  return items
+    .map((entry) => {
+      if (!entry) return null;
+      if (typeof entry === "string") {
+        const uuid = entry.trim();
+        return uuid ? { uuid, qty: 1 } : null;
+      }
+      const uuid = String(entry.uuid ?? entry.itemUuid ?? entry.id ?? "").trim();
+      if (!uuid) return null;
+      const qtyRaw = Number(entry.qty ?? entry.quantity ?? entry.count ?? 1);
+      const qty = Number.isFinite(qtyRaw) && qtyRaw > 0 ? Math.round(qtyRaw) : 1;
+      return { uuid, qty };
+    })
+    .filter(Boolean);
+};
+
+const buildItemNameMap = async (uuids) => {
+  const nameMap = new Map();
+  if (!uuids || !uuids.size) return nameMap;
+  const entries = await Promise.all(
+    Array.from(uuids).map(async (uuid) => {
+      let name = "";
+      if (!uuid) return [uuid, name];
+      try {
+        const doc = await fromUuid(uuid);
+        const item = doc?.document ?? doc ?? null;
+        if (item?.documentName === "Item") {
+          name = item.name ?? "";
+        }
+      } catch (error) {
+        name = "";
+      }
+      return [uuid, name];
+    })
+  );
+  for (const [uuid, name] of entries) {
+    if (!uuid) continue;
+    nameMap.set(uuid, name);
+  }
+  return nameMap;
+};
+
 const buildPotentialRollData = (phase, check, checkProgress, resolvedChecks = {}, trackerId = null) => {
   const deps = normalizeCheckDependencies(check?.dependsOn ?? []);
   if (!deps.length) return null;
@@ -881,6 +925,13 @@ class DowntimeRepPhaseConfig extends HandlebarsApplicationMixin(ApplicationV2) {
   async _prepareContext(options) {
     const context = await super._prepareContext(options);
     const skillOptions = getSkillOptions();
+    const phaseItemUuids = new Set();
+    for (const phase of this._phaseConfig) {
+      for (const entry of normalizeRewardItemsForDisplay(phase.phaseCompleteItems ?? [])) {
+        phaseItemUuids.add(entry.uuid);
+      }
+    }
+    const phaseItemNameMap = await buildItemNameMap(phaseItemUuids);
     const phases = this._phaseConfig.map((phase, index) => {
       const groups = getPhaseGroups(phase).map((group) => {
         const checks = (group.checks ?? []).map((check) => ({
@@ -915,9 +966,11 @@ class DowntimeRepPhaseConfig extends HandlebarsApplicationMixin(ApplicationV2) {
         dependsOnGroupsValue: (line.dependsOnGroups ?? []).join(", "),
       }));
 
-      const phaseCompleteItems = Array.isArray(phase.phaseCompleteItems)
-        ? phase.phaseCompleteItems
-        : [];
+      const phaseCompleteItems = normalizeRewardItemsForDisplay(phase.phaseCompleteItems ?? []);
+      const phaseCompleteItemsDisplay = phaseCompleteItems.map((entry) => ({
+        ...entry,
+        name: phaseItemNameMap.get(entry.uuid) || entry.uuid,
+      }));
       return {
         ...phase,
         number: index + 1,
@@ -925,7 +978,7 @@ class DowntimeRepPhaseConfig extends HandlebarsApplicationMixin(ApplicationV2) {
         groups,
         successLines,
         failureLines,
-        phaseCompleteItems,
+        phaseCompleteItemsDisplay,
         phaseCompleteItemsJson: JSON.stringify(phaseCompleteItems),
       };
     });
@@ -1630,6 +1683,15 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
     const actor = this._actor ?? null;
     const allowTooltips = game.user?.isGM || shouldShowCheckTooltips(this._trackerId);
     const rollMode = getCheckRollMode(this._trackerId);
+    const checkItemUuids = new Set();
+    for (const group of phase?.groups ?? []) {
+      for (const check of group?.checks ?? []) {
+        for (const entry of normalizeRewardItemsForDisplay(check?.checkSuccessItems ?? [])) {
+          checkItemUuids.add(entry.uuid);
+        }
+      }
+    }
+    const checkItemNameMap = await buildItemNameMap(checkItemUuids);
 
     const state = getWorldState(this._trackerId);
     const activePhase = getActivePhase(state, this._trackerId);
@@ -1778,9 +1840,11 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
           typeof check.checkCompleteMacro === "string"
             ? check.checkCompleteMacro.trim()
             : "";
-        const checkSuccessItems = Array.isArray(check.checkSuccessItems)
-          ? check.checkSuccessItems
-          : [];
+        const checkSuccessItems = normalizeRewardItemsForDisplay(check.checkSuccessItems ?? []);
+        const checkSuccessItemsDisplay = checkSuccessItems.map((entry) => ({
+          ...entry,
+          name: checkItemNameMap.get(entry.uuid) || entry.uuid,
+        }));
         const complete = isCheckComplete(check, checkProgress);
         const unlocked = isCheckUnlocked(phase, check, checkProgress, resolvedChecks);
         const group = getPhaseGroups(phase).find((entry) => entry.id === check.groupId);
@@ -1825,7 +1889,7 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
           completeGroupOnSuccess: Boolean(check.completeGroupOnSuccess),
           completePhaseOnSuccess: Boolean(check.completePhaseOnSuccess),
           checkCompleteMacro,
-          checkSuccessItems,
+          checkSuccessItemsDisplay,
           hasCompletionFlags: Boolean(
             check.completeGroupOnSuccess
               || check.completePhaseOnSuccess

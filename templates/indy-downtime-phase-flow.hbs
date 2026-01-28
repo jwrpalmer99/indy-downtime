@@ -99,12 +99,12 @@
                       Check Success Items (UUID)
                       <div class="drep-item-drop" data-drep-drop="item" data-check-id="{{this.id}}">
                         <div class="drep-item-list">
-                          {{#if this.checkSuccessItems.length}}
-                            {{#each this.checkSuccessItems}}
-                              <div class="drep-item-row" data-item-index="{{@index}}">
-                                <input type="text" value="{{this.uuid}}" readonly />
-                                <input type="number" min="1" value="{{this.qty}}" data-drep-action="check-success-item-qty" data-check-id="{{../id}}" data-item-index="{{@index}}" />
-                                <button type="button" class="drep-item-remove" data-drep-action="remove-check-success-item" data-check-id="{{../id}}" data-item-index="{{@index}}">x</button>
+                          {{#if this.checkSuccessItemsDisplay.length}}
+                            {{#each this.checkSuccessItemsDisplay}}
+                              <div class="drep-item-row-check" data-item-index="{{@index}}">
+                                <input type="text" class="drep-item-name-check" value="{{this.name}}" title="{{this.uuid}}" readonly />
+                                <input type="number" class="drep-item-qty-check" min="1" value="{{this.qty}}" data-drep-action="check-success-item-qty" data-check-id="{{../id}}" data-item-index="{{@index}}" />
+                                <button type="button" class="drep-item-remove-check" data-drep-action="remove-check-success-item" data-check-id="{{../id}}" data-item-index="{{@index}}">x</button>
                               </div>
                             {{/each}}
                           {{else}}
