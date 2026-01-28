@@ -205,6 +205,10 @@ function normalizeChecks(checks, groupId, usedCheckIds) {
     const dc = Number(check?.dc);
     const description =
       typeof check?.description === "string" ? check.description.trim() : "";
+    const checkCompleteMacro =
+      typeof check?.checkCompleteMacro === "string"
+        ? check.checkCompleteMacro.trim()
+        : "";
     const target = DEFAULT_CHECK_TARGET;
     const dependsOn = normalizeCheckDependencies(
       check?.dependsOn ?? check?.dependsOnChecks ?? ""
@@ -219,6 +223,7 @@ function normalizeChecks(checks, groupId, usedCheckIds) {
       target,
       completeGroupOnSuccess: Boolean(check?.completeGroupOnSuccess ?? check?.completeGroup ?? false),
       completePhaseOnSuccess: Boolean(check?.completePhaseOnSuccess ?? check?.completePhase ?? false),
+      checkCompleteMacro,
       dependsOn,
       groupId,
       step: Number.isFinite(Number(check?.step)) ? Number(check.step) : null,

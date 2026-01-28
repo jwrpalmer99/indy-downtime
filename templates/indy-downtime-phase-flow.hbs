@@ -91,6 +91,10 @@
                       <input type="checkbox" data-drep-action="toggle-check-flag" data-flag="completePhaseOnSuccess" data-check-id="{{this.id}}" {{#if this.completePhaseOnSuccess}}checked{{/if}} />
                       Completes phase
                     </label>
+                    <label class="drep-flow-check-flag">
+                      Check Complete Macro (UUID)
+                      <input type="text" data-drep-action="check-complete-macro" data-check-id="{{this.id}}" value="{{this.checkCompleteMacro}}" data-drep-drop="macro" />
+                    </label>
                   </div>
                 {{/unless}}
                 {{#if (or this.description (not @root.readOnly))}}

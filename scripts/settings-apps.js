@@ -1687,6 +1687,10 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
         const name = check.name || skillLabel || "Check";
         const rawName = check.name || "";
         const rawDescription = check.description ?? "";
+        const checkCompleteMacro =
+          typeof check.checkCompleteMacro === "string"
+            ? check.checkCompleteMacro.trim()
+            : "";
         const complete = isCheckComplete(check, checkProgress);
         const unlocked = isCheckUnlocked(phase, check, checkProgress, resolvedChecks);
         const group = getPhaseGroups(phase).find((entry) => entry.id === check.groupId);
@@ -1730,7 +1734,10 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
           groupMaxed: groupMaxed && !complete,
           completeGroupOnSuccess: Boolean(check.completeGroupOnSuccess),
           completePhaseOnSuccess: Boolean(check.completePhaseOnSuccess),
-          hasCompletionFlags: Boolean(check.completeGroupOnSuccess || check.completePhaseOnSuccess),
+          checkCompleteMacro,
+          hasCompletionFlags: Boolean(
+            check.completeGroupOnSuccess || check.completePhaseOnSuccess || checkCompleteMacro
+          ),
           dc: dcValue,
           dcLabel,
           difficulty,
@@ -1848,6 +1855,19 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
     html.off(".drepFlow");
     html.find(".drep-flow-line-chip").attr("draggable", true);
     html.find(".drep-flow-check").attr("draggable", true);
+    html.on("dragover.drepFlow", "[data-drep-drop='macro']", (event) => {
+      event.preventDefault();
+    });
+    html.on("drop.drepFlow", "[data-drep-drop='macro']", (event) => {
+      event.preventDefault();
+      const data = TextEditor.getDragEventData(event.originalEvent ?? event);
+      const uuid =
+        data?.uuid ?? (data?.type === "Macro" ? `Macro.${data.id}` : "");
+      if (!uuid) return;
+      const input = $(event.currentTarget);
+      input.val(uuid);
+      input.trigger("change");
+    });
 
     const clampFlowZoom = (value) => {
       const numeric = Number(value);
@@ -2050,6 +2070,20 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
       }
     });
 
+    html.on("change.drepFlow", "[data-drep-action='check-complete-macro']", (event) => {
+      if (this._readOnly) return;
+      const input = event.currentTarget;
+      const checkId = input?.dataset?.checkId;
+      if (!checkId) return;
+      const value = String(input.value ?? "").trim();
+      const phaseConfig = getPhaseConfig(this._trackerId);
+      const phase = phaseConfig.find((entry) => entry.id === this._phaseId) ?? phaseConfig[0];
+      if (!phase) return;
+      if (updateCheckField(phase, checkId, { checkCompleteMacro: value })) {
+        savePhaseConfig(phase);
+      }
+    });
+
     html.on("click.drepFlow", "[data-drep-action='toggle-check-flags']", (event) => {
       event.preventDefault();
       const button = event.currentTarget;
@@ -2210,6 +2244,7 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
         value: 1,
         completeGroupOnSuccess: false,
         completePhaseOnSuccess: false,
+        checkCompleteMacro: "",
         dependsOn: [],
       });
       if (this._onUpdate) {

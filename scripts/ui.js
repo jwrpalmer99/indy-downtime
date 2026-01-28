@@ -69,6 +69,7 @@ import {
   runIntervalRoll,
   runManualIntervalResult,
 
+  runCheckCompleteMacro,
   runPhaseCompleteMacro,
 
   setLastActorId,
@@ -1345,6 +1346,17 @@ async function applyRequestedState(state, trackerId) {
 
   const prev = getWorldState(trackerKey);
 
+  const buildCheckEntryKey = (entry) => {
+    if (!entry || entry.type === "phase-complete") return "";
+    const checkId = String(entry.checkId ?? "");
+    const checkNumber = Number(entry.checkNumber);
+    const timestamp = Number(entry.timestamp);
+    const numberKey = Number.isFinite(checkNumber) ? checkNumber : "";
+    const timeKey = Number.isFinite(timestamp) ? timestamp : "";
+    if (!checkId && !numberKey && !timeKey) return "";
+    return `${checkId}-${numberKey}-${timeKey}`;
+  };
+
   const prevCompletionKeys = new Set(
 
     (prev.log ?? [])
@@ -1353,6 +1365,12 @@ async function applyRequestedState(state, trackerId) {
 
       .map((entry) => `${entry.phaseId}-${entry.timestamp}`)
 
+  );
+  const prevCheckKeys = new Set(
+    (prev.log ?? [])
+      .filter((entry) => entry && entry.type !== "phase-complete")
+      .map((entry) => buildCheckEntryKey(entry))
+      .filter(Boolean)
   );
 
   const merged = foundry.utils.mergeObject(DEFAULT_STATE, state, {
@@ -1421,6 +1439,50 @@ async function applyRequestedState(state, trackerId) {
 
       });
 
+    }
+
+    const checkEntries = (merged.log ?? []).filter(
+      (entry) => entry && entry.type !== "phase-complete"
+    );
+    for (const entry of checkEntries) {
+      const key = buildCheckEntryKey(entry);
+      if (!key || prevCheckKeys.has(key)) continue;
+      const phase = getPhaseDefinition(entry.phaseId, trackerKey);
+      if (!phase) continue;
+      const check = getPhaseCheckById(phase, entry.checkId);
+      if (!check) continue;
+      let actor = null;
+      if (entry.actorUuid) {
+        try {
+          const doc = await fromUuid(entry.actorUuid);
+          actor = doc?.document ?? doc ?? actor;
+        } catch (error) {
+          // ignore
+        }
+      }
+      if (!actor && entry.actorId) {
+        actor = game.actors.get(entry.actorId) ?? null;
+      }
+      let result = "";
+      if (typeof entry.outcome === "string" && entry.outcome) {
+        result = entry.outcome;
+      } else if (entry.success === true) {
+        result = "success";
+      } else if (entry.success === false) {
+        result = "failure";
+      }
+      await runCheckCompleteMacro({
+        phase,
+        check,
+        actor,
+        actorId: entry.actorId,
+        actorName: entry.actorName,
+        actorUuid: entry.actorUuid,
+        trackerId: trackerKey,
+        result,
+        checkName: entry.checkName,
+        phaseName: entry.phaseName,
+      });
     }
 
   }

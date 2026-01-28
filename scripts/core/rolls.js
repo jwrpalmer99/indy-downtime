@@ -515,12 +515,14 @@ async function runIntervalRoll({ actor, checkChoice, trackerId }) {
     state.phases[activePhase.id].completed = true;
     await handleCompletion(state, activePhase, actor, resolvedTrackerId);
   }
+  const macroResult = success ? "success" : "failure";
   state.log.unshift({
     checkNumber: state.checkCount,
     phaseId: activePhase.id,
     phaseName: activePhase.name,
     actorId: actor.id,
     actorName: actor.name,
+    actorUuid: actor.uuid ?? "",
     checkId: selectedCheck.id,
     checkName: checkLabel,
     groupId: selectedCheck.groupId,
@@ -545,6 +547,18 @@ async function runIntervalRoll({ actor, checkChoice, trackerId }) {
   });
   state.log = state.log.slice(0, 50);
   await setWorldState(state, resolvedTrackerId);
+  await runCheckCompleteMacro({
+    phase: activePhase,
+    check: selectedCheck,
+    actor,
+    actorId: actor?.id ?? "",
+    actorName: actor?.name ?? "",
+    actorUuid: actor?.uuid ?? "",
+    trackerId: resolvedTrackerId,
+    result: macroResult,
+    checkName: checkLabel,
+    phaseName: activePhase.name,
+  });
   await postSummaryMessage({
     actor,
     checkLabel,
@@ -700,12 +714,14 @@ async function runManualIntervalResult({ actor, checkId, checkChoice, trackerId,
     state.phases[activePhase.id].completed = true;
     await handleCompletion(state, activePhase, actor, resolvedTrackerId);
   }
+  const macroResult = resolvedOutcome || (isSuccess ? "success" : "failure");
   state.log.unshift({
     checkNumber: state.checkCount,
     phaseId: activePhase.id,
     phaseName: activePhase.name,
     actorId: actor.id,
     actorName: actor.name,
+    actorUuid: actor.uuid ?? "",
     checkId: selectedCheck.id,
     checkName: checkLabel,
     groupId: selectedCheck.groupId,
@@ -732,6 +748,18 @@ async function runManualIntervalResult({ actor, checkId, checkChoice, trackerId,
   });
   state.log = state.log.slice(0, 50);
   await setWorldState(state, resolvedTrackerId);
+  await runCheckCompleteMacro({
+    phase: activePhase,
+    check: selectedCheck,
+    actor,
+    actorId: actor?.id ?? "",
+    actorName: actor?.name ?? "",
+    actorUuid: actor?.uuid ?? "",
+    trackerId: resolvedTrackerId,
+    result: macroResult,
+    checkName: checkLabel,
+    phaseName: activePhase.name,
+  });
   await postManualSummaryMessage({
     actor,
     checkLabel,
@@ -868,6 +896,68 @@ async function postManualSummaryMessage({
     content,
   });
 }
+async function runCheckCompleteMacro({
+  phase,
+  check,
+  actor,
+  actorId,
+  actorName,
+  actorUuid,
+  trackerId,
+  result,
+  checkName,
+  phaseName,
+}) {
+  if (!check) return;
+  const macroUuid = String(check.checkCompleteMacro ?? "").trim();
+  if (!macroUuid || !game.user?.isGM) return;
+  let resolvedActor = actor ?? null;
+  if (!resolvedActor || typeof resolvedActor.createEmbeddedDocuments !== "function") {
+    if (actorUuid) {
+      try {
+        const doc = await fromUuid(actorUuid);
+        resolvedActor = doc?.document ?? doc ?? resolvedActor;
+      } catch (error) {
+        // ignore
+      }
+    }
+  }
+  if ((!resolvedActor || typeof resolvedActor.createEmbeddedDocuments !== "function") && actorId && game.actors) {
+    resolvedActor = game.actors.get(actorId) ?? resolvedActor;
+  }
+  let macro = null;
+  try {
+    macro = await fromUuid(macroUuid);
+  } catch (error) {
+    macro = null;
+  }
+  if (!macro && game.macros) {
+    macro = game.macros.get(macroUuid) ?? game.macros.getName?.(macroUuid) ?? null;
+  }
+  if (macro?.execute) {
+    const resolvedPhaseName = phaseName ?? phase?.name ?? "";
+    const resolvedCheckName = checkName ?? getPhaseCheckLabel(check) ?? "";
+    const payload = {
+      actor: resolvedActor ?? actor ?? null,
+      actorId: actorId ?? "",
+      actorName: actorName ?? "",
+      actorUuid: actorUuid ?? "",
+      phase: phase ?? null,
+      phaseName: resolvedPhaseName,
+      check: check ?? null,
+      checkName: resolvedCheckName,
+      result: typeof result === "string" ? result : "",
+      trackerId,
+    };
+    const previousArgs = globalThis.args;
+    globalThis.args = [payload];
+    try {
+      await macro.execute(payload);
+    } finally {
+      globalThis.args = previousArgs;
+    }
+  }
+}
 async function runPhaseCompleteMacro({ phase, actor, actorId, actorName, actorUuid, trackerId }) {
   if (!phase) return;
   const macroUuid = String(phase.phaseCompleteMacro ?? "").trim();
@@ -998,5 +1088,6 @@ export {
   getCheckSuccessChance,
   runIntervalRoll,
   runManualIntervalResult,
+  runCheckCompleteMacro,
   runPhaseCompleteMacro,
 };
