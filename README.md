@@ -18,6 +18,8 @@ Building the Plan:
 - Dependency effects: block, prevents (blocks when completed), harder (DC penalty), advantage, disadvantage, and override skill/DC.
 - Group max successes to cap progress in a group.
 - Success and failure narrative lines tied to checks, groups, or left unassigned as fallbacks.
+- Check completion actions: optional macros and item rewards on success/triumph.
+- Phase completion actions: optional macros and item rewards.
 - Player permissions: hide DCs, hide locked checks, allow Phase Plan view, view future plans, show/hide relationships and narrative lines in the plan, and show success chance tooltips (GM-only by default).
 - Per-tracker labels and icon: header, tab label, interval label, Font Awesome icon.
 - Restrict a trackers visibility to specific actor UUIDs.

@@ -71,7 +71,7 @@
                 <div class="drep-flow-check-name drep-flow-editable" data-edit="check-name" data-check-id="{{this.id}}" data-value="{{this.rawName}}">{{this.name}}{{#unless @root.readOnly}}<button type="button" class="drep-flow-remove-check" data-drep-action="remove-check" data-id="{{this.id}}">x</button>{{/unless}}</div>
                 <div class="drep-flow-check-meta">
                   {{#unless @root.readOnly}}
-                    <button type="button" class="drep-flow-flags-toggle {{#if this.hasCompletionFlags}}is-open{{/if}}" data-drep-action="toggle-check-flags" data-check-id="{{this.id}}" title="Completion options">
+                    <button type="button" class="drep-flow-flags-toggle {{#if this.isCompletionOpen}}is-open{{/if}} {{#if this.hasCompletionFlags}}has-completion{{/if}} {{#if this.hasMacro}}has-macro{{/if}} {{#if this.hasCompleteFlag}}has-complete{{/if}} {{#if this.hasItems}}has-items{{/if}}" data-drep-action="toggle-check-flags" data-check-id="{{this.id}}" title="Completion options">
                       <i class="fa-solid fa-chevron-right"></i>
                       <i class="fa-solid fa-chevron-down"></i>
                     </button>
@@ -82,7 +82,7 @@
                   {{/if}}
                 </div>
                 {{#unless @root.readOnly}}
-                  <div class="drep-flow-check-flags {{#if this.hasCompletionFlags}}is-open{{/if}}" data-drep-check-flags="{{this.id}}">
+                  <div class="drep-flow-check-flags {{#if this.isCompletionOpen}}is-open{{/if}}" data-drep-check-flags="{{this.id}}">
                     <label class="drep-flow-check-flag">
                       <input type="checkbox" data-drep-action="toggle-check-flag" data-flag="completeGroupOnSuccess" data-check-id="{{this.id}}" {{#if this.completeGroupOnSuccess}}checked{{/if}} />
                       Completes group

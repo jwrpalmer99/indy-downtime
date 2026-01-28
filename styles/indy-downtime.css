@@ -1224,6 +1224,74 @@
   font-size: x-small;
 }
 
+.drep-flow-flags-toggle.has-completion {
+  color: var(--color-text-hyperlink);
+}
+
+.drep-flow-flags-toggle.has-completion::after {
+  content: "";
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--color-text-hyperlink);
+  display: inline-block;
+  margin-left: 0px;
+}
+
+.drep-flow-flags-toggle.has-completion.has-macro::after {
+  background: #3b82f6;
+}
+
+.drep-flow-flags-toggle.has-completion.has-complete::after {
+  background: #ef4444;
+}
+
+.drep-flow-flags-toggle.has-completion.has-items::after {
+  background: #f59e0b;
+}
+
+.drep-flow-flags-toggle.has-completion.has-macro.has-complete::after {
+  background: linear-gradient(
+    135deg,
+    #3b82f6 0%,
+    #3b82f6 50%,
+    #ef4444 50%,
+    #ef4444 100%
+  );
+}
+
+.drep-flow-flags-toggle.has-completion.has-macro.has-items::after {
+  background: linear-gradient(
+    135deg,
+    #3b82f6 0%,
+    #3b82f6 50%,
+    #f59e0b 50%,
+    #f59e0b 100%
+  );
+}
+
+.drep-flow-flags-toggle.has-completion.has-complete.has-items::after {
+  background: linear-gradient(
+    135deg,
+    #ef4444 0%,
+    #ef4444 50%,
+    #f59e0b 50%,
+    #f59e0b 100%
+  );
+}
+
+.drep-flow-flags-toggle.has-completion.has-macro.has-complete.has-items::after {
+  background: linear-gradient(
+    135deg,
+    #3b82f6 0%,
+    #3b82f6 33%,
+    #ef4444 33%,
+    #ef4444 66%,
+    #f59e0b 66%,
+    #f59e0b 100%
+  );
+}
+
 .drep-flow-flags-toggle i.fa-chevron-down {
   display: none;
 }

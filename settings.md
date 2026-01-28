@@ -89,6 +89,7 @@ Use this dialog to manage phase metadata and open the Flow editor.
 - Phase Image: image shown on the tracker tab.
 - Phase Complete Message: message displayed on completion.
 - Phase Complete Macro (UUID): macro UUID executed on completion (GM only).
+- Phase Complete Items (UUID): drop item(s) to grant on phase completion; supports quantity per item.
 
 ### Phase Import/Export
 - Import/Export Phase Config: export or import the selected phase only.
@@ -110,7 +111,8 @@ The Phase Flow editor is where you add and edit groups, checks, dependencies, an
 - Double click to edit check name, skill, DC, or description.
 - The skill picker includes system skills plus ability checks.
 - Remove check: deletes the check.
-- Completion options (collapsed by default): set a check to complete its group or phase when it succeeds.
+- Completion options (collapsed by default): set a check to complete its group or phase when it succeeds, run a macro, or grant items on success/triumph.
+- If there is a completion option set then there will be a circular indicator: blue=has macro, orange=completes phase/group, yellow=has item(s)
 
 ### Dependencies
 - Drag a check onto another check to add a dependency.

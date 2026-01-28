@@ -1845,6 +1845,9 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
           ...entry,
           name: checkItemNameMap.get(entry.uuid) || entry.uuid,
         }));
+        const hasMacro = Boolean(checkCompleteMacro);
+        const hasCompleteFlag = Boolean(check.completeGroupOnSuccess || check.completePhaseOnSuccess);
+        const hasItems = checkSuccessItems.length > 0;
         const complete = isCheckComplete(check, checkProgress);
         const unlocked = isCheckUnlocked(phase, check, checkProgress, resolvedChecks);
         const group = getPhaseGroups(phase).find((entry) => entry.id === check.groupId);
@@ -1890,11 +1893,19 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
           completePhaseOnSuccess: Boolean(check.completePhaseOnSuccess),
           checkCompleteMacro,
           checkSuccessItemsDisplay,
+          hasMacro,
+          hasCompleteFlag,
+          hasItems,
           hasCompletionFlags: Boolean(
             check.completeGroupOnSuccess
               || check.completePhaseOnSuccess
               || checkCompleteMacro
               || checkSuccessItems.length
+          ),
+          isCompletionOpen: Boolean(
+            check.completeGroupOnSuccess
+              || check.completePhaseOnSuccess
+              || checkCompleteMacro
           ),
           dc: dcValue,
           dcLabel,
