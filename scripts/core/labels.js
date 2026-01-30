@@ -119,6 +119,11 @@ function shouldShowCheckTooltips(trackerId) {
   return Boolean(tracker?.showCheckTooltipsToPlayers);
 }
 
+function shouldShowPlanRewards(trackerId) {
+  const tracker = trackerId ? getTrackerById(trackerId) : getCurrentTracker();
+  return Boolean(tracker?.showPlanRewardsToPlayers);
+}
+
 function shouldInjectIntoSheet(trackerId) {
   const settingKey = `${MODULE_ID}.${INJECT_INTO_SHEET_SETTING}`;
   if (game?.settings?.settings?.has(settingKey)) {
@@ -542,6 +547,7 @@ export {
   shouldShowPhasePlan,
   shouldShowFuturePlans,
   shouldShowCheckTooltips,
+  shouldShowPlanRewards,
   shouldInjectIntoSheet,
   shouldUseManualRolls,
   getModuleCheckRollMode,

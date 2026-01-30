@@ -19,6 +19,23 @@
       <button type="button" class="drep-flow-zoom-in" data-drep-action="flow-zoom-in" title="Zoom in">+</button>
       <button type="button" class="drep-flow-zoom-reset" data-drep-action="flow-zoom-reset" title="Reset zoom">Reset</button>
     </div>
+    {{#if showPlanRewards}}
+      {{#if (or phaseRewardGoldDisplay phaseRewardItemsDisplay.length)}}
+        <div class="drep-flow-phase-rewards">
+          {{#if phaseRewardGoldDisplay}}
+            <span class="drep-reward-label">Phase Gold:</span>
+            <span class="drep-reward-gold">{{phaseRewardGoldDisplay}}</span>
+          {{/if}}
+          {{#if (and phaseRewardGoldDisplay phaseRewardItemsDisplay.length)}}
+            <span class="drep-reward-sep">|</span>
+          {{/if}}
+          {{#if phaseRewardLinks}}
+            <span class="drep-reward-label">Phase Items:</span>
+            {{{phaseRewardLinks}}}
+          {{/if}}
+        </div>
+      {{/if}}
+    {{/if}}
   </header>
 
   <div class="drep-flow-zoom-surface">
@@ -123,6 +140,23 @@
                   <div class="drep-flow-check-desc drep-flow-editable" data-edit="check-description" data-check-id="{{this.id}}" data-value="{{this.rawDescription}}">
                     {{#if this.description}}{{this.description}}{{else}}(description){{/if}}
                   </div>
+                {{/if}}
+                {{#if (and @root.showPlanRewards @root.readOnly)}}
+                  {{#if (or this.checkSuccessGoldDisplay this.checkSuccessItemsDisplay.length)}}
+                    <div class="drep-flow-check-rewards">
+                      {{#if this.checkSuccessGoldDisplay}}
+                        <span class="drep-reward-label">Gold:</span>
+                        <span class="drep-reward-gold">{{this.checkSuccessGoldDisplay}}</span>
+                      {{/if}}
+                      {{#if (and this.checkSuccessGoldDisplay this.checkSuccessItemsDisplay.length)}}
+                        <span class="drep-reward-sep">|</span>
+                      {{/if}}
+                      {{#if this.checkRewardLinks}}
+                        <span class="drep-reward-label">Items:</span>
+                        {{{this.checkRewardLinks}}}
+                      {{/if}}
+                    </div>
+                  {{/if}}
                 {{/if}}
                 {{#if this.dependsOnEntries.length}}
                   {{#if @root.showFlowRelationships}}

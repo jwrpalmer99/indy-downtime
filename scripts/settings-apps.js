@@ -62,6 +62,7 @@ import {
   shouldShowCheckTooltips,
   shouldShowFuturePlans,
   shouldShowLockedChecks,
+  shouldShowPlanRewards,
   getModuleCheckRollMode,
   getCheckRollMode,
   getDifficultyLabel,
@@ -162,6 +163,21 @@ const normalizeRewardItemsForDisplay = (items) => {
       return { uuid, qty };
     })
     .filter(Boolean);
+};
+
+const formatRewardLinks = (items) => {
+  if (!Array.isArray(items) || !items.length) return "";
+  return items
+    .map((entry) => {
+      if (!entry?.uuid) return "";
+      const name = entry.name || entry.uuid;
+      const label = foundry.utils.escapeHTML(name);
+      const uuid = foundry.utils.escapeHTML(entry.uuid);
+      const link = `<a class="content-link" data-uuid="${uuid}" data-type="Item" data-tooltip="${label}">${label}</a>`;
+      return entry.qty > 1 ? `${link} x${entry.qty}` : link;
+    })
+    .filter(Boolean)
+    .join(", ");
 };
 
 const buildItemNameMap = async (uuids) => {
@@ -405,6 +421,7 @@ class DowntimeRepSettings extends HandlebarsApplicationMixin(ApplicationV2) {
       showLockedChecksToPlayers: tracker?.showLockedChecksToPlayers !== false,
       showPhasePlanToPlayers: Boolean(tracker?.showPhasePlanToPlayers),
       showFuturePlansToPlayers: Boolean(tracker?.showFuturePlansToPlayers),
+      showPlanRewardsToPlayers: Boolean(tracker?.showPlanRewardsToPlayers),
       showCheckTooltipsToPlayers: Boolean(tracker?.showCheckTooltipsToPlayers),
       showFlowRelationships: tracker?.showFlowRelationships !== false,
       showFlowLines: tracker?.showFlowLines !== false,
@@ -574,6 +591,7 @@ class DowntimeRepSettings extends HandlebarsApplicationMixin(ApplicationV2) {
             if (typeof payload.showLockedChecksToPlayers !== "undefined") updates.showLockedChecksToPlayers = Boolean(payload.showLockedChecksToPlayers);
             if (typeof payload.showPhasePlanToPlayers !== "undefined") updates.showPhasePlanToPlayers = Boolean(payload.showPhasePlanToPlayers);
             if (typeof payload.showFuturePlansToPlayers !== "undefined") updates.showFuturePlansToPlayers = Boolean(payload.showFuturePlansToPlayers);
+            if (typeof payload.showPlanRewardsToPlayers !== "undefined") updates.showPlanRewardsToPlayers = Boolean(payload.showPlanRewardsToPlayers);
             if (typeof payload.showCheckTooltipsToPlayers !== "undefined") updates.showCheckTooltipsToPlayers = Boolean(payload.showCheckTooltipsToPlayers);
             if (typeof payload.showFlowRelationships !== "undefined") updates.showFlowRelationships = Boolean(payload.showFlowRelationships);
             if (typeof payload.showFlowLines !== "undefined") updates.showFlowLines = Boolean(payload.showFlowLines);
@@ -602,6 +620,7 @@ class DowntimeRepSettings extends HandlebarsApplicationMixin(ApplicationV2) {
                 showLockedChecksToPlayers: updates.showLockedChecksToPlayers ?? true,
                 showPhasePlanToPlayers: updates.showPhasePlanToPlayers ?? false,
                 showFuturePlansToPlayers: updates.showFuturePlansToPlayers ?? false,
+                showPlanRewardsToPlayers: updates.showPlanRewardsToPlayers ?? false,
                 showCheckTooltipsToPlayers: updates.showCheckTooltipsToPlayers ?? false,
                 showFlowRelationships: updates.showFlowRelationships ?? true,
                 showFlowLines: updates.showFlowLines ?? true,
@@ -697,6 +716,7 @@ class DowntimeRepSettings extends HandlebarsApplicationMixin(ApplicationV2) {
       showLockedChecksToPlayers: Boolean(formData.showLockedChecksToPlayers),
       showPhasePlanToPlayers: Boolean(formData.showPhasePlanToPlayers),
       showFuturePlansToPlayers: Boolean(formData.showFuturePlansToPlayers),
+      showPlanRewardsToPlayers: Boolean(formData.showPlanRewardsToPlayers),
       showCheckTooltipsToPlayers: Boolean(formData.showCheckTooltipsToPlayers),
       showFlowRelationships: Boolean(formData.showFlowRelationships),
       showFlowLines: Boolean(formData.showFlowLines),
@@ -1682,6 +1702,7 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
     const phaseCount = phaseConfig.length;
     const actor = this._actor ?? null;
     const allowTooltips = game.user?.isGM || shouldShowCheckTooltips(this._trackerId);
+    const showPlanRewards = this._readOnly && (game.user?.isGM || shouldShowPlanRewards(this._trackerId));
     const rollMode = getCheckRollMode(this._trackerId);
     const checkItemUuids = new Set();
     for (const group of phase?.groups ?? []) {
@@ -1690,6 +1711,9 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
           checkItemUuids.add(entry.uuid);
         }
       }
+    }
+    for (const entry of normalizeRewardItemsForDisplay(phase?.phaseCompleteItems ?? [])) {
+      checkItemUuids.add(entry.uuid);
     }
     const checkItemNameMap = await buildItemNameMap(checkItemUuids);
 
@@ -1859,6 +1883,14 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
         const groupMaxed = Boolean(groupLimit) && !groupAvailable;
         const isLocked = !unlocked || complete || groupMaxed;
         const shouldRedact = redactLockedChecks && isLocked && !complete;
+        const allowRewardPreview = showPlanRewards && this._readOnly;
+        const hideRewards = shouldRedact && !allowRewardPreview;
+        const visibleItemsDisplay = hideRewards ? [] : checkSuccessItemsDisplay;
+        const visibleGold = hideRewards ? 0 : checkSuccessGold;
+        const checkRewardLinks = formatRewardLinks(visibleItemsDisplay);
+        const checkSuccessGoldDisplay = Number.isFinite(visibleGold) && visibleGold !== 0
+          ? `${visibleGold} gp`
+          : "";
         const displayName = shouldRedact ? "???" : name;
         const displaySkillLabel = shouldRedact ? "???" : skillLabel;
         const displayDescription = shouldRedact ? "???" : rawDescription;
@@ -1894,8 +1926,10 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
           completeGroupOnSuccess: Boolean(check.completeGroupOnSuccess),
           completePhaseOnSuccess: Boolean(check.completePhaseOnSuccess),
           checkCompleteMacro,
-          checkSuccessGold: Number.isFinite(checkSuccessGold) ? checkSuccessGold : 0,
-          checkSuccessItemsDisplay,
+          checkSuccessGold: Number.isFinite(visibleGold) ? visibleGold : 0,
+          checkSuccessGoldDisplay,
+          checkSuccessItemsDisplay: visibleItemsDisplay,
+          checkRewardLinks,
           hasMacro,
           hasCompleteFlag,
           hasItems,
@@ -1963,6 +1997,16 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
     }
 
     const flowZoom = Number.isFinite(this._flowZoom) ? this._flowZoom : 100;
+    const phaseRewardItems = normalizeRewardItemsForDisplay(phase?.phaseCompleteItems ?? []);
+    const phaseRewardItemsDisplay = phaseRewardItems.map((entry) => ({
+      ...entry,
+      name: checkItemNameMap.get(entry.uuid) || entry.uuid,
+    }));
+    const phaseRewardLinks = formatRewardLinks(phaseRewardItemsDisplay);
+    const phaseRewardGold = Number(phase?.phaseCompleteGold ?? 0);
+    const phaseRewardGoldDisplay = Number.isFinite(phaseRewardGold) && phaseRewardGold !== 0
+      ? `${phaseRewardGold} gp`
+      : "";
 
     return {
       ...context,
@@ -1977,6 +2021,10 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
       unassignedSuccess,
       unassignedFailure,
       flowZoom,
+      showPlanRewards,
+      phaseRewardGoldDisplay,
+      phaseRewardItemsDisplay,
+      phaseRewardLinks,
       showFlowRelationships: this._readOnly
         ? getTrackerById(this._trackerId)?.showFlowRelationships !== false
         : true,

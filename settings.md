@@ -40,6 +40,7 @@ Open Game Settings -> Module Settings -> Indy Downtime Tracker **as GM**. You wi
 - Show locked checks to players: if disabled, locked checks are removed from the dropdown and redacted in the Phase Plan.
 - View Phase Plan: allows players to open the read-only Phase Plan view from the tracker tab.
 - View future plans: allows players to navigate forward to later phases in the read-only Phase Plan.
+- Show plan rewards to players: shows gold/item rewards in the read-only Phase Plan.
 - Show check chance tooltips: allows players to see success chance tooltips on DC labels in the Phase Plan (default off).
 - Show relationships on phase flow view: toggles dependency chips in the read-only Phase Plan.
 - Show success/failure lines on phase flow view: toggles narrative lines in the read-only Phase Plan.

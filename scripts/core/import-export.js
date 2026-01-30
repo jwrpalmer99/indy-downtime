@@ -41,6 +41,7 @@ function getSettingsExportPayload() {
     showLockedChecksToPlayers: tracker.showLockedChecksToPlayers,
     showPhasePlanToPlayers: tracker.showPhasePlanToPlayers,
     showFuturePlansToPlayers: tracker.showFuturePlansToPlayers,
+    showPlanRewardsToPlayers: tracker.showPlanRewardsToPlayers,
     showCheckTooltipsToPlayers: tracker.showCheckTooltipsToPlayers,
     showFlowRelationships: tracker.showFlowRelationships,
     showFlowLines: tracker.showFlowLines,
@@ -152,6 +153,7 @@ async function applySettingsImportPayload(payload) {
         showLockedChecksToPlayers: tracker?.showLockedChecksToPlayers !== false,
         showPhasePlanToPlayers: Boolean(tracker?.showPhasePlanToPlayers),
         showFuturePlansToPlayers: Boolean(tracker?.showFuturePlansToPlayers),
+        showPlanRewardsToPlayers: Boolean(tracker?.showPlanRewardsToPlayers),
         showCheckTooltipsToPlayers: Boolean(tracker?.showCheckTooltipsToPlayers),
         showFlowRelationships: tracker?.showFlowRelationships !== false,
         showFlowLines: tracker?.showFlowLines !== false,
@@ -198,6 +200,9 @@ async function applySettingsImportPayload(payload) {
     }
     if (typeof settings.showFuturePlansToPlayers !== "undefined") {
       updates.showFuturePlansToPlayers = Boolean(settings.showFuturePlansToPlayers);
+    }
+    if (typeof settings.showPlanRewardsToPlayers !== "undefined") {
+      updates.showPlanRewardsToPlayers = Boolean(settings.showPlanRewardsToPlayers);
     }
     if (typeof settings.showCheckTooltipsToPlayers !== "undefined") {
       updates.showCheckTooltipsToPlayers = Boolean(settings.showCheckTooltipsToPlayers);

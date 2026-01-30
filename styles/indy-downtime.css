@@ -1074,6 +1074,22 @@
   font-size: 20px;
 }
 
+.drep-flow-phase-rewards {
+  font-size: 10px;
+  --color: rgba(255, 255, 255, 0.8);
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  flex-basis: 100%;
+}
+
+.drep-flow-check-rewards {
+  font-size: 10px;
+  --color: rgba(255, 255, 255, 0.75);
+  margin-top: 4px;
+}
+
 .drep-flow-phase-nav {
   display: inline-flex;
   align-items: center;
