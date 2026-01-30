@@ -85,6 +85,7 @@ Use this dialog to manage phase metadata and open the Flow editor.
 - Phase Target: number of progress points required to complete the phase (capped to total available checks).
 - Allow critical bonus: critical success grants +1 extra progress if the check can still advance.
 - Failures trigger events: enables failure event rolls.
+- Show rewards on sheet: displays linked phase/check reward items next to the phase subtitle on the character sheet tab.
 - Failure Event Table (UUID): roll table UUID used for failure events.
 - Phase Image: image shown on the tracker tab.
 - Phase Complete Message: message displayed on completion.

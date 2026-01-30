@@ -6,6 +6,21 @@
     <div>
       <h1>{{headerLabel}}</h1>
       <div class="drep-subtitle drep-phase-title">{{#if showPhaseNumber}}Phase {{activePhaseNumber}}: {{/if}}{{activePhase.name}}</div>
+      {{#if showRewardsOnSheet}}
+        {{#if (or phaseRewardLinks checkRewardLinks)}}
+          <div class="drep-subtitle drep-phase-rewards">
+            {{#if phaseRewardLinks}}
+              <span class="drep-reward-label">Phase Rewards:</span> {{{phaseRewardLinks}}}
+            {{/if}}
+            {{#if (and phaseRewardLinks checkRewardLinks)}}
+              <span class="drep-reward-sep">|</span>
+            {{/if}}
+            {{#if checkRewardLinks}}
+              <span class="drep-reward-label">Check Rewards:</span> {{{checkRewardLinks}}}
+            {{/if}}
+          </div>
+        {{/if}}
+      {{/if}}
     </div>
     <div class="drep-status">
       {{#if activePhase.completed}}

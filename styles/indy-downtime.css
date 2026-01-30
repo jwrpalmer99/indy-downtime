@@ -68,6 +68,23 @@
   margin-top: 2px;
 }
 
+.drep-phase-rewards {
+  --color: rgba(255, 255, 255, 0.85);
+  font-size: smaller !important;
+  margin-top: 4px;
+  line-height: 1.2;
+}
+
+.drep-reward-label {
+  font-weight: 600;
+  margin-right: 4px;
+}
+
+.drep-reward-sep {
+  margin: 0 6px;
+  opacity: 0.7;
+}
+
 .drep-status {
   display: flex;
   gap: 8px;

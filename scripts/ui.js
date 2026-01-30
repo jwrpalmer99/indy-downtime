@@ -43,6 +43,7 @@ import {
   getPhaseDefinition,
 
   getPhaseGroups,
+  getPhaseChecks,
 
   getPhaseNumber,
 
@@ -87,6 +88,7 @@ import {
 
   shouldShowLockedChecks,
   shouldShowPhasePlan,
+  normalizeItemRewards,
 
 } from "./core-utils.js";
 
@@ -169,6 +171,64 @@ function formatCheckOptionLabel(choice, showDc) {
 
   return dcText ? `${name} (${dcText})` : name;
 
+}
+
+function escapeHtml(value) {
+  const text = String(value ?? "");
+  if (foundry?.utils?.escapeHTML) return foundry.utils.escapeHTML(text);
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function getItemNameFromUuid(uuid) {
+  if (!uuid) return "";
+  try {
+    if (typeof fromUuidSync === "function") {
+      const doc = fromUuidSync(uuid);
+      const item = doc?.document ?? doc ?? null;
+      if (item?.documentName === "Item") return item.name ?? "";
+    }
+  } catch (error) {
+    // Ignore lookup errors and fall back to other options.
+  }
+  if (typeof uuid === "string" && uuid.startsWith("Item.")) {
+    const id = uuid.split(".")[1];
+    const item = game.items?.get(id) ?? null;
+    if (item?.name) return item.name;
+  }
+  return "";
+}
+
+function buildRewardItemList(items) {
+  const normalized = normalizeItemRewards(items);
+  const totals = new Map();
+  for (const entry of normalized) {
+    if (!entry?.uuid) continue;
+    const existing = totals.get(entry.uuid) ?? 0;
+    totals.set(entry.uuid, existing + (entry.qty ?? 1));
+  }
+  return Array.from(totals.entries()).map(([uuid, qty]) => ({
+    uuid,
+    qty,
+    name: getItemNameFromUuid(uuid),
+  }));
+}
+
+function formatRewardLinks(items) {
+  if (!items.length) return "";
+  return items
+    .map((entry) => {
+      const name = entry.name || entry.uuid;
+      const label = escapeHtml(name);
+      const uuidAttr = escapeHtml(entry.uuid);
+      const link = `<a class="content-link" data-uuid="${uuidAttr}" data-type="Item">${label}</a>`;
+      return entry.qty > 1 ? `${link} x${entry.qty}` : link;
+    })
+    .join(", ");
 }
 
 
@@ -641,6 +701,14 @@ function buildTrackerData({
 
   const canRoll = !activePhase.completed && availableChoices.length > 0;
 
+  const showRewardsOnSheet = Boolean(activePhase.showRewardsOnSheet);
+  const phaseRewardItems = buildRewardItemList(activePhase.phaseCompleteItems ?? []);
+  const checkRewardItems = buildRewardItemList(
+    getPhaseChecks(activePhase).flatMap((check) => check?.checkSuccessItems ?? [])
+  );
+  const phaseRewardLinks = formatRewardLinks(phaseRewardItems);
+  const checkRewardLinks = formatRewardLinks(checkRewardItems);
+
 
 
   return {
@@ -695,6 +763,10 @@ function buildTrackerData({
 
     selectedCheckDescription,
     selectedCheckTooltip,
+
+    showRewardsOnSheet,
+    phaseRewardLinks,
+    checkRewardLinks,
 
     sheetActor: actor ? { id: actor.id, name: actor.name } : null,
 

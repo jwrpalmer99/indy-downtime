@@ -142,6 +142,7 @@ function normalizePhaseConfig(config) {
     merged.phaseCompleteItems = normalizeItemRewards(
       merged.phaseCompleteItems ?? base.phaseCompleteItems
     );
+    merged.showRewardsOnSheet = Boolean(merged.showRewardsOnSheet);
 
     merged.groups = normalizePhaseGroups(merged, base);
     merged.successLines = normalizePhaseLines(
@@ -996,6 +997,7 @@ function buildEmptyPhase1() {
     phaseCompleteMessage: "",
     phaseCompleteMacro: "",
     phaseCompleteItems: [],
+    showRewardsOnSheet: true,
     groups: [],
     successLines: [],
     failureLines: [],
@@ -1016,6 +1018,7 @@ function buildNewPhase(baseIndex) {
       failureEventTable: "",
       image: "",
       phaseCompleteItems: [],
+      showRewardsOnSheet: true,
       groups: [],
       successLines: [],
       failureLines: [],

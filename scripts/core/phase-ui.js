@@ -51,6 +51,7 @@ function applyPhaseConfigFormData(phaseConfig, formData) {
     if (typeof data.phaseCompleteItems === "string") {
       next.phaseCompleteItems = data.phaseCompleteItems.trim();
     }
+    next.showRewardsOnSheet = Boolean(data.showRewardsOnSheet);
 
     if (Object.prototype.hasOwnProperty.call(data, "groups")) {
       const groups = [];
