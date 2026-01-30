@@ -1,0 +1,649 @@
+{
+  "module": "indy-downtime",
+  "version": "1.1.3",
+  "exportedAt": "2026-01-30T14:47:06.347Z",
+  "tracker": {
+    "id": "tracker-sharn-courier",
+    "name": "Sharn Courier Hustle",
+    "headerLabel": "Sharn Courier Hustle",
+    "tabLabel": "Courier",
+    "intervalLabel": "Day",
+    "tabIcon": "fas fa-route",
+    "checkRollMode": "",
+    "hideDcFromPlayers": false,
+    "showLockedChecksToPlayers": true,
+    "showPhasePlanToPlayers": true,
+    "showFuturePlansToPlayers": false,
+    "showCheckTooltipsToPlayers": true,
+    "showFlowRelationships": true,
+    "showFlowLines": true,
+    "restrictedActorUuids": [],
+    "phaseConfig": [
+      {
+        "id": "phase1",
+        "name": "Getting on the Route",
+        "narrativeDuration": "1 week",
+        "expectedGain": "25 gp, courier satchel, House Orien day-pass token (advantage on future Orien social checks at GM discretion), and an Everbright Lantern (common).",
+        "target": 4,
+        "allowCriticalBonus": true,
+        "failureEvents": false,
+        "failureEventTable": "",
+        "image": "",
+        "phaseCompleteMessage": "You secure steady courier work in Sharn and learn the safest lower and middle city routes. Reward: 50 gp, a courier satchel with a House Orien courier token, and an Everbright Lantern (common).",
+        "phaseCompleteMacro": "",
+        "phaseCompleteItems": [
+          {
+            "uuid": "Item.JCMBycZS5ZrLKa0R",
+            "qty": 1
+          },
+          {
+            "uuid": "Item.atCBqMa2PJFMlMzD",
+            "qty": 1
+          }
+        ],
+        "groups": [
+          {
+            "id": "p1-g1",
+            "name": "Route Familiarity",
+            "checks": [
+              {
+                "id": "p1-g1-c1",
+                "name": "Skyway Shortcuts",
+                "skill": "per",
+                "description": "Chart quick crossings between towers without attracting attention. Reward: 5 gp in tips.",
+                "dc": 13,
+                "difficulty": "regular",
+                "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "dependsOn": [],
+                "groupId": "p1-g1",
+                "step": 0
+              },
+              {
+                "id": "p1-g1-c2",
+                "name": "Lower Dura Backstreets",
+                "skill": "sur",
+                "description": "Map safe alleys and watch for ambush points. Reward: 5 gp in tips.",
+                "dc": 12,
+                "difficulty": "regular",
+                "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "dependsOn": [],
+                "groupId": "p1-g1",
+                "step": 0
+              }
+            ],
+            "maxChecks": 0
+          },
+          {
+            "id": "p1-g2",
+            "name": "House Orien Contacts",
+            "checks": [
+              {
+                "id": "p1-g2-c1",
+                "name": "Orien Dispatch Interview",
+                "skill": "pers",
+                "description": "Earn a probationary courier slot with the lightning rail house. Reward: 5 gp sign-on and a book of tickets for soar sled travel.",
+                "dc": 14,
+                "difficulty": "regular",
+                "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [
+                  {
+                    "uuid": "Item.5CbRj2c5WNESY5zb",
+                    "qty": 1
+                  }
+                ],
+                "dependsOn": [],
+                "groupId": "p1-g2",
+                "step": 0
+              },
+              {
+                "id": "p1-g2-c2",
+                "name": "Union Introductions",
+                "skill": "ins",
+                "description": "Read the room and identify which foreman can vouch for you. Reward: 10 gp and a contact in the Cliffside union.",
+                "dc": 12,
+                "difficulty": "regular",
+                "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "dependsOn": [],
+                "groupId": "p1-g2",
+                "step": 0
+              }
+            ],
+            "maxChecks": 0
+          },
+          {
+            "id": "p1-g3",
+            "name": "First Jobs",
+            "checks": [
+              {
+                "id": "p1-g3-c1",
+                "name": "Express Parcel",
+                "skill": "ath",
+                "description": "Beat the storm winds with an urgent delivery. Reward: 10 gp hazard bonus.",
+                "dc": 13,
+                "difficulty": "regular",
+                "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "dependsOn": [],
+                "groupId": "p1-g3",
+                "step": 0
+              },
+              {
+                "id": "p1-g3-c2",
+                "name": "Discrete Drop",
+                "skill": "ste",
+                "description": "Deliver a sealed crate without drawing attention. Reward: 5 gp",
+                "dc": 13,
+                "difficulty": "regular",
+                "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "dependsOn": [],
+                "groupId": "p1-g3",
+                "step": 0
+              }
+            ],
+            "maxChecks": 0
+          }
+        ],
+        "successLines": [
+          {
+            "id": "p1-s1",
+            "text": "You become a familiar face in the courier lanes.",
+            "dependsOnChecks": [],
+            "dependsOnGroups": []
+          }
+        ],
+        "failureLines": [
+          {
+            "id": "p1-f1",
+            "text": "A missed turn costs you a client and a day's pay.",
+            "dependsOnChecks": [],
+            "dependsOnGroups": []
+          }
+        ]
+      },
+      {
+        "id": "phase2",
+        "name": "Rumor Runs",
+        "narrativeDuration": "2 weeks",
+        "expectedGain": "50 gp, a Sivis Sending Stone (uncommon, paired), and a minor favor from a Sharn fixer.",
+        "target": 4,
+        "allowCriticalBonus": true,
+        "failureEvents": false,
+        "failureEventTable": "",
+        "image": "",
+        "phaseCompleteMessage": "You build a reputation for moving rumors and sealed notes across Sharn. Reward: 100 gp and a Sending Stone (uncommon, paired with House Orien).",
+        "phaseCompleteMacro": "",
+        "phaseCompleteItems": [
+          {
+            "uuid": "Item.LPh6yiBzRWlkndHf",
+            "qty": 1
+          }
+        ],
+        "groups": [
+          {
+            "id": "p2-g1",
+            "name": "Intel Networks",
+            "checks": [
+              {
+                "id": "p2-g1-c1",
+                "name": "Listen at the Market",
+                "skill": "inv",
+                "description": "Pick out credible rumors among the merchant stalls. Reward: 10 gp and a merchant discount chit, 15% off any single transaction in Dura Bazaar.",
+                "dc": 14,
+                "difficulty": "regular",
+                "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "dependsOn": [],
+                "groupId": "p2-g1",
+                "step": 0
+              },
+              {
+                "id": "p2-g1-c2",
+                "name": "Tavern Whisper",
+                "skill": "per",
+                "description": "Catch whispered leads without giving away your interest. Reward: 20 gp",
+                "dc": 13,
+                "difficulty": "regular",
+                "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "dependsOn": [],
+                "groupId": "p2-g1",
+                "step": 0
+              }
+            ],
+            "maxChecks": 0
+          },
+          {
+            "id": "p2-g2",
+            "name": "House Orien Reliability",
+            "checks": [
+              {
+                "id": "p2-g2-c1",
+                "name": "Clockwork Schedule",
+                "skill": "inv",
+                "description": "Optimize your route to hit every Orien deadline. Reward: 15 gp in performance bonuses.",
+                "dc": 14,
+                "difficulty": "regular",
+                "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "dependsOn": [],
+                "groupId": "p2-g2",
+                "step": 0
+              },
+              {
+                "id": "p2-g2-c2",
+                "name": "Client Rapport",
+                "skill": "pers",
+                "description": "Win repeat business from Orien and independent senders. Reward: 10 gp and a contact in the Upper Menthis Merchants Guild.",
+                "dc": 13,
+                "difficulty": "regular",
+                "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "dependsOn": [],
+                "groupId": "p2-g2",
+                "step": 0
+              }
+            ],
+            "maxChecks": 0
+          },
+          {
+            "id": "p2-g3",
+            "name": "Shadowed Deliveries",
+            "checks": [
+              {
+                "id": "p2-g3-c1",
+                "name": "Tail Watch",
+                "skill": "ins",
+                "description": "Spot who is following your run and why. Reward: 5 gp and a contact at Morgrave University.",
+                "dc": 14,
+                "difficulty": "regular",
+                "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "dependsOn": [],
+                "groupId": "p2-g3",
+                "step": 0
+              },
+              {
+                "id": "p2-g3-c2",
+                "name": "Clean Handoff",
+                "skill": "ste",
+                "description": "Pass intel without exposing the source. Reward: 10 gp.",
+                "dc": 14,
+                "difficulty": "regular",
+                "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "dependsOn": [],
+                "groupId": "p2-g3",
+                "step": 0
+              }
+            ],
+            "maxChecks": 0
+          }
+        ],
+        "successLines": [
+          {
+            "id": "p2-s1",
+            "text": "Rumors flow through your hands without a trace.",
+            "dependsOnChecks": [],
+            "dependsOnGroups": []
+          }
+        ],
+        "failureLines": [
+          {
+            "id": "p2-f1",
+            "text": "A loose word spreads faster than you can run.",
+            "dependsOnChecks": [],
+            "dependsOnGroups": []
+          }
+        ]
+      },
+      {
+        "id": "phase3",
+        "name": "Cross-House Connections",
+        "narrativeDuration": "2 weeks",
+        "expectedGain": "75 gp, Slippers of Spider Climbing (uncommon), and a contact in another house.",
+        "target": 4,
+        "allowCriticalBonus": true,
+        "failureEvents": false,
+        "failureEventTable": "",
+        "image": "",
+        "phaseCompleteMessage": "You forge connections beyond House Orien, expanding your influence and earnings. Reward: 400 gp and Slippers of Spider Climbing (uncommon).",
+        "phaseCompleteMacro": "",
+        "phaseCompleteItems": [],
+        "groups": [
+          {
+            "id": "p3-g1",
+            "name": "Other House Clients",
+            "checks": [
+              {
+                "id": "p3-g1-c1",
+                "name": "Cannith Pickup",
+                "skill": "arc",
+                "description": "Handle a delicate delivery from a Cannith workshop. Reward: 15 gp and a contact in House Kundarak.",
+                "dc": 15,
+                "difficulty": "regular",
+                "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "dependsOn": [],
+                "groupId": "p3-g1",
+                "step": 0
+              },
+              {
+                "id": "p3-g1-c2",
+                "name": "Jorasco Supplies",
+                "skill": "med",
+                "description": "Safely transport medical reagents. Reward: 10 gp and a Jorasco healer's discount.",
+                "dc": 14,
+                "difficulty": "regular",
+                "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "dependsOn": [],
+                "groupId": "p3-g1",
+                "step": 0
+              }
+            ],
+            "maxChecks": 0
+          },
+          {
+            "id": "p3-g2",
+            "name": "Street Favors",
+            "checks": [
+              {
+                "id": "p3-g2-c1",
+                "name": "Cabbies' Favor",
+                "skill": "pers",
+                "description": "Gain a network of skycoach pilots for quick lifts. Reward: 10 gp and a skycoach ride credit (for up to 8 people).",
+                "dc": 14,
+                "difficulty": "regular",
+                "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [
+                  {
+                    "uuid": "Item.wjHiLS7JaRG8Ui7P",
+                    "qty": 1
+                  }
+                ],
+                "dependsOn": [],
+                "groupId": "p3-g2",
+                "step": 0
+              },
+              {
+                "id": "p3-g2-c2",
+                "name": "Underbridge Contact",
+                "skill": "sur",
+                "description": "Secure guides for the lower levels. Reward: 10 gp and a trusted guide contact for The Cogs and Below.",
+                "dc": 14,
+                "difficulty": "regular",
+                "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "dependsOn": [],
+                "groupId": "p3-g2",
+                "step": 0
+              }
+            ],
+            "maxChecks": 0
+          },
+          {
+            "id": "p3-g3",
+            "name": "Higher Stakes",
+            "checks": [
+              {
+                "id": "p3-g3-c1",
+                "name": "High-Value Escort",
+                "skill": "ath",
+                "description": "Guard a client on a dangerous run. Reward: 15 gp hazard pay.",
+                "dc": 15,
+                "difficulty": "regular",
+                "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "dependsOn": [],
+                "groupId": "p3-g3",
+                "step": 0
+              },
+              {
+                "id": "p3-g3-c2",
+                "name": "Negotiated Bonus",
+                "skill": "pers",
+                "description": "Talk your way into a larger payout. Reward: 15 gp bonus.",
+                "dc": 14,
+                "difficulty": "regular",
+                "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "dependsOn": [],
+                "groupId": "p3-g3",
+                "step": 0
+              }
+            ],
+            "maxChecks": 0
+          }
+        ],
+        "successLines": [
+          {
+            "id": "p3-s1",
+            "text": "You move between houses with ease and discretion.",
+            "dependsOnChecks": [],
+            "dependsOnGroups": []
+          }
+        ],
+        "failureLines": [
+          {
+            "id": "p3-f1",
+            "text": "A misstep costs you a valuable contact.",
+            "dependsOnChecks": [],
+            "dependsOnGroups": []
+          }
+        ]
+      },
+      {
+        "id": "phase4",
+        "name": "Courier of Influence",
+        "narrativeDuration": "3 weeks",
+        "expectedGain": "125 gp, House Orien recommendation, a rare intel cache (GM plot hook), and a Cloak of the Bat (rare).",
+        "target": 4,
+        "allowCriticalBonus": true,
+        "failureEvents": false,
+        "failureEventTable": "",
+        "image": "",
+        "phaseCompleteMessage": "You become a trusted courier with House Orien and Sharn's power brokers, earning steady rewards and rare intel. Reward: 1000 gp, Sending Stone Rank 2, and a Cloak of the Bat (rare).",
+        "phaseCompleteMacro": "",
+        "phaseCompleteItems": [
+          {
+            "uuid": "Item.i36puAL3SKeZ9Cj1",
+            "qty": 1
+          }
+        ],
+        "groups": [
+          {
+            "id": "p4-g1",
+            "name": "House Orien Standing",
+            "checks": [
+              {
+                "id": "p4-g1-c1",
+                "name": "Priority Dispatch",
+                "skill": "inv",
+                "description": "Handle a time-sensitive Orien contract flawlessly. Reward: 20 gp and priority dispatch access.",
+                "dc": 16,
+                "difficulty": "regular",
+                "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "dependsOn": [],
+                "groupId": "p4-g1",
+                "step": 0
+              },
+              {
+                "id": "p4-g1-c2",
+                "name": "Railway Liaison",
+                "skill": "pers",
+                "description": "Earn an official recommendation from an Orien stationmaster. Reward: 15 gp and a written letter of introduction from Baron Kwanti d'Orien.",
+                "dc": 15,
+                "difficulty": "regular",
+                "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "dependsOn": [],
+                "groupId": "p4-g1",
+                "step": 0
+              }
+            ],
+            "maxChecks": 0
+          },
+          {
+            "id": "p4-g2",
+            "name": "City Powerbrokers",
+            "checks": [
+              {
+                "id": "p4-g2-c1",
+                "name": "Council Delivery",
+                "skill": "per",
+                "description": "Deliver sealed documents to a council contact. Reward: 50 gp.",
+                "dc": 15,
+                "difficulty": "regular",
+                "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "dependsOn": [],
+                "groupId": "p4-g2",
+                "step": 0
+              },
+              {
+                "id": "p4-g2-c2",
+                "name": "Skyway Patron",
+                "skill": "ins",
+                "description": "Gauge the patron's motives and leverage their favor. Reward: 15 gp and a favour owed by a city councillor.",
+                "dc": 15,
+                "difficulty": "regular",
+                "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "dependsOn": [],
+                "groupId": "p4-g2",
+                "step": 0
+              }
+            ],
+            "maxChecks": 0
+          },
+          {
+            "id": "p4-g3",
+            "name": "Profit and Intel",
+            "checks": [
+              {
+                "id": "p4-g3-c1",
+                "name": "Reward Negotiation",
+                "skill": "pers",
+                "description": "Secure a bonus payout or rare favor. Reward: 50 gp.",
+                "dc": 15,
+                "difficulty": "regular",
+                "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "dependsOn": [],
+                "groupId": "p4-g3",
+                "step": 0
+              },
+              {
+                "id": "p4-g3-c2",
+                "name": "Rumor Thread",
+                "skill": "inv",
+                "description": "Follow a lead to actionable intel. Reward: 50 gp.",
+                "dc": 15,
+                "difficulty": "regular",
+                "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "dependsOn": [],
+                "groupId": "p4-g3",
+                "step": 0
+              }
+            ],
+            "maxChecks": 0
+          }
+        ],
+        "successLines": [
+          {
+            "id": "p4-s1",
+            "text": "Your name becomes synonymous with trusted deliveries in Sharn.",
+            "dependsOnChecks": [],
+            "dependsOnGroups": []
+          }
+        ],
+        "failureLines": [
+          {
+            "id": "p4-f1",
+            "text": "A botched handoff costs you a lucrative patron.",
+            "dependsOnChecks": [],
+            "dependsOnGroups": []
+          }
+        ]
+      }
+    ]
+  }
+}
