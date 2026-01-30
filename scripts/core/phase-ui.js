@@ -51,6 +51,10 @@ function applyPhaseConfigFormData(phaseConfig, formData) {
     if (typeof data.phaseCompleteItems === "string") {
       next.phaseCompleteItems = data.phaseCompleteItems.trim();
     }
+    if (Object.prototype.hasOwnProperty.call(data, "phaseCompleteGold")) {
+      const goldValue = Number(data.phaseCompleteGold);
+      next.phaseCompleteGold = Number.isFinite(goldValue) ? goldValue : 0;
+    }
     next.showRewardsOnSheet = Boolean(data.showRewardsOnSheet);
 
     if (Object.prototype.hasOwnProperty.call(data, "groups")) {
@@ -79,6 +83,7 @@ function applyPhaseConfigFormData(phaseConfig, formData) {
           const checkSuccessItems = Array.isArray(existingCheck?.checkSuccessItems)
             ? existingCheck.checkSuccessItems
             : [];
+          const checkSuccessGold = Number(existingCheck?.checkSuccessGold ?? 0);
           const completeGroupOnSuccess = Object.prototype.hasOwnProperty.call(checkData ?? {}, "completeGroupOnSuccess")
             ? Boolean(checkData.completeGroupOnSuccess)
             : Boolean(existingCheck?.completeGroupOnSuccess ?? existingCheck?.completeGroup ?? false);
@@ -102,6 +107,7 @@ function applyPhaseConfigFormData(phaseConfig, formData) {
             completePhaseOnSuccess,
             checkCompleteMacro,
             checkSuccessItems,
+            checkSuccessGold: Number.isFinite(checkSuccessGold) ? checkSuccessGold : 0,
             dependsOn,
           });
         }

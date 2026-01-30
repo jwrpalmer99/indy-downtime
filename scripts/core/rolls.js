@@ -554,6 +554,20 @@ async function runIntervalRoll({ actor, checkChoice, trackerId }) {
     actorUuid: actor?.uuid ?? "",
     result: macroResult,
   });
+  await grantCheckSuccessGold({
+    check: selectedCheck,
+    actor,
+    actorId: actor?.id ?? "",
+    actorUuid: actor?.uuid ?? "",
+    result: macroResult,
+  });
+  await grantCheckSuccessGold({
+    check: selectedCheck,
+    actor,
+    actorId: actor?.id ?? "",
+    actorUuid: actor?.uuid ?? "",
+    result: macroResult,
+  });
   await runCheckCompleteMacro({
     phase: activePhase,
     check: selectedCheck,
@@ -756,6 +770,13 @@ async function runManualIntervalResult({ actor, checkId, checkChoice, trackerId,
   state.log = state.log.slice(0, 50);
   await setWorldState(state, resolvedTrackerId);
   await grantCheckSuccessItems({
+    check: selectedCheck,
+    actor,
+    actorId: actor?.id ?? "",
+    actorUuid: actor?.uuid ?? "",
+    result: macroResult,
+  });  
+  await grantCheckSuccessGold({
     check: selectedCheck,
     actor,
     actorId: actor?.id ?? "",
@@ -966,6 +987,31 @@ async function resolveRewardActor({ actor, actorId, actorUuid }) {
   return resolvedActor;
 }
 
+function getActorGoldPath(actor) {
+  if (!actor) return "";
+  const gpValue = foundry.utils.getProperty(actor, "system.currency.gp");
+  if (Number.isFinite(Number(gpValue))) return "system.currency.gp";
+  const goldValue = foundry.utils.getProperty(actor, "system.currency.gold");
+  if (Number.isFinite(Number(goldValue))) return "system.currency.gold";
+  return "";
+}
+
+async function applyActorGoldDelta({ actor, delta }) {
+  if (!actor || !Number.isFinite(delta) || delta === 0) return false;
+  const path = getActorGoldPath(actor);
+  if (!path) return false;
+  const current = Number(foundry.utils.getProperty(actor, path) ?? 0);
+  const next = Math.max(0, current + delta);
+  if (next === current) return false;
+  try {
+    await actor.update({ [path]: next });
+    return true;
+  } catch (error) {
+    console.error(error);
+  }
+  return false;
+}
+
 async function grantRewardItemsToActor({ actor, items }) {
   if (!actor || typeof actor.createEmbeddedDocuments !== "function") return;
   const normalized = normalizeRewardItems(items);
@@ -1090,6 +1136,22 @@ async function grantCheckSuccessItems({
   await grantRewardItemsToActor({ actor: resolvedActor, items });
 }
 
+async function grantCheckSuccessGold({
+  check,
+  actor,
+  actorId,
+  actorUuid,
+  result,
+}) {
+  if (!check || !game.user?.isGM) return;
+  const goldDelta = Number(check.checkSuccessGold ?? 0);
+  if (!Number.isFinite(goldDelta) || goldDelta === 0) return;
+  if (goldDelta > 0 && result !== "success" && result !== "triumph") return;
+  const resolvedActor = await resolveRewardActor({ actor, actorId, actorUuid });
+  if (!resolvedActor) return;
+  await applyActorGoldDelta({ actor: resolvedActor, delta: goldDelta });
+}
+
 async function grantPhaseCompletionItems({
   phase,
   actor,
@@ -1103,6 +1165,21 @@ async function grantPhaseCompletionItems({
   if (!resolvedActor) return;
   await grantRewardItemsToActor({ actor: resolvedActor, items });
 }
+
+async function grantPhaseCompletionGold({
+  phase,
+  actor,
+  actorId,
+  actorUuid,
+}) {
+  if (!phase || !game.user?.isGM) return;
+  const goldDelta = Number(phase.phaseCompleteGold ?? 0);
+  if (!Number.isFinite(goldDelta) || goldDelta === 0) return;
+  const resolvedActor = await resolveRewardActor({ actor, actorId, actorUuid });
+  if (!resolvedActor) return;
+  await applyActorGoldDelta({ actor: resolvedActor, delta: goldDelta });
+}
+
 async function runCheckCompleteMacro({
   phase,
   check,
@@ -1254,6 +1331,12 @@ async function handleCompletion(state, activePhase, actor, trackerId) {
     actorId: actor?.id ?? "",
     actorUuid: actor?.uuid ?? "",
   });
+  await grantPhaseCompletionGold({
+    phase: activePhase,
+    actor,
+    actorId: actor?.id ?? "",
+    actorUuid: actor?.uuid ?? "",
+  });
   await runPhaseCompleteMacro({
     phase: activePhase,
     actor,
@@ -1302,7 +1385,9 @@ export {
   runIntervalRoll,
   runManualIntervalResult,
   grantCheckSuccessItems,
+  grantCheckSuccessGold,
   grantPhaseCompletionItems,
+  grantPhaseCompletionGold,
   runCheckCompleteMacro,
   runPhaseCompleteMacro,
 };

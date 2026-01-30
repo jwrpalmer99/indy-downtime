@@ -1841,6 +1841,7 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
             ? check.checkCompleteMacro.trim()
             : "";
         const checkSuccessItems = normalizeRewardItemsForDisplay(check.checkSuccessItems ?? []);
+        const checkSuccessGold = Number(check.checkSuccessGold ?? 0);
         const checkSuccessItemsDisplay = checkSuccessItems.map((entry) => ({
           ...entry,
           name: checkItemNameMap.get(entry.uuid) || entry.uuid,
@@ -1848,6 +1849,7 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
         const hasMacro = Boolean(checkCompleteMacro);
         const hasCompleteFlag = Boolean(check.completeGroupOnSuccess || check.completePhaseOnSuccess);
         const hasItems = checkSuccessItems.length > 0;
+        const hasGold = Number.isFinite(checkSuccessGold) && checkSuccessGold !== 0;
         const complete = isCheckComplete(check, checkProgress);
         const unlocked = isCheckUnlocked(phase, check, checkProgress, resolvedChecks);
         const group = getPhaseGroups(phase).find((entry) => entry.id === check.groupId);
@@ -1892,20 +1894,24 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
           completeGroupOnSuccess: Boolean(check.completeGroupOnSuccess),
           completePhaseOnSuccess: Boolean(check.completePhaseOnSuccess),
           checkCompleteMacro,
+          checkSuccessGold: Number.isFinite(checkSuccessGold) ? checkSuccessGold : 0,
           checkSuccessItemsDisplay,
           hasMacro,
           hasCompleteFlag,
           hasItems,
+          hasGold,
           hasCompletionFlags: Boolean(
             check.completeGroupOnSuccess
               || check.completePhaseOnSuccess
               || checkCompleteMacro
               || checkSuccessItems.length
+              || hasGold
           ),
           isCompletionOpen: Boolean(
             check.completeGroupOnSuccess
               || check.completePhaseOnSuccess
               || checkCompleteMacro
+              || hasGold
           ),
           dc: dcValue,
           dcLabel,
@@ -2322,6 +2328,21 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
       const phase = phaseConfig.find((entry) => entry.id === this._phaseId) ?? phaseConfig[0];
       if (!phase) return;
       if (updateCheckField(phase, checkId, { checkCompleteMacro: value })) {
+        savePhaseConfig(phase);
+      }
+    });
+
+    html.on("change.drepFlow", "[data-drep-action='check-success-gold']", (event) => {
+      if (this._readOnly) return;
+      const input = event.currentTarget;
+      const checkId = input?.dataset?.checkId;
+      if (!checkId) return;
+      const raw = Number(input.value ?? 0);
+      const value = Number.isFinite(raw) ? raw : 0;
+      const phaseConfig = getPhaseConfig(this._trackerId);
+      const phase = phaseConfig.find((entry) => entry.id === this._phaseId) ?? phaseConfig[0];
+      if (!phase) return;
+      if (updateCheckField(phase, checkId, { checkSuccessGold: value })) {
         savePhaseConfig(phase);
       }
     });

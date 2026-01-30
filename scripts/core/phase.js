@@ -63,6 +63,11 @@ function normalizeItemRewards(raw) {
   return output;
 }
 
+function normalizeGoldValue(raw) {
+  const value = Number(raw ?? 0);
+  return Number.isFinite(value) ? value : 0;
+}
+
 function getPhaseConfig(trackerId) {
   const tracker = trackerId ? getTrackerById(trackerId) : getCurrentTracker();
   const stored = tracker?.phaseConfig;
@@ -141,6 +146,9 @@ function normalizePhaseConfig(config) {
         : base.failureEventTable ?? "";
     merged.phaseCompleteItems = normalizeItemRewards(
       merged.phaseCompleteItems ?? base.phaseCompleteItems
+    );
+    merged.phaseCompleteGold = normalizeGoldValue(
+      merged.phaseCompleteGold ?? base.phaseCompleteGold
     );
     merged.showRewardsOnSheet = Boolean(merged.showRewardsOnSheet);
 
@@ -249,6 +257,9 @@ function normalizeChecks(checks, groupId, usedCheckIds) {
     const checkSuccessItems = normalizeItemRewards(
       check?.checkSuccessItems ?? check?.checkCompleteItems ?? []
     );
+    const checkSuccessGold = normalizeGoldValue(
+      check?.checkSuccessGold ?? check?.checkCompleteGold ?? 0
+    );
     const target = DEFAULT_CHECK_TARGET;
     const dependsOn = normalizeCheckDependencies(
       check?.dependsOn ?? check?.dependsOnChecks ?? ""
@@ -265,6 +276,7 @@ function normalizeChecks(checks, groupId, usedCheckIds) {
       completePhaseOnSuccess: Boolean(check?.completePhaseOnSuccess ?? check?.completePhase ?? false),
       checkCompleteMacro,
       checkSuccessItems,
+      checkSuccessGold,
       dependsOn,
       groupId,
       step: Number.isFinite(Number(check?.step)) ? Number(check.step) : null,
@@ -980,7 +992,8 @@ export {
   shiftDifficulty,
   isPhaseComplete,
   isDependencyComplete,
-  normalizeItemRewards
+  normalizeItemRewards,
+  normalizeGoldValue
 };
 
 function buildEmptyPhase1() {
@@ -997,6 +1010,7 @@ function buildEmptyPhase1() {
     phaseCompleteMessage: "",
     phaseCompleteMacro: "",
     phaseCompleteItems: [],
+    phaseCompleteGold: 0,
     showRewardsOnSheet: true,
     groups: [],
     successLines: [],
@@ -1018,6 +1032,7 @@ function buildNewPhase(baseIndex) {
       failureEventTable: "",
       image: "",
       phaseCompleteItems: [],
+      phaseCompleteGold: 0,
       showRewardsOnSheet: true,
       groups: [],
       successLines: [],

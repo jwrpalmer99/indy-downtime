@@ -71,7 +71,7 @@
                 <div class="drep-flow-check-name drep-flow-editable" data-edit="check-name" data-check-id="{{this.id}}" data-value="{{this.rawName}}">{{this.name}}{{#unless @root.readOnly}}<button type="button" class="drep-flow-remove-check" data-drep-action="remove-check" data-id="{{this.id}}">x</button>{{/unless}}</div>
                 <div class="drep-flow-check-meta">
                   {{#unless @root.readOnly}}
-                    <button type="button" class="drep-flow-flags-toggle {{#if this.isCompletionOpen}}is-open{{/if}} {{#if this.hasCompletionFlags}}has-completion{{/if}} {{#if this.hasMacro}}has-macro{{/if}} {{#if this.hasCompleteFlag}}has-complete{{/if}} {{#if this.hasItems}}has-items{{/if}}" data-drep-action="toggle-check-flags" data-check-id="{{this.id}}" title="Completion options">
+                    <button type="button" class="drep-flow-flags-toggle {{#if this.isCompletionOpen}}is-open{{/if}} {{#if this.hasCompletionFlags}}has-completion{{/if}} {{#if this.hasMacro}}has-macro{{/if}} {{#if this.hasCompleteFlag}}has-complete{{/if}} {{#if this.hasItems}}has-items{{/if}} {{#if this.hasGold}}has-gold{{/if}}" data-drep-action="toggle-check-flags" data-check-id="{{this.id}}" title="Completion options">
                       <i class="fa-solid fa-chevron-right"></i>
                       <i class="fa-solid fa-chevron-down"></i>
                     </button>
@@ -92,11 +92,15 @@
                       Completes phase
                     </label>
                     <label class="drep-flow-check-flag">
-                      Check Complete Macro (UUID)
+                      Macro
                       <input type="text" data-drep-action="check-complete-macro" data-check-id="{{this.id}}" value="{{this.checkCompleteMacro}}" data-drep-drop="macro" />
                     </label>
                     <label class="drep-flow-check-flag">
-                      Check Success Items (UUID)
+                      Gold (gp; negative for costs)
+                      <input type="number" data-drep-action="check-success-gold" data-check-id="{{this.id}}" value="{{this.checkSuccessGold}}" step="1" />
+                    </label>
+                    <label class="drep-flow-check-flag">
+                      Items
                       <div class="drep-item-drop" data-drep-drop="item" data-check-id="{{this.id}}">
                         <div class="drep-item-list">
                           {{#if this.checkSuccessItemsDisplay.length}}
