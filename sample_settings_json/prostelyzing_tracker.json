@@ -1,7 +1,7 @@
 {
   "module": "indy-downtime",
   "version": "1.1.3",
-  "exportedAt": "2026-01-30T18:02:17.884Z",
+  "exportedAt": "2026-01-30T19:07:40.218Z",
   "tracker": {
     "id": "tracker-1",
     "name": "Prostelyzing",
@@ -390,12 +390,12 @@
         "name": "Holding the Hearth",
         "narrativeDuration": "1-3 months",
         "expectedGain": "~1",
-        "target": 4,
+        "target": 6,
         "allowCriticalBonus": false,
         "failureEvents": true,
         "failureEventTable": "",
         "image": "EmbersOfTheLastWar/Images/cogs_phase2.webp",
-        "phaseCompleteMessage": "The hearth holds. Mutual aid is no longer a promise but a pattern, and even under pressure the congregation chooses to stand together. Boldrei's warmth is now a shield they share with one another. Your followers gift you a holy   amulet, a symbol of their growing belief.",
+        "phaseCompleteMessage": "The hearth holds. Mutual aid is no longer a promise but a pattern, and even under pressure the congregation chooses to stand together. Boldrei's warmth is now a shield they share with one another. Your followers gift you a holy amulet, a symbol of their growing belief.",
         "phaseCompleteMacro": "",
         "phaseCompleteItems": [
           {
@@ -412,9 +412,9 @@
             "checks": [
               {
                 "id": "insight",
-                "name": "Mutual Aid 1",
+                "name": "Sharing",
                 "skill": "per",
-                "description": "",
+                "description": "Mutual Aid Becomes Habit",
                 "dc": 15,
                 "difficulty": "regular",
                 "target": 1,
@@ -429,9 +429,9 @@
               },
               {
                 "id": "jtKhCZYpTGESAvVA",
-                "name": "Mutual Aid 2",
+                "name": "Ritualizing",
                 "skill": "rel",
-                "description": "",
+                "description": "A Hearth You Can Carry",
                 "dc": 15,
                 "difficulty": "regular",
                 "target": 1,
@@ -453,9 +453,9 @@
             "checks": [
               {
                 "id": "ene3aWYathaGoLcl",
-                "name": "Withstand Pressure 1",
+                "name": "Enduring",
                 "skill": "per",
-                "description": "",
+                "description": "When Pressure Doesn’t Scatter You",
                 "dc": 15,
                 "difficulty": "regular",
                 "target": 1,
@@ -470,9 +470,9 @@
               },
               {
                 "id": "ne1tTHfgj00arjje",
-                "name": "Withstand Pressure 1",
+                "name": "Anticipating",
                 "skill": "ins",
-                "description": "",
+                "description": "Seeing the Stress Lines Before They Crack",
                 "dc": 15,
                 "difficulty": "regular",
                 "target": 1,
@@ -494,9 +494,9 @@
             "checks": [
               {
                 "id": "w6XAeyF6UW9kqKCq",
-                "name": "Community 1",
+                "name": "Gathering",
                 "skill": "per",
-                "description": "",
+                "description": "When People Show Up Anyway",
                 "dc": 16,
                 "difficulty": "regular",
                 "target": 1,
@@ -511,9 +511,9 @@
               },
               {
                 "id": "TJEWJ3dOI4M9IoYX",
-                "name": "Communit 2",
+                "name": "Entrusting",
                 "skill": "rel",
-                "description": "",
+                "description": "When Leadership Rises Quietly",
                 "dc": 17,
                 "difficulty": "regular",
                 "target": 1,
@@ -530,23 +530,72 @@
             "maxChecks": 0
           }
         ],
-        "successLines": [],
+        "successLines": [
+          {
+            "id": "p2-aid-1",
+            "text": "Mutual aid stops being an idea and becomes a rhythm. Bowls are filled before anyone asks, shifts are covered without bargaining, and repairs happen quietly at the edge of the foundry lights. Nobody calls it worship — they just call it what you do for each other.",
+            "dependsOnChecks": [
+              "insight"
+            ],
+            "dependsOnGroups": []
+          },
+          {
+            "id": "p2-aid-2",
+            "text": "You give Boldrei’s hearth a shape that fits this place: not walls and doors, but promises kept. A simple rite — shared food, shared watch, shared care — becomes something they repeat even when you aren’t there to lead it.",
+            "dependsOnChecks": [
+              "jtKhCZYpTGESAvVA"
+            ],
+            "dependsOnGroups": []
+          },
+          {
+            "id": "p2-pressure-1",
+            "text": "Pressure arrives the way it always does in the Cogs: warnings disguised as safety concerns, lost hours, ‘random’ inspections. The circle doesn’t scatter. Someone always shows up anyway. Someone always stands in the doorway.",
+            "dependsOnChecks": [
+              "ene3aWYathaGoLcl"
+            ],
+            "dependsOnGroups": []
+          },
+          {
+            "id": "p2-pressure-2",
+            "text": "You learn to feel the stress lines before they crack. You spot the quiet fractures — envy, fear, exhaustion, ideology sharpening into accusation — and you give the group a way to breathe before it breaks. The movement survives because it learns how to bend.",
+            "dependsOnChecks": [
+              "ne1tTHfgj00arjje"
+            ],
+            "dependsOnGroups": []
+          },
+          {
+            "id": "p2-stability-1",
+            "text": "The hearth holds through a hard week. Someone who would have slept alone is brought inside the circle. Someone who would have been punished is covered for. The Cogs remain brutal — but in this corner, people are harder to disappear.",
+            "dependsOnChecks": [
+              "w6XAeyF6UW9kqKCq"
+            ],
+            "dependsOnGroups": []
+          },
+          {
+            "id": "p2-stability-2",
+            "text": "They don’t just endure; they organize. A few warforged take responsibility without being asked — distributing food, keeping watch, settling disputes. Boldrei’s warmth becomes something practical: a shield they share, not a promise they wait for.",
+            "dependsOnChecks": [
+              "TJEWJ3dOI4M9IoYX"
+            ],
+            "dependsOnGroups": []
+          }
+        ],
         "failureLines": [
           {
-            "id": "line1",
-            "text": "",
+            "id": "p2-fail-1",
+            "text": "The week drains everyone. People still believe, but exhaustion makes them quiet. The hearth doesn’t go out — it just burns low.",
             "dependsOnChecks": [],
             "dependsOnGroups": []
           },
           {
-            "id": "line2",
-            "text": "",
+            "id": "p2-fail-2",
+            "text": "An argument over tactics steals the air from the room: comfort versus confrontation, patience versus pressure. No one leaves forever, but the circle feels smaller for a while.",
             "dependsOnChecks": [],
             "dependsOnGroups": []
           },
           {
-            "id": "line3",
-            "text": "",
+            "id": "p2-fail-3",
+            "text": "Pressure lands somewhere tender — a missed shift, a docked ration, a sudden inspection. The community learns the cost again, and moves more carefully for now.",
             "dependsOnChecks": [],
             "dependsOnGroups": []
           }
@@ -554,7 +603,7 @@
       },
       {
         "id": "phase3",
-        "name": "Tending the Ember",
+        "name": "A Place That Is Ours",
         "narrativeDuration": "Several months",
         "expectedGain": "~1",
         "target": 3,
@@ -579,9 +628,9 @@
             "checks": [
               {
                 "id": "persuasion",
-                "name": "Persuasion",
-                "skill": "acr",
-                "description": "",
+                "name": "Belonging",
+                "skill": "per",
+                "description": "When a Door Becomes a Place People Return To",
                 "dc": 15,
                 "difficulty": "regular",
                 "target": 1,
@@ -596,9 +645,9 @@
               },
               {
                 "id": "religion",
-                "name": "Religion",
-                "skill": "acr",
-                "description": "",
+                "name": "Consecrating",
+                "skill": "rel",
+                "description": "When Hearth Is Carried Into a Room",
                 "dc": 15,
                 "difficulty": "regular",
                 "target": 1,
@@ -613,9 +662,9 @@
               },
               {
                 "id": "insight",
-                "name": "Insight",
-                "skill": "acr",
-                "description": "",
+                "name": "Guarding",
+                "skill": "ins",
+                "description": "Knowing Who Needs This Place Most",
                 "dc": 15,
                 "difficulty": "regular",
                 "target": 1,
@@ -632,23 +681,48 @@
             "maxChecks": 0
           }
         ],
-        "successLines": [],
+        "successLines": [
+          {
+            "id": "p3-pers",
+            "text": "A place becomes ‘ours’ the way it always does: not by claim or conquest, but by repetition. They keep meeting. They keep sharing. They keep returning. Even strangers start to treat the doorway differently — as if something human might happen inside.",
+            "dependsOnChecks": [
+              "persuasion"
+            ],
+            "dependsOnGroups": []
+          },
+          {
+            "id": "p3-rel",
+            "text": "Boldrei’s hearth settles into the bones of the Cogs. Not as a sermon, but as a custom: a quiet blessing over a shared meal, a promise spoken before a night watch, a rule that no one is left alone after a bad shift. The faith is carried in actions now.",
+            "dependsOnChecks": [
+              "religion"
+            ],
+            "dependsOnGroups": []
+          },
+          {
+            "id": "p3-ins",
+            "text": "You recognize the moment the space stops being merely convenient and starts being important. You see who is trying to exploit it, who fears it, and who needs it most. And you help the community protect it the Boldrei way — by making it useful to everyone who comes in peace.",
+            "dependsOnChecks": [
+              "insight"
+            ],
+            "dependsOnGroups": []
+          }
+        ],
         "failureLines": [
           {
-            "id": "line1",
-            "text": "",
+            "id": "p3-fail-1",
+            "text": "The place is used, but it isn’t trusted yet. People come, take warmth, and leave quickly — as if staying too long would invite consequences.",
             "dependsOnChecks": [],
             "dependsOnGroups": []
           },
           {
-            "id": "line2",
-            "text": "",
+            "id": "p3-fail-2",
+            "text": "Attention drifts toward conflict elsewhere — the strike, the gangs, the watch. The hearth remains, but the work of making a place ‘ours’ slows to a crawl.",
             "dependsOnChecks": [],
             "dependsOnGroups": []
           },
           {
-            "id": "line3",
-            "text": "",
+            "id": "p3-fail-3",
+            "text": "Someone tests the boundaries — not with violence, but with entitlement. The community has to decide what this place is for, and who it is willing to be for.",
             "dependsOnChecks": [],
             "dependsOnGroups": []
           }
