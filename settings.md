@@ -116,6 +116,7 @@ The Phase Flow editor is where you add and edit groups, checks, dependencies, an
 - Remove check: deletes the check.
 - Completion options (collapsed by default): set a check to complete its group or phase when it succeeds, run a macro, grant items on success/triumph, or award/cost gold.
 - If there is a completion option set then there will be a circular indicator: blue=has macro, orange=completes phase/group, yellow=has item(s)
+- Check gold rewards apply on success/triumph. If the value is negative (a cost), it applies even on failure/despair.
 
 ### Dependencies
 - Drag a check onto another check to add a dependency.
@@ -146,8 +147,9 @@ Dependency types and effects:
 ### Phase Plan (Read Only)
 - The tracker tab button View Phase Plan opens a read-only Flow view.
 - Player visibility is controlled by the permissions listed above.
-- Prev/Next phase navigation is available; future phases require the “View future plans” permission.
+- Prev/Next phase navigation is available; future phases require the "View future plans" permission.
 - Hover DC labels to see success chance tooltips (GM always, players if permitted).
+- When "Show plan rewards to players" is enabled, gold and linked item rewards appear on phase headers and check cards (read-only).
 
 ## Dependency Editor Dialog
 Open by right clicking a dependency chip in Phase Flow.
