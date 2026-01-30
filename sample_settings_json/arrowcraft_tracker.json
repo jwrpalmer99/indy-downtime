@@ -1,7 +1,7 @@
 {
   "module": "indy-downtime",
-  "version": "1.0.0",
-  "exportedAt": "2026-01-27T10:56:19.208Z",
+  "version": "1.1.3",
+  "exportedAt": "2026-01-30T18:03:11.927Z",
   "tracker": {
     "id": "tracker-3",
     "name": "Fletching",
@@ -9,9 +9,11 @@
     "tabLabel": "Fletching",
     "intervalLabel": "Twice Weekly",
     "tabIcon": "fa-solid fa-bow-arrow",
+    "checkRollMode": "",
     "hideDcFromPlayers": false,
     "showLockedChecksToPlayers": true,
     "showPhasePlanToPlayers": true,
+    "showFuturePlansToPlayers": false,
     "showCheckTooltipsToPlayers": false,
     "showFlowRelationships": true,
     "showFlowLines": true,
@@ -25,12 +27,20 @@
         "narrativeDuration": "2 weeks",
         "expectedGain": "",
         "target": 6,
-        "allowCriticalBonus": true,
+        "allowCriticalBonus": false,
         "failureEvents": false,
         "failureEventTable": "",
         "image": "",
         "phaseCompleteMessage": "You learn to craft Walloping Arrows (can knock a target prone). Each arrow takes 1 day to craft and costs 3 gp in materials. You create 3 Walloping arrows on completion of this phase.",
         "phaseCompleteMacro": "",
+        "phaseCompleteItems": [
+          {
+            "uuid": "Item.fGQXKZUR35q8gFth",
+            "qty": 3
+          }
+        ],
+        "phaseCompleteGold": 0,
+        "showRewardsOnSheet": true,
         "groups": [
           {
             "id": "p1-g1",
@@ -44,6 +54,11 @@
                 "dc": 12,
                 "difficulty": "regular",
                 "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": -5,
                 "dependsOn": [],
                 "groupId": "p1-g1",
                 "step": 0
@@ -56,6 +71,11 @@
                 "dc": 13,
                 "difficulty": "regular",
                 "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": -5,
                 "dependsOn": [
                   {
                     "id": "p1-g1-c1",
@@ -84,6 +104,11 @@
                 "dc": 12,
                 "difficulty": "regular",
                 "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": -10,
                 "dependsOn": [],
                 "groupId": "p1-g2",
                 "step": 0
@@ -96,6 +121,11 @@
                 "dc": 13,
                 "difficulty": "regular",
                 "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": -10,
                 "dependsOn": [
                   {
                     "id": "p1-g2-c1",
@@ -124,6 +154,11 @@
                 "dc": 12,
                 "difficulty": "regular",
                 "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": -15,
                 "dependsOn": [
                   {
                     "id": "p1-g2-c1",
@@ -153,6 +188,11 @@
                 "dc": 13,
                 "difficulty": "regular",
                 "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": -15,
                 "dependsOn": [
                   {
                     "id": "p1-g3-c1",
@@ -209,12 +249,20 @@
         "narrativeDuration": "2 weeks",
         "expectedGain": "",
         "target": 6,
-        "allowCriticalBonus": true,
+        "allowCriticalBonus": false,
         "failureEvents": false,
         "failureEventTable": "",
         "image": "",
         "phaseCompleteMessage": "You learn to craft Knockback Arrows. Each arrow takes 1 day to craft and costs 25 gp in materials. You create 3 Knockback arrows on completion of this phase.",
         "phaseCompleteMacro": "",
+        "phaseCompleteItems": [
+          {
+            "uuid": "Item.0lUG52zZgl4H3FDh",
+            "qty": 3
+          }
+        ],
+        "phaseCompleteGold": 0,
+        "showRewardsOnSheet": true,
         "groups": [
           {
             "id": "p2-g1",
@@ -228,6 +276,11 @@
                 "dc": 13,
                 "difficulty": "regular",
                 "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": -10,
                 "dependsOn": [],
                 "groupId": "p2-g1",
                 "step": 0
@@ -240,6 +293,11 @@
                 "dc": 13,
                 "difficulty": "regular",
                 "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": -15,
                 "dependsOn": [
                   {
                     "id": "p2-g1-c1",
@@ -268,6 +326,11 @@
                 "dc": 13,
                 "difficulty": "regular",
                 "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": -15,
                 "dependsOn": [],
                 "groupId": "p2-g2",
                 "step": 0
@@ -280,6 +343,11 @@
                 "dc": 12,
                 "difficulty": "regular",
                 "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": -10,
                 "dependsOn": [
                   {
                     "id": "p2-g2-c1",
@@ -308,6 +376,11 @@
                 "dc": 13,
                 "difficulty": "regular",
                 "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": -20,
                 "dependsOn": [
                   {
                     "id": "p2-g2-c1",
@@ -337,6 +410,11 @@
                 "dc": 14,
                 "difficulty": "regular",
                 "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": -20,
                 "dependsOn": [
                   {
                     "id": "p2-g2-c2",
@@ -385,12 +463,20 @@
         "narrativeDuration": "3 weeks",
         "expectedGain": "",
         "target": 6,
-        "allowCriticalBonus": true,
+        "allowCriticalBonus": false,
         "failureEvents": false,
         "failureEventTable": "",
         "image": "",
         "phaseCompleteMessage": "You learn to craft Tethering Arrows. Each arrow takes 1 day to craft and costs 50 gp in materials. You create 3 Tethering arrows on completion of this phase.",
         "phaseCompleteMacro": "",
+        "phaseCompleteItems": [
+          {
+            "uuid": "Item.SvsoMQFUwdlw2fXk",
+            "qty": 3
+          }
+        ],
+        "phaseCompleteGold": 0,
+        "showRewardsOnSheet": true,
         "groups": [
           {
             "id": "p3-g1",
@@ -404,6 +490,11 @@
                 "dc": 13,
                 "difficulty": "regular",
                 "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": -15,
                 "dependsOn": [],
                 "groupId": "p3-g1",
                 "step": 0
@@ -416,6 +507,11 @@
                 "dc": 14,
                 "difficulty": "regular",
                 "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": -20,
                 "dependsOn": [
                   {
                     "id": "p3-g1-c1",
@@ -444,6 +540,11 @@
                 "dc": 13,
                 "difficulty": "regular",
                 "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": -15,
                 "dependsOn": [],
                 "groupId": "p3-g2",
                 "step": 0
@@ -456,6 +557,11 @@
                 "dc": 14,
                 "difficulty": "regular",
                 "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": -20,
                 "dependsOn": [
                   {
                     "id": "p3-g2-c1",
@@ -484,6 +590,11 @@
                 "dc": 13,
                 "difficulty": "regular",
                 "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": -15,
                 "dependsOn": [
                   {
                     "id": "p3-g2-c1",
@@ -513,6 +624,11 @@
                 "dc": 14,
                 "difficulty": "regular",
                 "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": -20,
                 "dependsOn": [
                   {
                     "id": "p3-g2-c2",
@@ -561,12 +677,20 @@
         "narrativeDuration": "2 weeks",
         "expectedGain": "",
         "target": 6,
-        "allowCriticalBonus": true,
+        "allowCriticalBonus": false,
         "failureEvents": false,
         "failureEventTable": "",
         "image": "",
         "phaseCompleteMessage": "You learn to craft Smoke Arrows. Each arrow takes 1 day to craft and costs 25 gp in materials. You create 3 Smoke arrows on completion of this phase.",
         "phaseCompleteMacro": "",
+        "phaseCompleteItems": [
+          {
+            "uuid": "Item.JZ3HE4yopAqvYCD5",
+            "qty": 3
+          }
+        ],
+        "phaseCompleteGold": 0,
+        "showRewardsOnSheet": true,
         "groups": [
           {
             "id": "p4-g1",
@@ -580,6 +704,11 @@
                 "dc": 13,
                 "difficulty": "regular",
                 "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": -10,
                 "dependsOn": [],
                 "groupId": "p4-g1",
                 "step": 0
@@ -592,6 +721,11 @@
                 "dc": 14,
                 "difficulty": "regular",
                 "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": -15,
                 "dependsOn": [
                   {
                     "id": "p4-g1-c1",
@@ -620,6 +754,11 @@
                 "dc": 13,
                 "difficulty": "regular",
                 "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": -10,
                 "dependsOn": [],
                 "groupId": "p4-g2",
                 "step": 0
@@ -632,6 +771,11 @@
                 "dc": 14,
                 "difficulty": "regular",
                 "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": -15,
                 "dependsOn": [
                   {
                     "id": "p4-g2-c1",
@@ -660,6 +804,11 @@
                 "dc": 13,
                 "difficulty": "regular",
                 "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": -15,
                 "dependsOn": [
                   {
                     "id": "p4-g2-c1",
@@ -689,6 +838,11 @@
                 "dc": 14,
                 "difficulty": "regular",
                 "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": -10,
                 "dependsOn": [
                   {
                     "id": "p4-g2-c2",
@@ -737,12 +891,20 @@
         "narrativeDuration": "4 weeks",
         "expectedGain": "",
         "target": 6,
-        "allowCriticalBonus": true,
+        "allowCriticalBonus": false,
         "failureEvents": false,
         "failureEventTable": "",
         "image": "",
         "phaseCompleteMessage": "You learn to craft Gravity Well Arrows. Each arrow takes 1 day to craft and costs 75 gp in materials. You create 3 Gravity Well arrows on completion of this phase.",
         "phaseCompleteMacro": "",
+        "phaseCompleteItems": [
+          {
+            "uuid": "Item.Dw6s2ZzLMzxhXzvy",
+            "qty": 3
+          }
+        ],
+        "phaseCompleteGold": 0,
+        "showRewardsOnSheet": true,
         "groups": [
           {
             "id": "p5-g1",
@@ -756,6 +918,11 @@
                 "dc": 13,
                 "difficulty": "regular",
                 "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": -25,
                 "dependsOn": [],
                 "groupId": "p5-g1",
                 "step": 0
@@ -768,6 +935,11 @@
                 "dc": 14,
                 "difficulty": "regular",
                 "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": -25,
                 "dependsOn": [
                   {
                     "id": "p5-g1-c1",
@@ -796,6 +968,11 @@
                 "dc": 13,
                 "difficulty": "regular",
                 "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": -30,
                 "dependsOn": [],
                 "groupId": "p5-g2",
                 "step": 0
@@ -808,6 +985,11 @@
                 "dc": 15,
                 "difficulty": "regular",
                 "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": -25,
                 "dependsOn": [
                   {
                     "id": "p5-g2-c1",
@@ -836,6 +1018,11 @@
                 "dc": 14,
                 "difficulty": "regular",
                 "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": -35,
                 "dependsOn": [
                   {
                     "id": "p5-g2-c1",
@@ -865,6 +1052,11 @@
                 "dc": 15,
                 "difficulty": "regular",
                 "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": -40,
                 "dependsOn": [
                   {
                     "id": "p5-g3-c1",

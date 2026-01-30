@@ -1,7 +1,7 @@
 {
   "module": "indy-downtime",
-  "version": "1.0.0",
-  "exportedAt": "2026-01-27T10:24:14.115Z",
+  "version": "1.1.3",
+  "exportedAt": "2026-01-30T18:04:20.730Z",
   "tracker": {
     "id": "tracker-mechanical-eyes",
     "name": "Mechanical Eyes (Warforged Adaptation)",
@@ -9,9 +9,11 @@
     "tabLabel": "Mech Eyes",
     "intervalLabel": "Twice Weekly",
     "tabIcon": "fas fa-eye",
+    "checkRollMode": "",
     "hideDcFromPlayers": false,
     "showLockedChecksToPlayers": true,
     "showPhasePlanToPlayers": true,
+    "showFuturePlansToPlayers": false,
     "showCheckTooltipsToPlayers": true,
     "showFlowRelationships": true,
     "showFlowLines": true,
@@ -25,12 +27,15 @@
         "narrativeDuration": "2�3 weeks",
         "expectedGain": "",
         "target": 4,
-        "allowCriticalBonus": true,
+        "allowCriticalBonus": false,
         "failureEvents": false,
         "failureEventTable": "",
         "image": "",
         "phaseCompleteMessage": "You understand the eyes' function and stabilization requirements.",
         "phaseCompleteMacro": "",
+        "phaseCompleteItems": [],
+        "phaseCompleteGold": 0,
+        "showRewardsOnSheet": false,
         "groups": [
           {
             "id": "p1-g1",
@@ -40,10 +45,15 @@
                 "id": "p1-g1-c1",
                 "name": "Rune Lattice Mapping",
                 "skill": "arc",
-                "description": "Map the internal rune lattice. Requires 50 gp of powdered silver and a 25 gp lens kit.",
+                "description": "Map the internal rune lattice. Requires 20 gp of powdered silver and a 25 gp lens kit.",
                 "dc": 13,
                 "difficulty": "regular",
                 "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": -45,
                 "dependsOn": [],
                 "groupId": "p1-g1",
                 "step": 0
@@ -56,6 +66,11 @@
                 "dc": 13,
                 "difficulty": "regular",
                 "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": -25,
                 "dependsOn": [
                   {
                     "id": "p1-g1-c1",
@@ -84,6 +99,11 @@
                 "dc": 12,
                 "difficulty": "regular",
                 "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": 0,
                 "dependsOn": [],
                 "groupId": "p1-g2",
                 "step": 0
@@ -96,6 +116,11 @@
                 "dc": 13,
                 "difficulty": "regular",
                 "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": 0,
                 "dependsOn": [
                   {
                     "id": "p1-g2-c1",
@@ -116,7 +141,7 @@
         "successLines": [
           {
             "id": "p1-s1",
-            "text": "The eyes� enchantment is stable, and the power curve is predictable.",
+            "text": "The eyes' enchantment is stable, and the power curve is predictable.",
             "dependsOnChecks": [],
             "dependsOnGroups": []
           }
@@ -136,12 +161,20 @@
         "narrativeDuration": "3�4 weeks",
         "expectedGain": "",
         "target": 4,
-        "allowCriticalBonus": true,
+        "allowCriticalBonus": false,
         "failureEvents": false,
         "failureEventTable": "",
         "image": "",
-        "phaseCompleteMessage": "You design an adaptation harness to seat the eyes in a warforged body.",
+        "phaseCompleteMessage": "You design an adaptation harness to seat the eyes in a warforged body. You create Prototype Warforged Eyes!",
         "phaseCompleteMacro": "",
+        "phaseCompleteItems": [
+          {
+            "uuid": "Item.boSaZlHhs1YRpggj",
+            "qty": 1
+          }
+        ],
+        "phaseCompleteGold": 0,
+        "showRewardsOnSheet": false,
         "groups": [
           {
             "id": "p2-g1",
@@ -155,6 +188,11 @@
                 "dc": 14,
                 "difficulty": "regular",
                 "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": -150,
                 "dependsOn": [],
                 "groupId": "p2-g1",
                 "step": 0
@@ -167,6 +205,11 @@
                 "dc": 15,
                 "difficulty": "regular",
                 "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": -75,
                 "dependsOn": [
                   {
                     "id": "p2-g1-c1",
@@ -195,6 +238,11 @@
                 "dc": 14,
                 "difficulty": "regular",
                 "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": 0,
                 "dependsOn": [],
                 "groupId": "p2-g2",
                 "step": 0
@@ -207,6 +255,11 @@
                 "dc": 14,
                 "difficulty": "regular",
                 "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": 0,
                 "dependsOn": [
                   {
                     "id": "p2-g2-c1",
@@ -247,12 +300,20 @@
         "narrativeDuration": "2�3 weeks",
         "expectedGain": "",
         "target": 4,
-        "allowCriticalBonus": true,
+        "allowCriticalBonus": false,
         "failureEvents": false,
         "failureEventTable": "",
         "image": "",
-        "phaseCompleteMessage": "You install the eyes; the warforged gains darkvision.",
+        "phaseCompleteMessage": "You create Advanced Warforged Eyes.",
         "phaseCompleteMacro": "",
+        "phaseCompleteItems": [
+          {
+            "uuid": "Item.SbBystTbYMalII1R",
+            "qty": 1
+          }
+        ],
+        "phaseCompleteGold": 0,
+        "showRewardsOnSheet": false,
         "groups": [
           {
             "id": "p3-g1",
@@ -266,6 +327,11 @@
                 "dc": 14,
                 "difficulty": "regular",
                 "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": -50,
                 "dependsOn": [],
                 "groupId": "p3-g1",
                 "step": 0
@@ -278,6 +344,11 @@
                 "dc": 15,
                 "difficulty": "regular",
                 "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": -100,
                 "dependsOn": [
                   {
                     "id": "p3-g1-c1",
@@ -302,10 +373,15 @@
                 "id": "p3-g2-c1",
                 "name": "Low-Light Trial",
                 "skill": "prc",
-                "description": "Verify the warforged�s vision in total darkness.",
+                "description": "Verify the warforged's vision in total darkness.",
                 "dc": 13,
                 "difficulty": "regular",
                 "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": 0,
                 "dependsOn": [],
                 "groupId": "p3-g2",
                 "step": 0
@@ -318,6 +394,11 @@
                 "dc": 14,
                 "difficulty": "regular",
                 "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": 0,
                 "dependsOn": [
                   {
                     "id": "p3-g2-c1",
@@ -338,7 +419,7 @@
         "successLines": [
           {
             "id": "p3-s1",
-            "text": "The lenses flare, then settle�darkvision holds steady.",
+            "text": "The lenses flare, then settle - darkvision holds steady.",
             "dependsOnChecks": [],
             "dependsOnGroups": []
           }

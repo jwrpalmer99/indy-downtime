@@ -1,7 +1,7 @@
 {
   "module": "indy-downtime",
-  "version": "1.0.0",
-  "exportedAt": "2026-01-27T10:23:21.675Z",
+  "version": "1.1.3",
+  "exportedAt": "2026-01-30T18:04:41.485Z",
   "tracker": {
     "id": "tracker-blacksmithing",
     "name": "Blacksmithing Mastery",
@@ -9,9 +9,11 @@
     "tabLabel": "Smithing",
     "intervalLabel": "Twice Weekly",
     "tabIcon": "fa-duotone fa-solid fa-hammer",
+    "checkRollMode": "",
     "hideDcFromPlayers": false,
     "showLockedChecksToPlayers": true,
     "showPhasePlanToPlayers": true,
+    "showFuturePlansToPlayers": false,
     "showCheckTooltipsToPlayers": true,
     "showFlowRelationships": true,
     "showFlowLines": true,
@@ -24,13 +26,16 @@
         "name": "Apprentice Forge Work",
         "narrativeDuration": "3 weeks",
         "expectedGain": "",
-        "target": 4,
-        "allowCriticalBonus": true,
+        "target": 6,
+        "allowCriticalBonus": false,
         "failureEvents": false,
         "failureEventTable": "",
         "image": "",
         "phaseCompleteMessage": "You can safely operate the forge and produce basic fittings.",
         "phaseCompleteMacro": "",
+        "phaseCompleteItems": [],
+        "phaseCompleteGold": 0,
+        "showRewardsOnSheet": false,
         "groups": [
           {
             "id": "p1-g1",
@@ -44,6 +49,11 @@
                 "dc": 12,
                 "difficulty": "regular",
                 "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": -20,
                 "dependsOn": [],
                 "groupId": "p1-g1",
                 "step": 0
@@ -56,6 +66,11 @@
                 "dc": 12,
                 "difficulty": "regular",
                 "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": 0,
                 "dependsOn": [
                   {
                     "id": "p1-g1-c1",
@@ -84,6 +99,11 @@
                 "dc": 12,
                 "difficulty": "regular",
                 "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": -25,
                 "dependsOn": [],
                 "groupId": "p1-g2",
                 "step": 0
@@ -96,6 +116,11 @@
                 "dc": 13,
                 "difficulty": "regular",
                 "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": -15,
                 "dependsOn": [
                   {
                     "id": "p1-g2-c1",
@@ -124,6 +149,11 @@
                 "dc": 11,
                 "difficulty": "regular",
                 "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": -10,
                 "dependsOn": [
                   {
                     "id": "p1-g2-c1",
@@ -153,6 +183,11 @@
                 "dc": 11,
                 "difficulty": "regular",
                 "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": 0,
                 "dependsOn": [
                   {
                     "id": "p1-g3-c1",
@@ -192,13 +227,16 @@
         "name": "Weapon Crafting",
         "narrativeDuration": "4 weeks",
         "expectedGain": "",
-        "target": 4,
-        "allowCriticalBonus": true,
+        "target": 6,
+        "allowCriticalBonus": false,
         "failureEvents": false,
         "failureEventTable": "",
         "image": "",
-        "phaseCompleteMessage": "You can improve a weapon to +1 (cost: 300 gp in quality steel, quenching oils, and artisan fees).",
+        "phaseCompleteMessage": "You can improve a weapon to +1 (cost: 300 gp in quality steel, quenching oils, and artisan fees). Takes 7 days.",
         "phaseCompleteMacro": "",
+        "phaseCompleteItems": [],
+        "phaseCompleteGold": 0,
+        "showRewardsOnSheet": false,
         "groups": [
           {
             "id": "p2-g1",
@@ -212,6 +250,11 @@
                 "dc": 14,
                 "difficulty": "regular",
                 "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": -50,
                 "dependsOn": [],
                 "groupId": "p2-g1",
                 "step": 0
@@ -224,6 +267,11 @@
                 "dc": 13,
                 "difficulty": "regular",
                 "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": 0,
                 "dependsOn": [
                   {
                     "id": "p2-g1-c1",
@@ -252,6 +300,11 @@
                 "dc": 14,
                 "difficulty": "regular",
                 "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": -40,
                 "dependsOn": [],
                 "groupId": "p2-g2",
                 "step": 0
@@ -264,6 +317,11 @@
                 "dc": 13,
                 "difficulty": "regular",
                 "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": -25,
                 "dependsOn": [
                   {
                     "id": "p2-g2-c1",
@@ -292,6 +350,11 @@
                 "dc": 13,
                 "difficulty": "regular",
                 "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": -31,
                 "dependsOn": [
                   {
                     "id": "p2-g2-c1",
@@ -317,10 +380,15 @@
                 "id": "p2-g3-c2",
                 "name": "Marking the Blade",
                 "skill": "his",
-                "description": "Record the maker�s mark and quality notes.",
+                "description": "Record the maker's mark and quality notes.",
                 "dc": 12,
                 "difficulty": "regular",
                 "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": 0,
                 "dependsOn": [
                   {
                     "id": "p2-g3-c1",
@@ -360,13 +428,16 @@
         "name": "Armor Fundamentals",
         "narrativeDuration": "4 weeks",
         "expectedGain": "",
-        "target": 4,
-        "allowCriticalBonus": true,
+        "target": 6,
+        "allowCriticalBonus": false,
         "failureEvents": false,
         "failureEventTable": "",
         "image": "",
         "phaseCompleteMessage": "You can fit and repair armor with confidence.",
         "phaseCompleteMacro": "",
+        "phaseCompleteItems": [],
+        "phaseCompleteGold": 0,
+        "showRewardsOnSheet": false,
         "groups": [
           {
             "id": "p3-g1",
@@ -380,6 +451,11 @@
                 "dc": 14,
                 "difficulty": "regular",
                 "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": -50,
                 "dependsOn": [],
                 "groupId": "p3-g1",
                 "step": 0
@@ -392,6 +468,11 @@
                 "dc": 13,
                 "difficulty": "regular",
                 "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": -20,
                 "dependsOn": [
                   {
                     "id": "p3-g1-c1",
@@ -420,6 +501,11 @@
                 "dc": 12,
                 "difficulty": "regular",
                 "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": 0,
                 "dependsOn": [],
                 "groupId": "p3-g2",
                 "step": 0
@@ -432,6 +518,11 @@
                 "dc": 13,
                 "difficulty": "regular",
                 "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": -25,
                 "dependsOn": [
                   {
                     "id": "p3-g2-c1",
@@ -460,6 +551,11 @@
                 "dc": 13,
                 "difficulty": "regular",
                 "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": 0,
                 "dependsOn": [
                   {
                     "id": "p3-g2-c1",
@@ -489,6 +585,11 @@
                 "dc": 15,
                 "difficulty": "regular",
                 "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": -30,
                 "dependsOn": [
                   {
                     "id": "p3-g3-c1",
@@ -528,13 +629,16 @@
         "name": "Masterwork Armor",
         "narrativeDuration": "5 weeks",
         "expectedGain": "",
-        "target": 4,
-        "allowCriticalBonus": true,
+        "target": 6,
+        "allowCriticalBonus": false,
         "failureEvents": false,
         "failureEventTable": "",
         "image": "",
-        "phaseCompleteMessage": "You can improve armor to +1 (cost: 600 gp in rare alloys, fittings, and artisan fees).",
+        "phaseCompleteMessage": "You can improve armor to +1 (cost: 600 gp in rare alloys, fittings, and artisan fees). Takes 7 days.",
         "phaseCompleteMacro": "",
+        "phaseCompleteItems": [],
+        "phaseCompleteGold": 0,
+        "showRewardsOnSheet": false,
         "groups": [
           {
             "id": "p4-g1",
@@ -544,10 +648,15 @@
                 "id": "p4-g1-c1",
                 "name": "Rare Alloy Blend",
                 "skill": "arc",
-                "description": "Blend rare alloys. Requires 150 gp in rare metals.",
+                "description": "Blend rare alloys. Requires 100 gp in rare metals.",
                 "dc": 14,
                 "difficulty": "regular",
                 "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": -100,
                 "dependsOn": [],
                 "groupId": "p4-g1",
                 "step": 0
@@ -560,6 +669,11 @@
                 "dc": 15,
                 "difficulty": "regular",
                 "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": -75,
                 "dependsOn": [
                   {
                     "id": "p4-g1-c1",
@@ -588,6 +702,11 @@
                 "dc": 14,
                 "difficulty": "regular",
                 "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": -60,
                 "dependsOn": [],
                 "groupId": "p4-g2",
                 "step": 0
@@ -600,6 +719,11 @@
                 "dc": 15,
                 "difficulty": "regular",
                 "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": 0,
                 "dependsOn": [
                   {
                     "id": "p4-g2-c1",
@@ -628,6 +752,11 @@
                 "dc": 14,
                 "difficulty": "regular",
                 "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": 0,
                 "dependsOn": [
                   {
                     "id": "p4-g2-c1",
@@ -653,10 +782,15 @@
                 "id": "p4-g3-c2",
                 "name": "Masterwork Seal",
                 "skill": "his",
-                "description": "Record the masterwork process. Requires 25 gp in inks and stamps.",
+                "description": "Record the masterwork process. Requires 40 gp in inks and stamps.",
                 "dc": 15,
                 "difficulty": "regular",
                 "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": -41,
                 "dependsOn": [
                   {
                     "id": "p4-g3-c1",

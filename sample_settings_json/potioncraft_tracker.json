@@ -1,7 +1,7 @@
 {
   "module": "indy-downtime",
-  "version": "1.0.0",
-  "exportedAt": "2026-01-27T10:50:40.176Z",
+  "version": "1.1.3",
+  "exportedAt": "2026-01-30T18:05:06.640Z",
   "tracker": {
     "id": "tracker-potioncraft",
     "name": "Potioncraft Apprenticeship",
@@ -9,13 +9,17 @@
     "tabLabel": "Potioncraft",
     "intervalLabel": "Day",
     "tabIcon": "fas fa-flask",
+    "checkRollMode": "",
     "hideDcFromPlayers": false,
     "showLockedChecksToPlayers": true,
     "showPhasePlanToPlayers": true,
+    "showFuturePlansToPlayers": false,
     "showCheckTooltipsToPlayers": true,
     "showFlowRelationships": true,
     "showFlowLines": true,
-    "restrictedActorUuids": [],
+    "restrictedActorUuids": [
+      "Actor.Y0J7ZStumc0E1ts3"
+    ],
     "phaseConfig": [
       {
         "id": "phase1",
@@ -23,12 +27,24 @@
         "narrativeDuration": "2 weeks",
         "expectedGain": "",
         "target": 6,
-        "allowCriticalBonus": true,
+        "allowCriticalBonus": false,
         "failureEvents": false,
         "failureEventTable": "",
         "image": "",
         "phaseCompleteMessage": "You learn to craft Potions of Climbing and Potions of Swimming. Each potion takes 1 day to craft and costs 30 gp in ingredients. You can create 1 of each for these costs as part of this phase activity.",
         "phaseCompleteMacro": "",
+        "phaseCompleteItems": [
+          {
+            "uuid": "Item.fdpzcyYLgcWTWfbU",
+            "qty": 1
+          },
+          {
+            "uuid": "Item.rizKuUnKSL3DtDkW",
+            "qty": 1
+          }
+        ],
+        "phaseCompleteGold": 0,
+        "showRewardsOnSheet": true,
         "groups": [
           {
             "id": "p1-g1",
@@ -42,6 +58,11 @@
                 "dc": 12,
                 "difficulty": "regular",
                 "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": -20,
                 "dependsOn": [],
                 "groupId": "p1-g1",
                 "step": 0
@@ -54,6 +75,11 @@
                 "dc": 12,
                 "difficulty": "regular",
                 "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": -15,
                 "dependsOn": [
                   {
                     "id": "p1-g1-c1",
@@ -82,6 +108,11 @@
                 "dc": 12,
                 "difficulty": "regular",
                 "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": -10,
                 "dependsOn": [],
                 "groupId": "p1-g2",
                 "step": 0
@@ -94,6 +125,11 @@
                 "dc": 13,
                 "difficulty": "regular",
                 "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": -10,
                 "dependsOn": [
                   {
                     "id": "p1-g2-c1",
@@ -122,6 +158,11 @@
                 "dc": 12,
                 "difficulty": "regular",
                 "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": -10,
                 "dependsOn": [
                   {
                     "id": "p1-g2-c1",
@@ -151,6 +192,11 @@
                 "dc": 12,
                 "difficulty": "regular",
                 "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": -10,
                 "dependsOn": [
                   {
                     "id": "p1-g3-c1",
@@ -191,12 +237,20 @@
         "narrativeDuration": "2 weeks",
         "expectedGain": "",
         "target": 6,
-        "allowCriticalBonus": true,
+        "allowCriticalBonus": false,
         "failureEvents": false,
         "failureEventTable": "",
         "image": "",
-        "phaseCompleteMessage": "You learn to craft Alchemist's Fire. Each vial takes 1 day to craft and costs 20 gp in reagents. You can create 1 of each for these costs as part of this phase activity.",
+        "phaseCompleteMessage": "You learn to craft Alchemist's Fire. Each vial takes 1 day to craft and costs 20 gp in reagents. You create 2 as you complete this phase.",
         "phaseCompleteMacro": "",
+        "phaseCompleteItems": [
+          {
+            "uuid": "Item.Ic87eyV0iKTg4JAh",
+            "qty": 2
+          }
+        ],
+        "phaseCompleteGold": 0,
+        "showRewardsOnSheet": true,
         "groups": [
           {
             "id": "p2-g1",
@@ -210,6 +264,11 @@
                 "dc": 14,
                 "difficulty": "regular",
                 "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": -30,
                 "dependsOn": [],
                 "groupId": "p2-g1",
                 "step": 0
@@ -222,7 +281,21 @@
                 "dc": 13,
                 "difficulty": "regular",
                 "target": 1,
-                "dependsOn": [],
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": -15,
+                "dependsOn": [
+                  {
+                    "id": "p2-g1-c1",
+                    "type": "block",
+                    "kind": "check",
+                    "dcPenalty": 0,
+                    "overrideSkill": "",
+                    "overrideDc": 0
+                  }
+                ],
                 "groupId": "p2-g1",
                 "step": 0
               }
@@ -241,6 +314,11 @@
                 "dc": 13,
                 "difficulty": "regular",
                 "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": -20,
                 "dependsOn": [],
                 "groupId": "p2-g2",
                 "step": 0
@@ -253,7 +331,21 @@
                 "dc": 12,
                 "difficulty": "regular",
                 "target": 1,
-                "dependsOn": [],
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": -20,
+                "dependsOn": [
+                  {
+                    "id": "p2-g2-c1",
+                    "type": "block",
+                    "kind": "check",
+                    "dcPenalty": 0,
+                    "overrideSkill": "",
+                    "overrideDc": 0
+                  }
+                ],
                 "groupId": "p2-g2",
                 "step": 0
               }
@@ -272,7 +364,29 @@
                 "dc": 12,
                 "difficulty": "regular",
                 "target": 1,
-                "dependsOn": [],
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": -20,
+                "dependsOn": [
+                  {
+                    "id": "p2-g2-c1",
+                    "type": "block",
+                    "kind": "check",
+                    "dcPenalty": 0,
+                    "overrideSkill": "",
+                    "overrideDc": 0
+                  },
+                  {
+                    "id": "p2-g1-c1",
+                    "type": "block",
+                    "kind": "check",
+                    "dcPenalty": 0,
+                    "overrideSkill": "",
+                    "overrideDc": 0
+                  }
+                ],
                 "groupId": "p2-g3",
                 "step": 0
               },
@@ -284,7 +398,37 @@
                 "dc": 13,
                 "difficulty": "regular",
                 "target": 1,
-                "dependsOn": [],
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": -10,
+                "dependsOn": [
+                  {
+                    "id": "p2-g3-c1",
+                    "type": "block",
+                    "kind": "check",
+                    "dcPenalty": 0,
+                    "overrideSkill": "",
+                    "overrideDc": 0
+                  },
+                  {
+                    "id": "p2-g2-c2",
+                    "type": "block",
+                    "kind": "check",
+                    "dcPenalty": 0,
+                    "overrideSkill": "",
+                    "overrideDc": 0
+                  },
+                  {
+                    "id": "p2-g1-c2",
+                    "type": "block",
+                    "kind": "check",
+                    "dcPenalty": 0,
+                    "overrideSkill": "",
+                    "overrideDc": 0
+                  }
+                ],
                 "groupId": "p2-g3",
                 "step": 0
               }
@@ -315,12 +459,24 @@
         "narrativeDuration": "3 weeks",
         "expectedGain": "",
         "target": 6,
-        "allowCriticalBonus": true,
+        "allowCriticalBonus": false,
         "failureEvents": false,
         "failureEventTable": "",
         "image": "",
-        "phaseCompleteMessage": "You learn to craft Potions of Resistance and Potions of Growth. Each potion takes 1 day to craft and costs 125 gp in ingredients. You can create 1 of each for these costs as part of this phase activity.",
+        "phaseCompleteMessage": "You learn to craft Potions of Resistance and Potions of Growth. Each potion takes 1 day to craft and costs 125 gp in ingredients. You gain 1 of each for completing this phase.",
         "phaseCompleteMacro": "",
+        "phaseCompleteItems": [
+          {
+            "uuid": "Item.1W8jnh6n3YlRx3mC",
+            "qty": 1
+          },
+          {
+            "uuid": "Item.Y3fCtmOAxs3KyFoc",
+            "qty": 1
+          }
+        ],
+        "phaseCompleteGold": 0,
+        "showRewardsOnSheet": true,
         "groups": [
           {
             "id": "p3-g1",
@@ -334,6 +490,11 @@
                 "dc": 15,
                 "difficulty": "regular",
                 "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": 0,
                 "dependsOn": [],
                 "groupId": "p3-g1",
                 "step": 0
@@ -346,6 +507,11 @@
                 "dc": 14,
                 "difficulty": "regular",
                 "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": 0,
                 "dependsOn": [
                   {
                     "id": "p3-g1-c1",
@@ -374,6 +540,11 @@
                 "dc": 15,
                 "difficulty": "regular",
                 "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": 0,
                 "dependsOn": [],
                 "groupId": "p3-g2",
                 "step": 0
@@ -386,6 +557,11 @@
                 "dc": 14,
                 "difficulty": "regular",
                 "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": 0,
                 "dependsOn": [
                   {
                     "id": "p3-g2-c1",
@@ -414,6 +590,11 @@
                 "dc": 14,
                 "difficulty": "regular",
                 "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": 0,
                 "dependsOn": [
                   {
                     "id": "p3-g2-c1",
@@ -443,9 +624,30 @@
                 "dc": 13,
                 "difficulty": "regular",
                 "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": 0,
                 "dependsOn": [
                   {
                     "id": "p3-g3-c1",
+                    "type": "block",
+                    "kind": "check",
+                    "dcPenalty": 0,
+                    "overrideSkill": "",
+                    "overrideDc": 0
+                  },
+                  {
+                    "id": "p3-g2-c2",
+                    "type": "block",
+                    "kind": "check",
+                    "dcPenalty": 0,
+                    "overrideSkill": "",
+                    "overrideDc": 0
+                  },
+                  {
+                    "id": "p3-g1-c2",
                     "type": "block",
                     "kind": "check",
                     "dcPenalty": 0,
@@ -483,12 +685,28 @@
         "narrativeDuration": "4 weeks",
         "expectedGain": "",
         "target": 6,
-        "allowCriticalBonus": true,
+        "allowCriticalBonus": false,
         "failureEvents": false,
         "failureEventTable": "",
         "image": "",
-        "phaseCompleteMessage": "You learn to craft Potions of Fire Breath (1 day, 75 gp), Smoke Grenades (1 day, 40 gp), and Blasting Powder (1 day, 75 gp). You can create 1 of each for these costs as part of this phase activity.",
+        "phaseCompleteMessage": "You learn to craft Potions of Fire Breath (1 day, 75 gp), Smoke Grenades (1 day, 40 gp), and Blasting Powder (1 day, 75 gp). You gain 1 of each for completing this phase.",
         "phaseCompleteMacro": "",
+        "phaseCompleteItems": [
+          {
+            "uuid": "Item.IjjSwuRR9GjrsFPk",
+            "qty": 1
+          },
+          {
+            "uuid": "Item.N0TDX70ryS2b4g9s",
+            "qty": 1
+          },
+          {
+            "uuid": "Item.URsQLM8p6CBaT4EZ",
+            "qty": 1
+          }
+        ],
+        "phaseCompleteGold": 0,
+        "showRewardsOnSheet": true,
         "groups": [
           {
             "id": "p4-g1",
@@ -498,10 +716,15 @@
                 "id": "p4-g1-c1",
                 "name": "Ignition Control",
                 "skill": "arc",
-                "description": "Stabilize combustion triggers. Requires 80 gp in volatile reagents.",
+                "description": "Stabilize combustion triggers. Requires 60 gp in volatile reagents.",
                 "dc": 16,
                 "difficulty": "regular",
                 "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": -60,
                 "dependsOn": [],
                 "groupId": "p4-g1",
                 "step": 0
@@ -514,7 +737,21 @@
                 "dc": 15,
                 "difficulty": "regular",
                 "target": 1,
-                "dependsOn": [],
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": -40,
+                "dependsOn": [
+                  {
+                    "id": "p4-g1-c1",
+                    "type": "block",
+                    "kind": "check",
+                    "dcPenalty": 0,
+                    "overrideSkill": "",
+                    "overrideDc": 0
+                  }
+                ],
                 "groupId": "p4-g1",
                 "step": 0
               }
@@ -533,6 +770,11 @@
                 "dc": 15,
                 "difficulty": "regular",
                 "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": -50,
                 "dependsOn": [],
                 "groupId": "p4-g2",
                 "step": 0
@@ -545,7 +787,21 @@
                 "dc": 14,
                 "difficulty": "regular",
                 "target": 1,
-                "dependsOn": [],
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": -30,
+                "dependsOn": [
+                  {
+                    "id": "p4-g2-c1",
+                    "type": "block",
+                    "kind": "check",
+                    "dcPenalty": 0,
+                    "overrideSkill": "",
+                    "overrideDc": 0
+                  }
+                ],
                 "groupId": "p4-g2",
                 "step": 0
               }
@@ -564,7 +820,29 @@
                 "dc": 15,
                 "difficulty": "regular",
                 "target": 1,
-                "dependsOn": [],
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": -60,
+                "dependsOn": [
+                  {
+                    "id": "p4-g2-c1",
+                    "type": "block",
+                    "kind": "check",
+                    "dcPenalty": 0,
+                    "overrideSkill": "",
+                    "overrideDc": 0
+                  },
+                  {
+                    "id": "p4-g1-c1",
+                    "type": "block",
+                    "kind": "check",
+                    "dcPenalty": 0,
+                    "overrideSkill": "",
+                    "overrideDc": 0
+                  }
+                ],
                 "groupId": "p4-g3",
                 "step": 0
               },
@@ -572,11 +850,41 @@
                 "id": "p4-g3-c2",
                 "name": "Field Safety",
                 "skill": "ins",
-                "description": "Set a safe perimeter and emergency response. Requires 75 gp in safety supplies.",
+                "description": "Set a safe perimeter and emergency response. Requires 50 gp in safety supplies.",
                 "dc": 14,
                 "difficulty": "regular",
                 "target": 1,
-                "dependsOn": [],
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": -50,
+                "dependsOn": [
+                  {
+                    "id": "p4-g3-c1",
+                    "type": "block",
+                    "kind": "check",
+                    "dcPenalty": 0,
+                    "overrideSkill": "",
+                    "overrideDc": 0
+                  },
+                  {
+                    "id": "p4-g2-c2",
+                    "type": "block",
+                    "kind": "check",
+                    "dcPenalty": 0,
+                    "overrideSkill": "",
+                    "overrideDc": 0
+                  },
+                  {
+                    "id": "p4-g1-c2",
+                    "type": "block",
+                    "kind": "check",
+                    "dcPenalty": 0,
+                    "overrideSkill": "",
+                    "overrideDc": 0
+                  }
+                ],
                 "groupId": "p4-g3",
                 "step": 0
               }

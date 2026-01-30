@@ -1,7 +1,7 @@
 {
   "module": "indy-downtime",
   "version": "1.1.3",
-  "exportedAt": "2026-01-30T14:47:06.347Z",
+  "exportedAt": "2026-01-30T18:05:19.737Z",
   "tracker": {
     "id": "tracker-sharn-courier",
     "name": "Sharn Courier Hustle",
@@ -17,14 +17,16 @@
     "showCheckTooltipsToPlayers": true,
     "showFlowRelationships": true,
     "showFlowLines": true,
-    "restrictedActorUuids": [],
+    "restrictedActorUuids": [
+      "Actor.vP0zknCsNN7acwBR"
+    ],
     "phaseConfig": [
       {
         "id": "phase1",
         "name": "Getting on the Route",
         "narrativeDuration": "1 week",
         "expectedGain": "25 gp, courier satchel, House Orien day-pass token (advantage on future Orien social checks at GM discretion), and an Everbright Lantern (common).",
-        "target": 4,
+        "target": 6,
         "allowCriticalBonus": true,
         "failureEvents": false,
         "failureEventTable": "",
@@ -41,6 +43,8 @@
             "qty": 1
           }
         ],
+        "phaseCompleteGold": 50,
+        "showRewardsOnSheet": true,
         "groups": [
           {
             "id": "p1-g1",
@@ -58,6 +62,7 @@
                 "completePhaseOnSuccess": false,
                 "checkCompleteMacro": "",
                 "checkSuccessItems": [],
+                "checkSuccessGold": 5,
                 "dependsOn": [],
                 "groupId": "p1-g1",
                 "step": 0
@@ -74,6 +79,7 @@
                 "completePhaseOnSuccess": false,
                 "checkCompleteMacro": "",
                 "checkSuccessItems": [],
+                "checkSuccessGold": 5,
                 "dependsOn": [],
                 "groupId": "p1-g1",
                 "step": 0
@@ -102,6 +108,7 @@
                     "qty": 1
                   }
                 ],
+                "checkSuccessGold": 5,
                 "dependsOn": [],
                 "groupId": "p1-g2",
                 "step": 0
@@ -118,6 +125,7 @@
                 "completePhaseOnSuccess": false,
                 "checkCompleteMacro": "",
                 "checkSuccessItems": [],
+                "checkSuccessGold": 10,
                 "dependsOn": [],
                 "groupId": "p1-g2",
                 "step": 0
@@ -141,6 +149,7 @@
                 "completePhaseOnSuccess": false,
                 "checkCompleteMacro": "",
                 "checkSuccessItems": [],
+                "checkSuccessGold": 10,
                 "dependsOn": [],
                 "groupId": "p1-g3",
                 "step": 0
@@ -157,6 +166,7 @@
                 "completePhaseOnSuccess": false,
                 "checkCompleteMacro": "",
                 "checkSuccessItems": [],
+                "checkSuccessGold": 5,
                 "dependsOn": [],
                 "groupId": "p1-g3",
                 "step": 0
@@ -187,7 +197,7 @@
         "name": "Rumor Runs",
         "narrativeDuration": "2 weeks",
         "expectedGain": "50 gp, a Sivis Sending Stone (uncommon, paired), and a minor favor from a Sharn fixer.",
-        "target": 4,
+        "target": 6,
         "allowCriticalBonus": true,
         "failureEvents": false,
         "failureEventTable": "",
@@ -200,6 +210,8 @@
             "qty": 1
           }
         ],
+        "phaseCompleteGold": 100,
+        "showRewardsOnSheet": true,
         "groups": [
           {
             "id": "p2-g1",
@@ -216,7 +228,13 @@
                 "completeGroupOnSuccess": false,
                 "completePhaseOnSuccess": false,
                 "checkCompleteMacro": "",
-                "checkSuccessItems": [],
+                "checkSuccessItems": [
+                  {
+                    "uuid": "Item.FE85x7GmUHb45vFG",
+                    "qty": 1
+                  }
+                ],
+                "checkSuccessGold": 10,
                 "dependsOn": [],
                 "groupId": "p2-g1",
                 "step": 0
@@ -233,6 +251,7 @@
                 "completePhaseOnSuccess": false,
                 "checkCompleteMacro": "",
                 "checkSuccessItems": [],
+                "checkSuccessGold": 20,
                 "dependsOn": [],
                 "groupId": "p2-g1",
                 "step": 0
@@ -256,6 +275,7 @@
                 "completePhaseOnSuccess": false,
                 "checkCompleteMacro": "",
                 "checkSuccessItems": [],
+                "checkSuccessGold": 15,
                 "dependsOn": [],
                 "groupId": "p2-g2",
                 "step": 0
@@ -272,6 +292,7 @@
                 "completePhaseOnSuccess": false,
                 "checkCompleteMacro": "",
                 "checkSuccessItems": [],
+                "checkSuccessGold": 10,
                 "dependsOn": [],
                 "groupId": "p2-g2",
                 "step": 0
@@ -295,6 +316,7 @@
                 "completePhaseOnSuccess": false,
                 "checkCompleteMacro": "",
                 "checkSuccessItems": [],
+                "checkSuccessGold": 5,
                 "dependsOn": [],
                 "groupId": "p2-g3",
                 "step": 0
@@ -311,6 +333,7 @@
                 "completePhaseOnSuccess": false,
                 "checkCompleteMacro": "",
                 "checkSuccessItems": [],
+                "checkSuccessGold": 10,
                 "dependsOn": [],
                 "groupId": "p2-g3",
                 "step": 0
@@ -341,14 +364,21 @@
         "name": "Cross-House Connections",
         "narrativeDuration": "2 weeks",
         "expectedGain": "75 gp, Slippers of Spider Climbing (uncommon), and a contact in another house.",
-        "target": 4,
+        "target": 6,
         "allowCriticalBonus": true,
         "failureEvents": false,
         "failureEventTable": "",
         "image": "",
         "phaseCompleteMessage": "You forge connections beyond House Orien, expanding your influence and earnings. Reward: 400 gp and Slippers of Spider Climbing (uncommon).",
         "phaseCompleteMacro": "",
-        "phaseCompleteItems": [],
+        "phaseCompleteItems": [
+          {
+            "uuid": "Item.J6TgfMhMfsH0kRXF",
+            "qty": 1
+          }
+        ],
+        "phaseCompleteGold": 400,
+        "showRewardsOnSheet": true,
         "groups": [
           {
             "id": "p3-g1",
@@ -366,6 +396,7 @@
                 "completePhaseOnSuccess": false,
                 "checkCompleteMacro": "",
                 "checkSuccessItems": [],
+                "checkSuccessGold": 15,
                 "dependsOn": [],
                 "groupId": "p3-g1",
                 "step": 0
@@ -382,6 +413,7 @@
                 "completePhaseOnSuccess": false,
                 "checkCompleteMacro": "",
                 "checkSuccessItems": [],
+                "checkSuccessGold": 10,
                 "dependsOn": [],
                 "groupId": "p3-g1",
                 "step": 0
@@ -410,6 +442,7 @@
                     "qty": 1
                   }
                 ],
+                "checkSuccessGold": 10,
                 "dependsOn": [],
                 "groupId": "p3-g2",
                 "step": 0
@@ -426,6 +459,7 @@
                 "completePhaseOnSuccess": false,
                 "checkCompleteMacro": "",
                 "checkSuccessItems": [],
+                "checkSuccessGold": 10,
                 "dependsOn": [],
                 "groupId": "p3-g2",
                 "step": 0
@@ -449,6 +483,7 @@
                 "completePhaseOnSuccess": false,
                 "checkCompleteMacro": "",
                 "checkSuccessItems": [],
+                "checkSuccessGold": 15,
                 "dependsOn": [],
                 "groupId": "p3-g3",
                 "step": 0
@@ -465,6 +500,7 @@
                 "completePhaseOnSuccess": false,
                 "checkCompleteMacro": "",
                 "checkSuccessItems": [],
+                "checkSuccessGold": 15,
                 "dependsOn": [],
                 "groupId": "p3-g3",
                 "step": 0
@@ -495,12 +531,12 @@
         "name": "Courier of Influence",
         "narrativeDuration": "3 weeks",
         "expectedGain": "125 gp, House Orien recommendation, a rare intel cache (GM plot hook), and a Cloak of the Bat (rare).",
-        "target": 4,
+        "target": 6,
         "allowCriticalBonus": true,
         "failureEvents": false,
         "failureEventTable": "",
         "image": "",
-        "phaseCompleteMessage": "You become a trusted courier with House Orien and Sharn's power brokers, earning steady rewards and rare intel. Reward: 1000 gp, Sending Stone Rank 2, and a Cloak of the Bat (rare).",
+        "phaseCompleteMessage": "You become a trusted courier with House Orien and Sharn's power brokers, earning steady rewards and rare intel. Reward: 1000 gp, Sending Stone Rank 2, and a Far Realm Shard (rare).",
         "phaseCompleteMacro": "",
         "phaseCompleteItems": [
           {
@@ -508,6 +544,8 @@
             "qty": 1
           }
         ],
+        "phaseCompleteGold": 1000,
+        "showRewardsOnSheet": true,
         "groups": [
           {
             "id": "p4-g1",
@@ -525,6 +563,7 @@
                 "completePhaseOnSuccess": false,
                 "checkCompleteMacro": "",
                 "checkSuccessItems": [],
+                "checkSuccessGold": 20,
                 "dependsOn": [],
                 "groupId": "p4-g1",
                 "step": 0
@@ -541,6 +580,7 @@
                 "completePhaseOnSuccess": false,
                 "checkCompleteMacro": "",
                 "checkSuccessItems": [],
+                "checkSuccessGold": 15,
                 "dependsOn": [],
                 "groupId": "p4-g1",
                 "step": 0
@@ -564,6 +604,7 @@
                 "completePhaseOnSuccess": false,
                 "checkCompleteMacro": "",
                 "checkSuccessItems": [],
+                "checkSuccessGold": 50,
                 "dependsOn": [],
                 "groupId": "p4-g2",
                 "step": 0
@@ -580,6 +621,7 @@
                 "completePhaseOnSuccess": false,
                 "checkCompleteMacro": "",
                 "checkSuccessItems": [],
+                "checkSuccessGold": 15,
                 "dependsOn": [],
                 "groupId": "p4-g2",
                 "step": 0
@@ -603,6 +645,7 @@
                 "completePhaseOnSuccess": false,
                 "checkCompleteMacro": "",
                 "checkSuccessItems": [],
+                "checkSuccessGold": 50,
                 "dependsOn": [],
                 "groupId": "p4-g3",
                 "step": 0
@@ -619,6 +662,7 @@
                 "completePhaseOnSuccess": false,
                 "checkCompleteMacro": "",
                 "checkSuccessItems": [],
+                "checkSuccessGold": 50,
                 "dependsOn": [],
                 "groupId": "p4-g3",
                 "step": 0

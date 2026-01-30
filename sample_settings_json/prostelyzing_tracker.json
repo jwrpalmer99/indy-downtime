@@ -1,0 +1,659 @@
+{
+  "module": "indy-downtime",
+  "version": "1.1.3",
+  "exportedAt": "2026-01-30T18:02:17.884Z",
+  "tracker": {
+    "id": "tracker-1",
+    "name": "Prostelyzing",
+    "headerLabel": "Spreading the Word of Boldrei",
+    "tabLabel": "Prostelyzing",
+    "intervalLabel": "Weekly",
+    "tabIcon": "fa-duotone fa-light fa-fireplace",
+    "checkRollMode": "",
+    "hideDcFromPlayers": false,
+    "showLockedChecksToPlayers": false,
+    "showPhasePlanToPlayers": true,
+    "showFuturePlansToPlayers": false,
+    "showCheckTooltipsToPlayers": false,
+    "showFlowRelationships": true,
+    "showFlowLines": false,
+    "restrictedActorUuids": [
+      "Actor.2cjeurqZ3Pkxqi6t"
+    ],
+    "phaseConfig": [
+      {
+        "id": "phase1",
+        "name": "Building the Hearth",
+        "narrativeDuration": "3-5 weeks",
+        "expectedGain": "1-3",
+        "target": 8,
+        "allowCriticalBonus": false,
+        "failureEvents": false,
+        "failureEventTable": "",
+        "image": "EmbersOfTheLastWar/Images/cogs_phase1.webp",
+        "phaseCompleteMessage": "The fires from the hearth spread a warm light through this corner of The Cogs. Your congregation has come to value the comfort and belonging of this place.",
+        "phaseCompleteMacro": "",
+        "phaseCompleteItems": [],
+        "phaseCompleteGold": 0,
+        "showRewardsOnSheet": false,
+        "groups": [
+          {
+            "id": "group1",
+            "name": "Understanding",
+            "checks": [
+              {
+                "id": "insight-1",
+                "name": "Listening",
+                "skill": "ins",
+                "description": "Learning Whose Silence Carries Weight",
+                "dc": 11,
+                "difficulty": "regular",
+                "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": 0,
+                "dependsOn": [],
+                "groupId": "group1",
+                "step": 0
+              },
+              {
+                "id": "insight-2",
+                "name": "Recognizing",
+                "skill": "ins",
+                "description": "Recognizing the Pressures That Shape Every Choice",
+                "dc": 12,
+                "difficulty": "regular",
+                "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": 0,
+                "dependsOn": [
+                  {
+                    "id": "insight-1",
+                    "type": "block",
+                    "kind": "check",
+                    "dcPenalty": 0,
+                    "overrideSkill": "",
+                    "overrideDc": 0
+                  }
+                ],
+                "groupId": "group1",
+                "step": 0
+              },
+              {
+                "id": "persuasion-1",
+                "name": "Knowing",
+                "skill": "ins",
+                "description": "Knowing the Cost Others Pay to Stand Beside You",
+                "dc": 14,
+                "difficulty": "regular",
+                "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": 0,
+                "dependsOn": [
+                  {
+                    "id": "insight-1",
+                    "type": "block",
+                    "kind": "check",
+                    "dcPenalty": 0,
+                    "overrideSkill": "",
+                    "overrideDc": 0
+                  }
+                ],
+                "groupId": "group1",
+                "step": 0
+              }
+            ],
+            "maxChecks": 0
+          },
+          {
+            "id": "74NHyOsnTCoWozPE",
+            "name": "Persuading",
+            "checks": [
+              {
+                "id": "8Fl6AbcEbtZss770",
+                "name": "Returning",
+                "skill": "per",
+                "description": "When People Choose to Return Without Being Asked",
+                "dc": 11,
+                "difficulty": "regular",
+                "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": 0,
+                "dependsOn": [
+                  {
+                    "id": "insight-1",
+                    "type": "block",
+                    "kind": "check",
+                    "dcPenalty": 0,
+                    "overrideSkill": "",
+                    "overrideDc": 0
+                  }
+                ],
+                "groupId": "74NHyOsnTCoWozPE",
+                "step": 0
+              },
+              {
+                "id": "zCeYtuEgUAQlvKdA",
+                "name": "Defending",
+                "skill": "per",
+                "description": "When Others Speak in Your Defense Before You Do",
+                "dc": 12,
+                "difficulty": "regular",
+                "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": 0,
+                "dependsOn": [
+                  {
+                    "id": "8Fl6AbcEbtZss770",
+                    "type": "block",
+                    "kind": "check",
+                    "dcPenalty": 0,
+                    "overrideSkill": "",
+                    "overrideDc": 0
+                  },
+                  {
+                    "id": "persuasion-1",
+                    "type": "harder",
+                    "kind": "check",
+                    "dcPenalty": 2,
+                    "overrideSkill": "",
+                    "overrideDc": 0
+                  }
+                ],
+                "groupId": "74NHyOsnTCoWozPE",
+                "step": 0
+              },
+              {
+                "id": "sGVWQvPT2lQXENC8",
+                "name": "Trusting",
+                "skill": "per",
+                "description": "When Trust Becomes Action Without Instruction",
+                "dc": 16,
+                "difficulty": "regular",
+                "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": 0,
+                "dependsOn": [
+                  {
+                    "id": "zCeYtuEgUAQlvKdA",
+                    "type": "block",
+                    "kind": "check",
+                    "dcPenalty": 0,
+                    "overrideSkill": "",
+                    "overrideDc": 0
+                  },
+                  {
+                    "id": "persuasion-1",
+                    "type": "advantage",
+                    "kind": "check",
+                    "dcPenalty": 0,
+                    "overrideSkill": "",
+                    "overrideDc": 0
+                  }
+                ],
+                "groupId": "74NHyOsnTCoWozPE",
+                "step": 0
+              }
+            ],
+            "maxChecks": 0
+          },
+          {
+            "id": "PeOylYdALMzXtvBy",
+            "name": "Faith",
+            "checks": [
+              {
+                "id": "7ldJWSLan4JCLd5w",
+                "name": "Foundation",
+                "skill": "rel",
+                "description": "Redefining the Hearth as Community, Not Houses",
+                "dc": 12,
+                "difficulty": "regular",
+                "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": 0,
+                "dependsOn": [
+                  {
+                    "id": "persuasion-1",
+                    "type": "harder",
+                    "kind": "check",
+                    "dcPenalty": 1,
+                    "overrideSkill": "",
+                    "overrideDc": 0
+                  },
+                  {
+                    "id": "zCeYtuEgUAQlvKdA",
+                    "type": "harder",
+                    "kind": "check",
+                    "dcPenalty": 1,
+                    "overrideSkill": "",
+                    "overrideDc": 0
+                  },
+                  {
+                    "id": "8Fl6AbcEbtZss770",
+                    "type": "block",
+                    "kind": "check",
+                    "dcPenalty": 0,
+                    "overrideSkill": "",
+                    "overrideDc": 0
+                  }
+                ],
+                "groupId": "PeOylYdALMzXtvBy",
+                "step": 0
+              },
+              {
+                "id": "spnVjdPAfgIWYS87",
+                "name": "Spreading",
+                "skill": "rel",
+                "description": "When the Words No Longer Need Your Voice",
+                "dc": 16,
+                "difficulty": "regular",
+                "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": 0,
+                "dependsOn": [
+                  {
+                    "id": "7ldJWSLan4JCLd5w",
+                    "type": "block",
+                    "kind": "check",
+                    "dcPenalty": 0,
+                    "overrideSkill": "",
+                    "overrideDc": 0
+                  },
+                  {
+                    "id": "sGVWQvPT2lQXENC8",
+                    "type": "advantage",
+                    "kind": "check",
+                    "dcPenalty": 0,
+                    "overrideSkill": "",
+                    "overrideDc": 0
+                  }
+                ],
+                "groupId": "PeOylYdALMzXtvBy",
+                "step": 0
+              }
+            ],
+            "maxChecks": 0
+          }
+        ],
+        "successLines": [
+          {
+            "id": "I1a3aK8EnGhYM5SV",
+            "text": "Before anyone trusts your words, they need to know you are hearing theirs. In the Cogs, silence isn’t emptiness — it’s memory, caution, and names that never came back. To listen here is to learn who speaks, who cannot afford to, and who has already been ignored too many times.",
+            "dependsOnChecks": [
+              "insight-1"
+            ],
+            "dependsOnGroups": []
+          },
+          {
+            "id": "G1XA8WMYnaeuqNPo",
+            "text": "You begin to see the strain beneath the metal. Every conversation carries the weight of consequences — lost work, broken parts, quiet punishments. You learn that disagreement isn’t hostility here. It’s fear choosing its words carefully.",
+            "dependsOnChecks": [
+              "insight-2"
+            ],
+            "dependsOnGroups": []
+          },
+          {
+            "id": "u1y13hKXfSXlwpHf",
+            "text": "Not everyone can stand in the light, even if they believe. Some can only help quietly, from the edges, where survival still demands silence. Understanding the movement now means knowing when not to ask more of someone than they can afford to give.",
+            "dependsOnChecks": [
+              "persuasion-1"
+            ],
+            "dependsOnGroups": []
+          },
+          {
+            "id": "vgFDCnYphccOtZAP",
+            "text": "The first sign of trust isn’t agreement — it’s return.They come back after the shift ends.",
+            "dependsOnChecks": [
+              "8Fl6AbcEbtZss770"
+            ],
+            "dependsOnGroups": []
+          },
+          {
+            "id": "84Acbm7pVBId6w1V",
+            "text": "One day, the challenge isn’t answered by you.Someone else speaks first. Not louder — just steadier. In that moment, belief stops being something you explain and becomes something others are willing to stand beside.",
+            "dependsOnChecks": [
+              "zCeYtuEgUAQlvKdA"
+            ],
+            "dependsOnGroups": []
+          },
+          {
+            "id": "K69F9uc2ODb0TPdQ",
+            "text": "Eventually, no one waits to be told what to do. Food is shared. Watches are kept. Repairs are made without being asked.Trust stops being a feeling and becomes a habit — one that holds even when you are not there.",
+            "dependsOnChecks": [
+              "sGVWQvPT2lQXENC8"
+            ],
+            "dependsOnGroups": []
+          },
+          {
+            "id": "ERLqMVms6l1COA1t",
+            "text": "They stop asking where Boldrei’s house is. They start asking who she protects. When hearth becomes people instead of walls, the question of belonging finally finds room to breathe.",
+            "dependsOnChecks": [
+              "7ldJWSLan4JCLd5w"
+            ],
+            "dependsOnGroups": []
+          },
+          {
+            "id": "9ZxEUcGvyeNpBC6J",
+            "text": "You hear your words come back to you — changed. Sharper. Simpler. Truer to their lives than to your sermons. When the message no longer needs your voice to survive, you know it has found a home.",
+            "dependsOnChecks": [
+              "spnVjdPAfgIWYS87"
+            ],
+            "dependsOnGroups": []
+          }
+        ],
+        "failureLines": [
+          {
+            "id": "line1",
+            "text": "People listen, but do not act yet.",
+            "dependsOnChecks": [],
+            "dependsOnGroups": []
+          },
+          {
+            "id": "line2",
+            "text": "Debate stalls the message for now.",
+            "dependsOnChecks": [],
+            "dependsOnGroups": []
+          },
+          {
+            "id": "line3",
+            "text": "Fatigue keeps attention low.",
+            "dependsOnChecks": [],
+            "dependsOnGroups": []
+          }
+        ]
+      },
+      {
+        "id": "phase2",
+        "name": "Holding the Hearth",
+        "narrativeDuration": "1-3 months",
+        "expectedGain": "~1",
+        "target": 4,
+        "allowCriticalBonus": false,
+        "failureEvents": true,
+        "failureEventTable": "",
+        "image": "EmbersOfTheLastWar/Images/cogs_phase2.webp",
+        "phaseCompleteMessage": "The hearth holds. Mutual aid is no longer a promise but a pattern, and even under pressure the congregation chooses to stand together. Boldrei's warmth is now a shield they share with one another. Your followers gift you a holy   amulet, a symbol of their growing belief.",
+        "phaseCompleteMacro": "",
+        "phaseCompleteItems": [
+          {
+            "uuid": "Item.QVPTHiRsUi97DI4P",
+            "qty": 1
+          }
+        ],
+        "phaseCompleteGold": 0,
+        "showRewardsOnSheet": false,
+        "groups": [
+          {
+            "id": "group1",
+            "name": "Aid",
+            "checks": [
+              {
+                "id": "insight",
+                "name": "Mutual Aid 1",
+                "skill": "per",
+                "description": "",
+                "dc": 15,
+                "difficulty": "regular",
+                "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": 0,
+                "dependsOn": [],
+                "groupId": "group1",
+                "step": 0
+              },
+              {
+                "id": "jtKhCZYpTGESAvVA",
+                "name": "Mutual Aid 2",
+                "skill": "rel",
+                "description": "",
+                "dc": 15,
+                "difficulty": "regular",
+                "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": 0,
+                "dependsOn": [],
+                "groupId": "group1",
+                "step": 0
+              }
+            ],
+            "maxChecks": 0
+          },
+          {
+            "id": "zTAkHF9qpvxBJqwH",
+            "name": "Pressure",
+            "checks": [
+              {
+                "id": "ene3aWYathaGoLcl",
+                "name": "Withstand Pressure 1",
+                "skill": "per",
+                "description": "",
+                "dc": 15,
+                "difficulty": "regular",
+                "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": 0,
+                "dependsOn": [],
+                "groupId": "zTAkHF9qpvxBJqwH",
+                "step": 0
+              },
+              {
+                "id": "ne1tTHfgj00arjje",
+                "name": "Withstand Pressure 1",
+                "skill": "ins",
+                "description": "",
+                "dc": 15,
+                "difficulty": "regular",
+                "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": 0,
+                "dependsOn": [],
+                "groupId": "zTAkHF9qpvxBJqwH",
+                "step": 0
+              }
+            ],
+            "maxChecks": 0
+          },
+          {
+            "id": "qh6dfgCAMaK1llR4",
+            "name": "Stability",
+            "checks": [
+              {
+                "id": "w6XAeyF6UW9kqKCq",
+                "name": "Community 1",
+                "skill": "per",
+                "description": "",
+                "dc": 16,
+                "difficulty": "regular",
+                "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": 0,
+                "dependsOn": [],
+                "groupId": "qh6dfgCAMaK1llR4",
+                "step": 0
+              },
+              {
+                "id": "TJEWJ3dOI4M9IoYX",
+                "name": "Communit 2",
+                "skill": "rel",
+                "description": "",
+                "dc": 17,
+                "difficulty": "regular",
+                "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": 0,
+                "dependsOn": [],
+                "groupId": "qh6dfgCAMaK1llR4",
+                "step": 0
+              }
+            ],
+            "maxChecks": 0
+          }
+        ],
+        "successLines": [],
+        "failureLines": [
+          {
+            "id": "line1",
+            "text": "",
+            "dependsOnChecks": [],
+            "dependsOnGroups": []
+          },
+          {
+            "id": "line2",
+            "text": "",
+            "dependsOnChecks": [],
+            "dependsOnGroups": []
+          },
+          {
+            "id": "line3",
+            "text": "",
+            "dependsOnChecks": [],
+            "dependsOnGroups": []
+          }
+        ]
+      },
+      {
+        "id": "phase3",
+        "name": "Tending the Ember",
+        "narrativeDuration": "Several months",
+        "expectedGain": "~1",
+        "target": 3,
+        "allowCriticalBonus": false,
+        "failureEvents": true,
+        "failureEventTable": "",
+        "image": "EmbersOfTheLastWar/Images/cogs_phase3.webp",
+        "phaseCompleteMessage": "The ember no longer needs tending to keep its light. The faith has taken root in daily acts of care, and the community carries the hearth forward without waiting for your voice. The faithful have pooled their talents and resources to create you a weapon, a symbol of their belief in you and Boldrei.",
+        "phaseCompleteMacro": "",
+        "phaseCompleteItems": [
+          {
+            "uuid": "Item.VckFmk0w8Q8J2FdT",
+            "qty": 1
+          }
+        ],
+        "phaseCompleteGold": 0,
+        "showRewardsOnSheet": false,
+        "groups": [
+          {
+            "id": "group1",
+            "name": "Core Checks",
+            "checks": [
+              {
+                "id": "persuasion",
+                "name": "Persuasion",
+                "skill": "acr",
+                "description": "",
+                "dc": 15,
+                "difficulty": "regular",
+                "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": 0,
+                "dependsOn": [],
+                "groupId": "group1",
+                "step": 0
+              },
+              {
+                "id": "religion",
+                "name": "Religion",
+                "skill": "acr",
+                "description": "",
+                "dc": 15,
+                "difficulty": "regular",
+                "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": 0,
+                "dependsOn": [],
+                "groupId": "group1",
+                "step": 0
+              },
+              {
+                "id": "insight",
+                "name": "Insight",
+                "skill": "acr",
+                "description": "",
+                "dc": 15,
+                "difficulty": "regular",
+                "target": 1,
+                "completeGroupOnSuccess": false,
+                "completePhaseOnSuccess": false,
+                "checkCompleteMacro": "",
+                "checkSuccessItems": [],
+                "checkSuccessGold": 0,
+                "dependsOn": [],
+                "groupId": "group1",
+                "step": 0
+              }
+            ],
+            "maxChecks": 0
+          }
+        ],
+        "successLines": [],
+        "failureLines": [
+          {
+            "id": "line1",
+            "text": "",
+            "dependsOnChecks": [],
+            "dependsOnGroups": []
+          },
+          {
+            "id": "line2",
+            "text": "",
+            "dependsOnChecks": [],
+            "dependsOnGroups": []
+          },
+          {
+            "id": "line3",
+            "text": "",
+            "dependsOnChecks": [],
+            "dependsOnGroups": []
+          }
+        ]
+      }
+    ]
+  }
+}
