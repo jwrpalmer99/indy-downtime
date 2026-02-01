@@ -93,8 +93,31 @@ function getTabIcon(trackerId) {
 }
 
 
+function resolveHideDcSettings(trackerId) {
+  const tracker = getTrackerById(trackerId);
+  if (tracker && (typeof tracker.hideDcLockedFromPlayers !== "undefined" || typeof tracker.hideDcUnlockedFromPlayers !== "undefined")) {
+    return {
+      hideLocked: Boolean(tracker.hideDcLockedFromPlayers),
+      hideUnlocked: Boolean(tracker.hideDcUnlockedFromPlayers),
+    };
+  }
+  return {
+    hideLocked: Boolean(tracker?.hideDcFromPlayers),
+    hideUnlocked: Boolean(tracker?.hideDcFromPlayers),
+  };
+}
+
 function shouldHideDc(trackerId) {
-  return Boolean(getTrackerById(trackerId)?.hideDcFromPlayers);
+  const { hideLocked, hideUnlocked } = resolveHideDcSettings(trackerId);
+  return hideLocked || hideUnlocked;
+}
+
+function shouldHideDcLocked(trackerId) {
+  return resolveHideDcSettings(trackerId).hideLocked;
+}
+
+function shouldHideDcUnlocked(trackerId) {
+  return resolveHideDcSettings(trackerId).hideUnlocked;
 }
 
 
@@ -543,6 +566,8 @@ export {
   getIntervalLabel,
   getTabIcon,
   shouldHideDc,
+  shouldHideDcLocked,
+  shouldHideDcUnlocked,
   shouldShowLockedChecks,
   shouldShowPhasePlan,
   shouldShowFuturePlans,

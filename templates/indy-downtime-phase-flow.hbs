@@ -84,7 +84,7 @@
           {{/if}}
           <div class="drep-flow-checks">
             {{#each this.checks}}
-              <div class="drep-flow-check {{#if this.locked}}is-locked{{/if}} {{#if this.groupMaxed}}is-group-maxed{{/if}} {{#if this.complete}}is-complete{{/if}}" data-drep-check-id="{{this.id}}" data-drep-group-id="{{../id}}" draggable="true">
+              <div class="drep-flow-check {{#if this.locked}}is-locked{{/if}} {{#if this.groupMaxed}}is-group-maxed{{/if}} {{#if this.complete}}is-complete{{/if}} {{#if (and @root.readOnly this.isRestrictedByActor)}}is-actor-locked{{/if}}" data-drep-check-id="{{this.id}}" data-drep-group-id="{{../id}}" data-drep-drop="actor" draggable="true">
                 <div class="drep-flow-check-name drep-flow-editable" data-edit="check-name" data-check-id="{{this.id}}" data-value="{{this.rawName}}">{{this.name}}{{#unless @root.readOnly}}<button type="button" class="drep-flow-remove-check" data-drep-action="remove-check" data-id="{{this.id}}">x</button>{{/unless}}</div>
                 <div class="drep-flow-check-meta">
                   {{#unless @root.readOnly}}
@@ -94,7 +94,13 @@
                     </button>
                   {{/unless}}
                   <span class="drep-flow-check-skill drep-flow-editable" data-edit="check-skill" data-check-id="{{this.id}}" data-skill="{{this.skill}}" data-value="{{this.skill}}">{{this.skillLabel}}</span>
-                  {{#if (and this.dcLabel (not @root.hideDc))}}
+                  {{#if (and @root.readOnly this.hasActorRestriction)}}
+                    <span class="drep-flow-check-actor" title="Restricted Actor">
+                      <i class="fa-solid fa-user"></i>
+                      {{this.restrictedActorName}}
+                    </span>
+                  {{/if}}
+                  {{#if (and this.dcLabel this.showDcLabel)}}
                     <span class="drep-flow-check-dc drep-flow-editable" data-edit="check-dc" data-check-id="{{this.id}}" data-dc="{{this.dc}}" data-difficulty="{{this.difficulty}}"{{#if this.dcTooltip}} title="{{this.dcTooltip}}"{{/if}}>{{this.dcLabel}}</span>
                   {{/if}}
                 </div>
@@ -130,6 +136,21 @@
                             {{/each}}
                           {{else}}
                             <div class="drep-muted">Drop items here.</div>
+                          {{/if}}
+                        </div>
+                      </div>
+                    </label>
+                    <label class="drep-flow-check-flag">
+                      Restricted Actor
+                      <div class="drep-item-drop" data-drep-drop="actor" data-check-id="{{this.id}}">
+                        <div class="drep-item-list">
+                          {{#if this.hasActorRestriction}}
+                            <div class="drep-item-row-check">
+                              <input type="text" class="drep-item-name-check" value="{{this.restrictedActorName}}" title="{{this.restrictedActorUuid}}" readonly />
+                              <button type="button" class="drep-item-remove-check" data-drep-action="clear-check-actor" data-check-id="{{this.id}}">x</button>
+                            </div>
+                          {{else}}
+                            <div class="drep-muted">Drop actor here.</div>
                           {{/if}}
                         </div>
                       </div>

@@ -76,6 +76,16 @@ function normalizeTrackers(trackers) {
       typeof tracker?.id === "string" && tracker.id.trim()
         ? tracker.id.trim()
         : `tracker-${index + 1}`;
+    const legacyHideDc = Boolean(tracker?.hideDcFromPlayers);
+    const hideDcLockedFromPlayers = typeof tracker?.hideDcLockedFromPlayers !== "undefined"
+      ? Boolean(tracker.hideDcLockedFromPlayers)
+      : legacyHideDc;
+    const hideDcUnlockedFromPlayers = typeof tracker?.hideDcUnlockedFromPlayers !== "undefined"
+      ? Boolean(tracker.hideDcUnlockedFromPlayers)
+      : legacyHideDc;
+    const hideDcFromPlayers = typeof tracker?.hideDcFromPlayers !== "undefined"
+      ? legacyHideDc
+      : (hideDcLockedFromPlayers && hideDcUnlockedFromPlayers);
     const phaseConfig = normalizePhaseConfig(
       Array.isArray(tracker?.phaseConfig) && tracker.phaseConfig.length
         ? tracker.phaseConfig
@@ -98,7 +108,9 @@ function normalizeTrackers(trackers) {
         DEFAULT_INTERVAL_LABEL
       ),
       tabIcon: sanitizeLabel(tracker?.tabIcon, DEFAULT_TAB_ICON),
-      hideDcFromPlayers: Boolean(tracker?.hideDcFromPlayers),
+      hideDcFromPlayers,
+      hideDcLockedFromPlayers,
+      hideDcUnlockedFromPlayers,
       showLockedChecksToPlayers: tracker?.showLockedChecksToPlayers !== false,
       showPhasePlanToPlayers: Boolean(tracker?.showPhasePlanToPlayers),
       showFuturePlansToPlayers: Boolean(tracker?.showFuturePlansToPlayers),
@@ -158,6 +170,8 @@ async function addTracker() {
     intervalLabel: DEFAULT_INTERVAL_LABEL,
     tabIcon: DEFAULT_TAB_ICON,
     hideDcFromPlayers: false,
+    hideDcLockedFromPlayers: false,
+    hideDcUnlockedFromPlayers: false,
     showLockedChecksToPlayers: true,
     showPhasePlanToPlayers: false,
     showFuturePlansToPlayers: false,
@@ -205,6 +219,7 @@ function buildDefaultTrackerFromLegacy() {
     legacyState ?? DEFAULT_STATE,
     phaseConfig
   );
+  const legacyHideDc = Boolean(getLegacySetting("hideDcFromPlayers"));
   return {
     id: "tracker-1",
     name: DEFAULT_TRACKER_NAME,
@@ -212,7 +227,9 @@ function buildDefaultTrackerFromLegacy() {
     tabLabel: getLegacySetting("tabLabel") || DEFAULT_TAB_LABEL,
     intervalLabel: getLegacySetting("intervalLabel") || DEFAULT_INTERVAL_LABEL,
     tabIcon: DEFAULT_TAB_ICON,
-    hideDcFromPlayers: false,
+    hideDcFromPlayers: legacyHideDc,
+    hideDcLockedFromPlayers: legacyHideDc,
+    hideDcUnlockedFromPlayers: legacyHideDc,
     showLockedChecksToPlayers: true,
     showPhasePlanToPlayers: false,
     showFuturePlansToPlayers: false,

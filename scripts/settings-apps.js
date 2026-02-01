@@ -58,7 +58,8 @@ import {
   setTrackerPhaseConfig,
   setWorldState,
   normalizeManualSkillOverrides,
-  shouldHideDc,
+  shouldHideDcLocked,
+  shouldHideDcUnlocked,
   shouldShowCheckTooltips,
   shouldShowFuturePlans,
   shouldShowLockedChecks,
@@ -192,6 +193,32 @@ const buildItemNameMap = async (uuids) => {
         const item = doc?.document ?? doc ?? null;
         if (item?.documentName === "Item") {
           name = item.name ?? "";
+        }
+      } catch (error) {
+        name = "";
+      }
+      return [uuid, name];
+    })
+  );
+  for (const [uuid, name] of entries) {
+    if (!uuid) continue;
+    nameMap.set(uuid, name);
+  }
+  return nameMap;
+};
+
+const buildActorNameMap = async (uuids) => {
+  const nameMap = new Map();
+  if (!uuids || !uuids.size) return nameMap;
+  const entries = await Promise.all(
+    Array.from(uuids).map(async (uuid) => {
+      let name = "";
+      if (!uuid) return [uuid, name];
+      try {
+        const doc = await fromUuid(uuid);
+        const actor = doc?.document ?? doc ?? null;
+        if (actor?.documentName === "Actor") {
+          name = actor.name ?? "";
         }
       } catch (error) {
         name = "";
@@ -408,6 +435,12 @@ class DowntimeRepSettings extends HandlebarsApplicationMixin(ApplicationV2) {
       label: entry.name ? `${entry.name}` : `Tracker ${index + 1}`,
     }));
     const moduleCheckRollMode = getModuleCheckRollMode();
+    const hideDcLockedFromPlayers = typeof tracker?.hideDcLockedFromPlayers !== "undefined"
+      ? Boolean(tracker?.hideDcLockedFromPlayers)
+      : Boolean(tracker?.hideDcFromPlayers);
+    const hideDcUnlockedFromPlayers = typeof tracker?.hideDcUnlockedFromPlayers !== "undefined"
+      ? Boolean(tracker?.hideDcUnlockedFromPlayers)
+      : Boolean(tracker?.hideDcFromPlayers);
 
     return {
       ...context,
@@ -417,7 +450,8 @@ class DowntimeRepSettings extends HandlebarsApplicationMixin(ApplicationV2) {
       trackerTabIcon: getTabIcon(trackerId),
       trackerCheckRollMode: tracker?.checkRollMode ?? "",
       moduleCheckRollMode,
-      hideDcFromPlayers: Boolean(tracker?.hideDcFromPlayers),
+      hideDcLockedFromPlayers,
+      hideDcUnlockedFromPlayers,
       showLockedChecksToPlayers: tracker?.showLockedChecksToPlayers !== false,
       showPhasePlanToPlayers: Boolean(tracker?.showPhasePlanToPlayers),
       showFuturePlansToPlayers: Boolean(tracker?.showFuturePlansToPlayers),
@@ -541,6 +575,8 @@ class DowntimeRepSettings extends HandlebarsApplicationMixin(ApplicationV2) {
               tabIcon: tracker?.tabIcon,
               checkRollMode: tracker?.checkRollMode,
               hideDcFromPlayers: tracker?.hideDcFromPlayers,
+              hideDcLockedFromPlayers: tracker?.hideDcLockedFromPlayers,
+              hideDcUnlockedFromPlayers: tracker?.hideDcUnlockedFromPlayers,
               showLockedChecksToPlayers: tracker?.showLockedChecksToPlayers,
               showPhasePlanToPlayers: tracker?.showPhasePlanToPlayers,
               showFuturePlansToPlayers: tracker?.showFuturePlansToPlayers,
@@ -587,7 +623,18 @@ class DowntimeRepSettings extends HandlebarsApplicationMixin(ApplicationV2) {
             if (typeof payload.intervalLabel === "string") updates.intervalLabel = sanitizeLabel(payload.intervalLabel, DEFAULT_INTERVAL_LABEL);
             if (typeof payload.tabIcon === "string") updates.tabIcon = sanitizeLabel(payload.tabIcon, DEFAULT_TAB_ICON);
             if (typeof payload.checkRollMode === "string") updates.checkRollMode = payload.checkRollMode.trim();
-            if (typeof payload.hideDcFromPlayers !== "undefined") updates.hideDcFromPlayers = Boolean(payload.hideDcFromPlayers);
+            if (typeof payload.hideDcLockedFromPlayers !== "undefined") updates.hideDcLockedFromPlayers = Boolean(payload.hideDcLockedFromPlayers);
+            if (typeof payload.hideDcUnlockedFromPlayers !== "undefined") updates.hideDcUnlockedFromPlayers = Boolean(payload.hideDcUnlockedFromPlayers);
+            if (typeof payload.hideDcFromPlayers !== "undefined") {
+              const legacyHideDc = Boolean(payload.hideDcFromPlayers);
+              updates.hideDcFromPlayers = legacyHideDc;
+              if (typeof payload.hideDcLockedFromPlayers === "undefined") {
+                updates.hideDcLockedFromPlayers = legacyHideDc;
+              }
+              if (typeof payload.hideDcUnlockedFromPlayers === "undefined") {
+                updates.hideDcUnlockedFromPlayers = legacyHideDc;
+              }
+            }
             if (typeof payload.showLockedChecksToPlayers !== "undefined") updates.showLockedChecksToPlayers = Boolean(payload.showLockedChecksToPlayers);
             if (typeof payload.showPhasePlanToPlayers !== "undefined") updates.showPhasePlanToPlayers = Boolean(payload.showPhasePlanToPlayers);
             if (typeof payload.showFuturePlansToPlayers !== "undefined") updates.showFuturePlansToPlayers = Boolean(payload.showFuturePlansToPlayers);
@@ -617,6 +664,8 @@ class DowntimeRepSettings extends HandlebarsApplicationMixin(ApplicationV2) {
                 tabIcon: updates.tabIcon ?? DEFAULT_TAB_ICON,
                 checkRollMode: updates.checkRollMode ?? "",
                 hideDcFromPlayers: updates.hideDcFromPlayers ?? false,
+                hideDcLockedFromPlayers: updates.hideDcLockedFromPlayers ?? (updates.hideDcFromPlayers ?? false),
+                hideDcUnlockedFromPlayers: updates.hideDcUnlockedFromPlayers ?? (updates.hideDcFromPlayers ?? false),
                 showLockedChecksToPlayers: updates.showLockedChecksToPlayers ?? true,
                 showPhasePlanToPlayers: updates.showPhasePlanToPlayers ?? false,
                 showFuturePlansToPlayers: updates.showFuturePlansToPlayers ?? false,
@@ -696,6 +745,8 @@ class DowntimeRepSettings extends HandlebarsApplicationMixin(ApplicationV2) {
       formData.trackerName,
       getTrackerById(trackerId)?.name ?? DEFAULT_TRACKER_NAME
     );
+    const hideDcLockedFromPlayers = Boolean(formData.hideDcLockedFromPlayers);
+    const hideDcUnlockedFromPlayers = Boolean(formData.hideDcUnlockedFromPlayers);
     if (Object.prototype.hasOwnProperty.call(formData, "criticalBonusEnabled")) {
       state.criticalBonusEnabled = Boolean(formData.criticalBonusEnabled);
     }
@@ -712,7 +763,9 @@ class DowntimeRepSettings extends HandlebarsApplicationMixin(ApplicationV2) {
       intervalLabel: sanitizeLabel(formData.intervalLabel, DEFAULT_INTERVAL_LABEL),
       tabIcon: sanitizeLabel(formData.tabIcon, DEFAULT_TAB_ICON),
       checkRollMode: typeof formData.checkRollMode === "string" ? formData.checkRollMode.trim() : "",
-      hideDcFromPlayers: Boolean(formData.hideDcFromPlayers),
+      hideDcFromPlayers: hideDcLockedFromPlayers && hideDcUnlockedFromPlayers,
+      hideDcLockedFromPlayers,
+      hideDcUnlockedFromPlayers,
       showLockedChecksToPlayers: Boolean(formData.showLockedChecksToPlayers),
       showPhasePlanToPlayers: Boolean(formData.showPhasePlanToPlayers),
       showFuturePlansToPlayers: Boolean(formData.showFuturePlansToPlayers),
@@ -1705,10 +1758,14 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
     const showPlanRewards = this._readOnly && (game.user?.isGM || shouldShowPlanRewards(this._trackerId));
     const rollMode = getCheckRollMode(this._trackerId);
     const checkItemUuids = new Set();
+    const checkActorUuids = new Set();
     for (const group of phase?.groups ?? []) {
       for (const check of group?.checks ?? []) {
         for (const entry of normalizeRewardItemsForDisplay(check?.checkSuccessItems ?? [])) {
           checkItemUuids.add(entry.uuid);
+        }
+        if (check?.restrictedActorUuid) {
+          checkActorUuids.add(check.restrictedActorUuid);
         }
       }
     }
@@ -1716,6 +1773,7 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
       checkItemUuids.add(entry.uuid);
     }
     const checkItemNameMap = await buildItemNameMap(checkItemUuids);
+    const checkActorNameMap = await buildActorNameMap(checkActorUuids);
 
     const state = getWorldState(this._trackerId);
     const activePhase = getActivePhase(state, this._trackerId);
@@ -1735,6 +1793,8 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
     const checkProgress = phaseState?.checkProgress ?? {};
     const resolvedChecks = phaseState?.resolvedChecks ?? {};
     const redactLockedChecks = this._readOnly && !shouldShowLockedChecks(this._trackerId);
+    const showDcLocked = game.user?.isGM || !shouldHideDcLocked(this._trackerId);
+    const showDcUnlocked = game.user?.isGM || !shouldHideDcUnlocked(this._trackerId);
     const groupCounts = {};
     if (Array.isArray(state?.log)) {
       for (const entry of state.log) {
@@ -1870,10 +1930,22 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
           ...entry,
           name: checkItemNameMap.get(entry.uuid) || entry.uuid,
         }));
+        const restrictedActorUuid =
+          typeof check.restrictedActorUuid === "string"
+            ? check.restrictedActorUuid.trim()
+            : "";
+        const restrictedActorName = restrictedActorUuid
+          ? (checkActorNameMap.get(restrictedActorUuid) || restrictedActorUuid)
+          : "";
         const hasMacro = Boolean(checkCompleteMacro);
         const hasCompleteFlag = Boolean(check.completeGroupOnSuccess || check.completePhaseOnSuccess);
         const hasItems = checkSuccessItems.length > 0;
         const hasGold = Number.isFinite(checkSuccessGold) && checkSuccessGold !== 0;
+        const isRestrictedByActor = Boolean(
+          restrictedActorUuid
+            && actor?.uuid
+            && restrictedActorUuid !== actor.uuid
+        );
         const complete = isCheckComplete(check, checkProgress);
         const unlocked = isCheckUnlocked(phase, check, checkProgress, resolvedChecks);
         const group = getPhaseGroups(phase).find((entry) => entry.id === check.groupId);
@@ -1883,6 +1955,8 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
         const groupMaxed = Boolean(groupLimit) && !groupAvailable;
         const isLocked = !unlocked || complete || groupMaxed;
         const shouldRedact = redactLockedChecks && isLocked && !complete;
+        const showDcLabel = !this._readOnly
+          || (shouldRedact ? false : (isLocked ? showDcLocked : showDcUnlocked));
         const allowRewardPreview = showPlanRewards && this._readOnly;
         const hideRewards = shouldRedact && !allowRewardPreview;
         const visibleItemsDisplay = hideRewards ? [] : checkSuccessItemsDisplay;
@@ -1926,6 +2000,9 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
           completeGroupOnSuccess: Boolean(check.completeGroupOnSuccess),
           completePhaseOnSuccess: Boolean(check.completePhaseOnSuccess),
           checkCompleteMacro,
+          restrictedActorUuid,
+          restrictedActorName,
+          hasActorRestriction: Boolean(restrictedActorUuid),
           checkSuccessGold: Number.isFinite(visibleGold) ? visibleGold : 0,
           checkSuccessGoldDisplay,
           checkSuccessItemsDisplay: visibleItemsDisplay,
@@ -1934,6 +2011,7 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
           hasCompleteFlag,
           hasItems,
           hasGold,
+          isRestrictedByActor,
           hasCompletionFlags: Boolean(
             check.completeGroupOnSuccess
               || check.completePhaseOnSuccess
@@ -1949,6 +2027,7 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
           ),
           dc: dcValue,
           dcLabel,
+          showDcLabel,
           difficulty,
           difficultyLabel,
           dcTooltip,
@@ -2031,7 +2110,6 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
       showFlowLines: this._readOnly
         ? getTrackerById(this._trackerId)?.showFlowLines !== false
         : true,
-      hideDc: this._readOnly ? shouldHideDc(this._trackerId) : false,
       readOnly: this._readOnly,
     };
   }
@@ -2163,6 +2241,38 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
       const index = Number(event.currentTarget?.dataset?.itemIndex ?? -1);
       if (!checkId || index < 0) return;
       updateCheckSuccessItems(checkId, (items) => items.filter((_, idx) => idx !== index));
+    });
+
+    html.on("dragover.drepFlow", "[data-drep-drop='actor']", (event) => {
+      event.preventDefault();
+    });
+    html.on("drop.drepFlow", "[data-drep-drop='actor']", (event) => {
+      event.preventDefault();
+      if (this._readOnly) return;
+      const checkId = event.currentTarget?.dataset?.checkId;
+      if (!checkId) return;
+      const data = TextEditor.getDragEventData(event.originalEvent ?? event);
+      const uuid = data?.uuid ?? (data?.type === "Actor" ? `Actor.${data.id}` : "");
+      if (!uuid) return;
+      const phaseConfig = getPhaseConfig(this._trackerId);
+      const phase = phaseConfig.find((entry) => entry.id === this._phaseId) ?? phaseConfig[0];
+      if (!phase) return;
+      if (updateCheckField(phase, checkId, { restrictedActorUuid: uuid })) {
+        savePhaseConfig(phase);
+      }
+    });
+
+    html.on("click.drepFlow", "[data-drep-action='clear-check-actor']", (event) => {
+      event.preventDefault();
+      if (this._readOnly) return;
+      const checkId = event.currentTarget?.dataset?.checkId;
+      if (!checkId) return;
+      const phaseConfig = getPhaseConfig(this._trackerId);
+      const phase = phaseConfig.find((entry) => entry.id === this._phaseId) ?? phaseConfig[0];
+      if (!phase) return;
+      if (updateCheckField(phase, checkId, { restrictedActorUuid: "" })) {
+        savePhaseConfig(phase);
+      }
     });
 
     const clampFlowZoom = (value) => {

@@ -38,6 +38,8 @@ function getSettingsExportPayload() {
     tabIcon: tracker.tabIcon,
     checkRollMode: tracker.checkRollMode,
     hideDcFromPlayers: tracker.hideDcFromPlayers,
+    hideDcLockedFromPlayers: tracker.hideDcLockedFromPlayers,
+    hideDcUnlockedFromPlayers: tracker.hideDcUnlockedFromPlayers,
     showLockedChecksToPlayers: tracker.showLockedChecksToPlayers,
     showPhasePlanToPlayers: tracker.showPhasePlanToPlayers,
     showFuturePlansToPlayers: tracker.showFuturePlansToPlayers,
@@ -149,7 +151,15 @@ async function applySettingsImportPayload(payload) {
         ),
         tabIcon: sanitizeLabel(tracker?.tabIcon, DEFAULT_TAB_ICON),
         checkRollMode: typeof tracker?.checkRollMode === "string" ? tracker.checkRollMode : "",
-        hideDcFromPlayers: Boolean(tracker?.hideDcFromPlayers),
+        hideDcFromPlayers: typeof tracker?.hideDcFromPlayers !== "undefined"
+          ? Boolean(tracker?.hideDcFromPlayers)
+          : (Boolean(tracker?.hideDcLockedFromPlayers) && Boolean(tracker?.hideDcUnlockedFromPlayers)),
+        hideDcLockedFromPlayers: typeof tracker?.hideDcLockedFromPlayers !== "undefined"
+          ? Boolean(tracker?.hideDcLockedFromPlayers)
+          : Boolean(tracker?.hideDcFromPlayers),
+        hideDcUnlockedFromPlayers: typeof tracker?.hideDcUnlockedFromPlayers !== "undefined"
+          ? Boolean(tracker?.hideDcUnlockedFromPlayers)
+          : Boolean(tracker?.hideDcFromPlayers),
         showLockedChecksToPlayers: tracker?.showLockedChecksToPlayers !== false,
         showPhasePlanToPlayers: Boolean(tracker?.showPhasePlanToPlayers),
         showFuturePlansToPlayers: Boolean(tracker?.showFuturePlansToPlayers),
@@ -189,8 +199,21 @@ async function applySettingsImportPayload(payload) {
     if (typeof settings.checkRollMode === "string") {
       updates.checkRollMode = settings.checkRollMode.trim();
     }
+    if (typeof settings.hideDcLockedFromPlayers !== "undefined") {
+      updates.hideDcLockedFromPlayers = Boolean(settings.hideDcLockedFromPlayers);
+    }
+    if (typeof settings.hideDcUnlockedFromPlayers !== "undefined") {
+      updates.hideDcUnlockedFromPlayers = Boolean(settings.hideDcUnlockedFromPlayers);
+    }
     if (typeof settings.hideDcFromPlayers !== "undefined") {
-      updates.hideDcFromPlayers = Boolean(settings.hideDcFromPlayers);
+      const legacy = Boolean(settings.hideDcFromPlayers);
+      updates.hideDcFromPlayers = legacy;
+      if (typeof settings.hideDcLockedFromPlayers === "undefined") {
+        updates.hideDcLockedFromPlayers = legacy;
+      }
+      if (typeof settings.hideDcUnlockedFromPlayers === "undefined") {
+        updates.hideDcUnlockedFromPlayers = legacy;
+      }
     }
     if (typeof settings.showLockedChecksToPlayers !== "undefined") {
       updates.showLockedChecksToPlayers = Boolean(settings.showLockedChecksToPlayers);

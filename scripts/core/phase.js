@@ -254,6 +254,10 @@ function normalizeChecks(checks, groupId, usedCheckIds) {
       typeof check?.checkCompleteMacro === "string"
         ? check.checkCompleteMacro.trim()
         : "";
+    const restrictedActorUuid =
+      typeof check?.restrictedActorUuid === "string"
+        ? check.restrictedActorUuid.trim()
+        : (typeof check?.actorUuid === "string" ? check.actorUuid.trim() : "");
     const checkSuccessItems = normalizeItemRewards(
       check?.checkSuccessItems ?? check?.checkCompleteItems ?? []
     );
@@ -275,6 +279,7 @@ function normalizeChecks(checks, groupId, usedCheckIds) {
       completeGroupOnSuccess: Boolean(check?.completeGroupOnSuccess ?? check?.completeGroup ?? false),
       completePhaseOnSuccess: Boolean(check?.completePhaseOnSuccess ?? check?.completePhase ?? false),
       checkCompleteMacro,
+      restrictedActorUuid,
       checkSuccessItems,
       checkSuccessGold,
       dependsOn,
@@ -827,6 +832,12 @@ function isCheckUnlocked(phase, check, checkProgress, resolvedChecks = {}) {
   return true;
 }
 
+function isCheckActorAllowed(check, actorUuid) {
+  if (!check?.restrictedActorUuid) return true;
+  if (!actorUuid) return true;
+  return check.restrictedActorUuid === actorUuid;
+}
+
 function getPhaseDc(phase, checkId) {
   const check = typeof checkId === "object" ? checkId : getPhaseCheckById(phase, checkId);
   if (!check) return DEFAULT_CHECK_DC;
@@ -838,11 +849,13 @@ function getPhaseCheckChoices(phase, checkProgress, options = {}) {
   const groupCounts = options.groupCounts ?? {};
   const resolvedChecks = options.resolvedChecks ?? {};
   const trackerId = options.trackerId ?? null;
+  const actorUuid = options.actorUuid ?? "";
   const rollMode = getCheckRollMode(trackerId);
   const isDifficultyMode = rollMode === "d100" || rollMode === "narrative";
   return getPhaseChecks(phase).map((check) => {
     const complete = isCheckComplete(check, checkProgress);
     const unlocked = isCheckUnlocked(phase, check, checkProgress, resolvedChecks);
+    const actorAllowed = isCheckActorAllowed(check, actorUuid);
     const group = getPhaseGroups(phase).find((entry) => entry.id === check.groupId);
     const groupLimit = Number(group?.maxChecks ?? 0);
     const groupUsed = Number(groupCounts?.[check.groupId] ?? 0);
@@ -865,8 +878,9 @@ function getPhaseCheckChoices(phase, checkProgress, options = {}) {
       difficultyLabel,
       groupId: check.groupId,
       groupName: check.groupName,
+      restrictedActorUuid: check.restrictedActorUuid ?? "",
       complete,
-      locked: !unlocked || complete || !groupAvailable,
+      locked: !unlocked || complete || !groupAvailable || !actorAllowed,
       dependsOn: getCheckDependencies(check).map((dep) => dep.id),
       advantage: rollData.advantage,
       disadvantage: rollData.disadvantage,
@@ -874,11 +888,14 @@ function getPhaseCheckChoices(phase, checkProgress, options = {}) {
   });
 }
 
-function getPhaseAvailableChecks(phase, checkProgress, resolvedChecks = {}) {
-  return getPhaseChecks(phase).filter((check) => {
-    if (isCheckComplete(check, checkProgress)) return false;
-    return isCheckUnlocked(phase, check, checkProgress, resolvedChecks);
-  });
+function getPhaseAvailableChecks(phase, checkProgress, resolvedChecks = {}, options = {}) {
+  const actorUuid = options.actorUuid ?? "";
+  return getPhaseChecks(phase)
+    .filter((check) => {
+      if (isCheckComplete(check, checkProgress)) return false;
+      return isCheckUnlocked(phase, check, checkProgress, resolvedChecks);
+    })
+    .filter((check) => isCheckActorAllowed(check, actorUuid));
 }
 
 function completeGroupProgress(phase, groupId, checkProgress) {
@@ -979,6 +996,7 @@ export {
   isCheckComplete,
   isGroupComplete,
   isCheckUnlocked,
+  isCheckActorAllowed,
   getPhaseDc,
   getPhaseCheckChoices,
   getPhaseAvailableChecks,

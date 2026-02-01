@@ -83,6 +83,10 @@ function applyPhaseConfigFormData(phaseConfig, formData) {
           const checkSuccessItems = Array.isArray(existingCheck?.checkSuccessItems)
             ? existingCheck.checkSuccessItems
             : [];
+          const restrictedActorUuid =
+            typeof existingCheck?.restrictedActorUuid === "string"
+              ? existingCheck.restrictedActorUuid
+              : "";
           const checkSuccessGold = Number(existingCheck?.checkSuccessGold ?? 0);
           const completeGroupOnSuccess = Object.prototype.hasOwnProperty.call(checkData ?? {}, "completeGroupOnSuccess")
             ? Boolean(checkData.completeGroupOnSuccess)
@@ -107,6 +111,7 @@ function applyPhaseConfigFormData(phaseConfig, formData) {
             completePhaseOnSuccess,
             checkCompleteMacro,
             checkSuccessItems,
+            restrictedActorUuid,
             checkSuccessGold: Number.isFinite(checkSuccessGold) ? checkSuccessGold : 0,
             dependsOn,
           });

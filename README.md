@@ -20,11 +20,13 @@ Building the Plan:
 - Success and failure narrative lines tied to checks, groups, or left unassigned as fallbacks.
 - Check completion actions: optional macros, item rewards, and gold rewards/costs.
 - Phase completion actions: optional macros, item rewards, and gold rewards/costs.
-- Player permissions: hide DCs, hide locked checks, allow Phase Plan view, view future plans, show/hide relationships and narrative lines in the plan, and show success chance tooltips (GM-only by default).
+- Player permissions: hide DCs (locked/unlocked separately), hide locked checks, allow Phase Plan view, view future plans, show/hide relationships and narrative lines in the plan, and show success chance tooltips (GM-only by default).
 - Plan rewards: show linked item rewards and gold rewards/costs in the read-only plan view (optional).
 - Sheet rewards: show linked item rewards next to the phase subtitle (optional, enabled by default).
 - Per-tracker labels and icon: header, tab label, interval label, Font Awesome icon.
 - Restrict a trackers visibility to specific actor UUIDs.
+- Restrict individual checks to a specific actor (drag/drop an actor onto a check); locked checks show the assigned actor in the plan view.
+- Item rewards support multiple entries with quantities; item names are shown instead of raw UUIDs.
 - Roll summaries in chat, activity log, and manual progress editing/maintenance.
 - System-agnostic support: manual success/failure results, manual skill/ability overrides, and selectable d20/d100/narrative check modes (with per-tracker override).
 - Optional sheet injection toggle (most system sheets should work but you can disable this and open the plan from Token Controls if yours doesn't)

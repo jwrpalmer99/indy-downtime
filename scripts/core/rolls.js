@@ -364,7 +364,8 @@ async function runIntervalRoll({ actor, checkChoice, trackerId }) {
   const availableChecks = getPhaseAvailableChecks(
     activePhase,
     activePhase.checkProgress,
-    activePhase.resolvedChecks
+    activePhase.resolvedChecks,
+    { actorUuid: actor?.uuid ?? "" }
   );
   if (!availableChecks.length) {
     ui.notifications.warn("Indy Downtime Tracker: configure checks before rolling.");
@@ -609,7 +610,8 @@ async function runManualIntervalResult({ actor, checkId, checkChoice, trackerId,
   const availableChecks = getPhaseAvailableChecks(
     activePhase,
     activePhase.checkProgress,
-    activePhase.resolvedChecks
+    activePhase.resolvedChecks,
+    { actorUuid: actor?.uuid ?? "" }
   );
   if (!availableChecks.length) {
     ui.notifications.warn("Indy Downtime Tracker: configure checks before rolling.");

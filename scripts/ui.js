@@ -81,7 +81,8 @@ import {
 
   setWorldState,
 
-  shouldHideDc,
+  shouldHideDcLocked,
+  shouldHideDcUnlocked,
   shouldInjectIntoSheet,
   shouldUseManualRolls,
   getCheckRollMode,
@@ -163,13 +164,15 @@ function formatCheckOptionLabel(choice, showDc) {
     }
   }
 
+  const restrictionNote = choice.locked && choice.restrictedActorName
+    ? ` [${choice.restrictedActorName}]`
+    : "";
+
   if (skill) {
-
-    return dcText ? `${name} - ${skill} (${dcText})` : `${name} - ${skill}`;
-
+    return dcText ? `${name} - ${skill} (${dcText})${restrictionNote}` : `${name} - ${skill}${restrictionNote}`;
   }
 
-  return dcText ? `${name} (${dcText})` : name;
+  return dcText ? `${name} (${dcText})${restrictionNote}` : `${name}${restrictionNote}`;
 
 }
 
@@ -451,9 +454,11 @@ function buildTrackerData({
 
 
 
-  const showDc = game.user?.isGM || !shouldHideDc(resolvedTrackerId);
+  const showDcLocked = game.user?.isGM || !shouldHideDcLocked(resolvedTrackerId);
+  const showDcUnlocked = game.user?.isGM || !shouldHideDcUnlocked(resolvedTrackerId);
 
   const showLockedChecks = game.user?.isGM || shouldShowLockedChecks(resolvedTrackerId);
+  const showDc = showDcUnlocked;
   const rollMode = getCheckRollMode(resolvedTrackerId);
 
   const groupCounts = getGroupCheckCounts(state.log, activePhase.id);
@@ -489,7 +494,12 @@ function buildTrackerData({
   const checkChoices = getPhaseCheckChoices(
     activePhase,
     activePhase.checkProgress,
-    { groupCounts, resolvedChecks: activePhase.resolvedChecks ?? {}, trackerId: resolvedTrackerId }
+    {
+      groupCounts,
+      resolvedChecks: activePhase.resolvedChecks ?? {},
+      trackerId: resolvedTrackerId,
+      actorUuid: actor?.uuid ?? "",
+    }
   ).map((choice) => ({
 
     ...choice,
@@ -497,6 +507,18 @@ function buildTrackerData({
     label: choice.label || "Unnamed Check",
 
   }));
+
+  const actorNameMap = new Map(
+    (game.actors ?? [])
+      .filter((entry) => entry?.type === "character" && entry?.uuid)
+      .map((entry) => [entry.uuid, entry.name])
+  );
+  for (const choice of checkChoices) {
+    if (choice.restrictedActorUuid) {
+      choice.restrictedActorName =
+        actorNameMap.get(choice.restrictedActorUuid) ?? "";
+    }
+  }
 
   debugLog("Check choices", {
     trackerId: resolvedTrackerId,
@@ -514,16 +536,14 @@ function buildTrackerData({
 
 
   const dropdownChoices = checkChoices
-
     .filter((choice) => !choice.complete && (showLockedChecks || !choice.locked))
-
-    .map((choice) => ({
-
-      ...choice,
-
-      optionLabel: formatCheckOptionLabel(choice, showDc),
-
-    }));
+    .map((choice) => {
+      const showDcForChoice = choice.locked ? showDcLocked : showDcUnlocked;
+      return {
+        ...choice,
+        optionLabel: formatCheckOptionLabel(choice, showDcForChoice),
+      };
+    });
 
   const availableChoices = dropdownChoices.filter((choice) => !choice.locked);
 
@@ -942,7 +962,8 @@ async function handleRoll(root, { render, actorOverride, trackerId, app } = {}) 
     const availableChecks = getPhaseAvailableChecks(
       activePhase,
       activePhase.checkProgress,
-      activePhase.resolvedChecks
+      activePhase.resolvedChecks,
+      { actorUuid: actor?.uuid ?? "" }
     );
     if (!availableChecks.length) {
       ui.notifications.warn("Indy Downtime Tracker: configure checks before rolling.");

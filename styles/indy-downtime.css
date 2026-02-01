@@ -1244,6 +1244,18 @@
   gap: 6px;
 }
 
+.drep-flow-check-actor {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: #f59e0b;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  border-radius: 999px;
+  padding: 1px 6px;
+}
+
 .drep-flow-flags-toggle {
   background: transparent;
   border: none;
@@ -1473,6 +1485,21 @@
 .drep-flow-check.is-locked {
   background: rgba(90, 20, 20, 0.6);
   border-color: rgba(140, 40, 40, 0.7);
+}
+
+.drep-flow-check.is-actor-locked {
+  background: rgba(245, 158, 11, 0.18);
+  border-color: rgba(245, 158, 11, 0.7);
+}
+
+.drep-flow-check.is-actor-locked.is-complete {
+  background: rgba(20, 80, 35, 0.75) !important;
+  border-color: rgba(30, 120, 55, 0.9) !important;
+}
+
+.drep-flow-check.is-actor-locked.is-group-maxed {
+  background: rgba(85, 85, 85, 0.65) !important;
+  border-color: rgba(140, 140, 140, 0.7) !important;
 }
 
 .drep-flow-check.is-locked.is-complete {

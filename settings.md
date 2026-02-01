@@ -36,7 +36,8 @@ Open Game Settings -> Module Settings -> Indy Downtime Tracker **as GM**. You wi
 - Restrict to Actor UUIDs: limit visibility to specific actors; drop actor sheets into the field or enter one UUID per line.
 
 ### Player Permissions
-- Hide DCs from players: hides DCs in the tracker tab and Phase Plan view.
+- Hide DCs for locked checks: hides DCs for locked checks in the tracker tab and Phase Plan view.
+- Hide DCs for unlocked checks: hides DCs for unlocked checks in the tracker tab and Phase Plan view.
 - Show locked checks to players: if disabled, locked checks are removed from the dropdown and redacted in the Phase Plan.
 - View Phase Plan: allows players to open the read-only Phase Plan view from the tracker tab.
 - View future plans: allows players to navigate forward to later phases in the read-only Phase Plan.
@@ -115,8 +116,10 @@ The Phase Flow editor is where you add and edit groups, checks, dependencies, an
 - The skill picker includes system skills plus ability checks.
 - Remove check: deletes the check.
 - Completion options (collapsed by default): set a check to complete its group or phase when it succeeds, run a macro, grant items on success/triumph, or award/cost gold.
-- If there is a completion option set then there will be a circular indicator: blue=has macro, orange=completes phase/group, yellow=has item(s)
+- If there is a completion option set then there will be a circular indicator: blue=has macro, red=completes phase/group, orange=has item(s) (multi-configured checks show a blended indicator).
 - Check gold rewards apply on success/triumph. If the value is negative (a cost), it applies even on failure/despair.
+- Item rewards support multiple entries with quantities; drop items into the list and adjust counts.
+- Restricted Actor: drop an actor onto a check to lock it to that actor (clear with the X).
 
 ### Dependencies
 - Drag a check onto another check to add a dependency.
@@ -150,6 +153,7 @@ Dependency types and effects:
 - Prev/Next phase navigation is available; future phases require the "View future plans" permission.
 - Hover DC labels to see success chance tooltips (GM always, players if permitted).
 - When "Show plan rewards to players" is enabled, gold and linked item rewards appear on phase headers and check cards (read-only).
+- Checks locked to a different actor are highlighted and show the assigned actor name.
 
 ## Dependency Editor Dialog
 Open by right clicking a dependency chip in Phase Flow.
@@ -192,3 +196,4 @@ Available targets:
 - Failure may trigger a failure line and a failure event table roll if enabled.
 - Critical successes can grant bonus progress when allowed.
 - Phase completion creates a log entry, optional message, and optional macro execution.
+- Item rewards post a chat message that lists what was granted and to whom.
