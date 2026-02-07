@@ -56,9 +56,12 @@ function normalizeProjectState(source, phaseConfig) {
     inplace: false,
     overwrite: true,
   });
+  if (!Array.isArray(state.log)) {
+    state.log = [];
+  }
   if (!Number.isFinite(state.checkCount)) {
-    if (Array.isArray(stored?.log) && stored.log.length) {
-      const maxLogged = stored.log.reduce((max, entry) => {
+    if (state.log.length) {
+      const maxLogged = state.log.reduce((max, entry) => {
         const value = Number(entry?.checkNumber ?? entry?.windowDay ?? 0);
         return Number.isFinite(value) ? Math.max(max, value) : max;
       }, 0);

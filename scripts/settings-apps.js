@@ -233,6 +233,727 @@ const buildActorNameMap = async (uuids) => {
   return nameMap;
 };
 
+const escapeSvgText = (value) => String(value ?? "")
+  .replace(/&/g, "&amp;")
+  .replace(/</g, "&lt;")
+  .replace(/>/g, "&gt;")
+  .replace(/"/g, "&quot;")
+  .replace(/'/g, "&#39;");
+
+const buildFlowDiagramSvg = (trackerId, { phaseIndex = 0 } = {}) => {
+  const phaseConfig = getPhaseConfig(trackerId);
+  if (!Array.isArray(phaseConfig) || !phaseConfig.length) {
+    return "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"640\" height=\"120\"></svg>";
+  }
+  const actorNameCache = new Map();
+  const getActorNameFromUuid = (uuid) => {
+    if (!uuid) return "";
+    if (actorNameCache.has(uuid)) return actorNameCache.get(uuid);
+    let name = "";
+    try {
+      if (typeof fromUuidSync === "function") {
+        const doc = fromUuidSync(uuid);
+        const actor = doc?.document ?? doc ?? null;
+        if (actor?.documentName === "Actor") name = actor.name ?? "";
+      }
+    } catch (error) {
+      name = "";
+    }
+    if (!name && typeof uuid === "string" && uuid.startsWith("Actor.")) {
+      const id = uuid.split(".")[1];
+      name = game.actors?.get(id)?.name ?? "";
+    }
+    actorNameCache.set(uuid, name);
+    return name;
+  };
+  const itemNameCache = new Map();
+  const getItemNameFromUuid = (uuid) => {
+    if (!uuid) return "";
+    if (itemNameCache.has(uuid)) return itemNameCache.get(uuid);
+    let name = "";
+    try {
+      if (typeof fromUuidSync === "function") {
+        const doc = fromUuidSync(uuid);
+        const item = doc?.document ?? doc ?? null;
+        if (item?.documentName === "Item") name = item.name ?? "";
+      }
+    } catch (error) {
+      name = "";
+    }
+    if (!name && typeof uuid === "string" && uuid.startsWith("Item.")) {
+      const id = uuid.split(".")[1];
+      name = game.items?.get(id)?.name ?? "";
+    }
+    itemNameCache.set(uuid, name);
+    return name;
+  };
+  const truncateText = (value, max = 64) => {
+    const text = String(value ?? "");
+    if (text.length <= max) return text;
+    return `${text.slice(0, Math.max(0, max - 3)).trim()}...`;
+  };
+
+  const sumRewardItems = (items) => {
+    if (!Array.isArray(items)) return 0;
+    let total = 0;
+    for (const entry of items) {
+      if (!entry) continue;
+      if (typeof entry === "string") {
+        if (entry.trim()) total += 1;
+        continue;
+      }
+      const qtyRaw = Number(entry.qty ?? entry.quantity ?? entry.count ?? 1);
+      const qty = Number.isFinite(qtyRaw) && qtyRaw > 0 ? Math.round(qtyRaw) : 1;
+      total += qty;
+    }
+    return total;
+  };
+
+  const normalizeLineEntries = (lines = []) =>
+    (Array.isArray(lines) ? lines : [])
+      .map((line, index) => {
+        if (!line) return null;
+        const id = typeof line.id === "string" ? line.id : `line-${index + 1}`;
+        const text = typeof line.text === "string" ? line.text.trim() : "";
+        return {
+          id,
+          text,
+          dependsOnChecks: parseList(line.dependsOnChecks ?? line.dependsOn ?? ""),
+          dependsOnGroups: parseList(line.dependsOnGroups ?? ""),
+        };
+      })
+      .filter((line) => line && line.text);
+
+  const phases = phaseConfig.map((phase, phaseIndex) => ({
+    id: phase?.id ?? `phase-${phaseIndex + 1}`,
+    name: phase?.name ?? "Phase",
+    groups: getPhaseGroups(phase).map((group) => ({
+      id: group?.id ?? `group-${phaseIndex + 1}`,
+      name: group?.name ?? "Group",
+      checks: (group?.checks ?? []).map((check, checkIndex) => ({
+        id: check?.id ?? `check-${checkIndex + 1}`,
+        name: check?.name ?? "Check",
+        completeGroupOnSuccess: Boolean(check?.completeGroupOnSuccess),
+        completePhaseOnSuccess: Boolean(check?.completePhaseOnSuccess),
+        checkCompleteMacro: check?.checkCompleteMacro ?? "",
+        checkSuccessItems: Array.isArray(check?.checkSuccessItems) ? check.checkSuccessItems : [],
+        checkSuccessGold: Number(check?.checkSuccessGold ?? 0),
+        restrictedActorUuid: check?.restrictedActorUuid ?? "",
+        dependsOn: normalizeCheckDependencies(check?.dependsOn ?? []),
+        sortIndex: checkIndex,
+      })),
+    })),
+    phaseCompleteItems: Array.isArray(phase?.phaseCompleteItems) ? phase.phaseCompleteItems : [],
+    phaseCompleteGold: Number(phase?.phaseCompleteGold ?? 0),
+    successLines: [],
+    failureLines: [],
+  }));
+
+  const selectedIndex = Math.max(0, Math.min(Math.floor(Number(phaseIndex) || 0), phases.length - 1));
+  const selectedPhase = phases[selectedIndex];
+  if (!selectedPhase) {
+    return "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"640\" height=\"120\"></svg>";
+  }
+
+  const layout = {
+    margin: 24,
+    phasePaddingX: 16,
+    phaseHeaderHeight: 40,
+    phaseHeaderGap: 18,
+    groupHeaderWidth: 160,
+    groupHeaderHeight: 24,
+    groupHeaderGap: 16,
+    lanePaddingY: 8,
+    groupGap: 20,
+    checkWidth: 220,
+    checkHeight: 42,
+    checkRowGap: 12,
+    colGap: 60,
+    outputGap: 24,
+    lineNodeWidth: 240,
+    lineNodeHeight: 22,
+    lineHeaderHeight: 20,
+    lineRowGap: 8,
+    outputSectionGap: 16,
+  };
+
+  const depColors = {
+    block: "#d64545",
+    prevents: "#b42318",
+    harder: "#f08c2e",
+    advantage: "#2f9e44",
+    disadvantage: "#7b2cbf",
+    override: "#1f6feb",
+    triumph: "#0ea5e9",
+    success: "#22c55e",
+    failure: "#ef4444",
+    despair: "#9333ea",
+  };
+
+  const buildPhaseLayout = (phase, displayNumber) => {
+    const checkById = new Map();
+    for (const group of phase.groups) {
+      for (const check of group.checks) {
+        check.groupId = group.id;
+        checkById.set(check.id, check);
+      }
+    }
+
+    const depthMemo = new Map();
+    const visiting = new Set();
+    const resolveDepth = (checkId) => {
+      if (depthMemo.has(checkId)) return depthMemo.get(checkId);
+      if (visiting.has(checkId)) return 1;
+      visiting.add(checkId);
+      const check = checkById.get(checkId);
+      let depth = 1;
+      if (check) {
+        for (const dep of check.dependsOn ?? []) {
+          const kind = dep.kind ?? "check";
+          if (kind === "check" && checkById.has(dep.id)) {
+            depth = Math.max(depth, resolveDepth(dep.id) + 1);
+          }
+        }
+      }
+      visiting.delete(checkId);
+      depthMemo.set(checkId, depth);
+      return depth;
+    };
+
+    let maxDepth = 1;
+    for (const group of phase.groups) {
+      for (const check of group.checks) {
+        check.depth = resolveDepth(check.id);
+        maxDepth = Math.max(maxDepth, check.depth);
+      }
+    }
+
+    const groupLayouts = [];
+    let yCursor = layout.margin + layout.phaseHeaderHeight + layout.phaseHeaderGap;
+    for (const group of phase.groups) {
+      const sortedChecks = [...group.checks].sort((a, b) => {
+        if (a.depth !== b.depth) return a.depth - b.depth;
+        return a.sortIndex - b.sortIndex;
+      });
+      const rows = sortedChecks.length;
+      const laneHeight = layout.groupHeaderHeight
+        + layout.lanePaddingY * 2
+        + (rows ? rows * layout.checkHeight + (rows - 1) * layout.checkRowGap : 0);
+      const checkStartY = yCursor + layout.groupHeaderHeight + layout.lanePaddingY;
+      const checkLayouts = sortedChecks.map((check, index) => ({
+        id: check.id,
+        check,
+        y: checkStartY + index * (layout.checkHeight + layout.checkRowGap),
+      }));
+      groupLayouts.push({
+        id: group.id,
+        name: group.name,
+        y: yCursor,
+        height: laneHeight,
+        checks: checkLayouts,
+      });
+      yCursor += laneHeight + layout.groupGap;
+    }
+
+    let outputY = yCursor + layout.outputSectionGap;
+    const successLayouts = [];
+    const failureLayouts = [];
+    if (phase.successLines.length) {
+      outputY += layout.lineHeaderHeight + layout.lineRowGap;
+      for (const line of phase.successLines) {
+        successLayouts.push({ line, y: outputY });
+        outputY += layout.lineNodeHeight + layout.lineRowGap;
+      }
+    }
+    if (phase.failureLines.length) {
+      outputY += layout.outputSectionGap + layout.lineHeaderHeight + layout.lineRowGap;
+      for (const line of phase.failureLines) {
+        failureLayouts.push({ line, y: outputY });
+        outputY += layout.lineNodeHeight + layout.lineRowGap;
+      }
+    }
+
+    const checkAreaWidth = maxDepth * layout.checkWidth + (maxDepth - 1) * layout.colGap;
+    const phaseWidth = layout.phasePaddingX * 2
+      + layout.groupHeaderWidth
+      + layout.groupHeaderGap
+      + checkAreaWidth
+      + layout.outputGap
+      + layout.lineNodeWidth;
+
+    const bottomY = Math.max(
+      yCursor,
+      (successLayouts.length || failureLayouts.length) ? outputY : yCursor
+    );
+
+    return {
+      id: phase.id,
+      name: phase.name,
+      phase,
+      displayNumber,
+      maxDepth,
+      width: phaseWidth,
+      bottomY,
+      groupLayouts,
+      successLayouts,
+      failureLayouts,
+      outputStartY: yCursor + layout.outputSectionGap,
+      checkAreaWidth,
+    };
+  };
+
+  const phaseLayout = buildPhaseLayout(selectedPhase, selectedIndex + 1);
+  const totalWidth = phaseLayout.width + layout.margin * 2;
+  const totalHeight = phaseLayout.bottomY + layout.margin;
+
+  const lines = [];
+  lines.push(`<?xml version="1.0" encoding="UTF-8"?>`);
+  lines.push(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${totalWidth}" height="${totalHeight}" viewBox="0 0 ${totalWidth} ${totalHeight}">`
+  );
+  lines.push(`<rect x="0" y="0" width="${totalWidth}" height="${totalHeight}" fill="#ffffff"/>`);
+  lines.push(
+    `<defs>
+      <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 0 L 10 5 L 0 10 z" fill="#6b7280" />
+      </marker>
+    </defs>`
+  );
+  lines.push(
+    `<style>
+      text { font-family: Arial, sans-serif; fill: #1f2933; }
+      .phase-title { font-size: 16px; font-weight: 600; fill: #ffffff; }
+      .group-title { font-size: 13px; font-weight: 600; }
+      .check-title { font-size: 12px; }
+      .check-reward { font-size: 10px; fill: #475569; }
+      .line-title { font-size: 12px; font-weight: 600; }
+      .line-text { font-size: 11px; }
+    </style>`
+  );
+
+  const nodeMap = new Map();
+  const phaseX = layout.margin;
+
+  const phaseItemCount = sumRewardItems(phaseLayout.phase.phaseCompleteItems);
+  const phaseGold = Number.isFinite(phaseLayout.phase.phaseCompleteGold)
+    ? phaseLayout.phase.phaseCompleteGold
+    : 0;
+  const rewardBits = [];
+  if (phaseItemCount) rewardBits.push(`Items x${phaseItemCount}`);
+  if (phaseGold) rewardBits.push(`Gold ${phaseGold > 0 ? `+${phaseGold}` : `${phaseGold}`}`);
+  const rewardText = rewardBits.length ? ` (Rewards: ${rewardBits.join(", ")})` : "";
+
+  const headerY = layout.margin;
+  const phaseKey = `${phaseLayout.id}:phase`;
+  nodeMap.set(phaseKey, {
+    x: phaseX,
+    y: headerY,
+    w: phaseLayout.width,
+    h: layout.phaseHeaderHeight,
+  });
+  lines.push(
+    `<rect x="${phaseX}" y="${headerY}" width="${phaseLayout.width}" height="${layout.phaseHeaderHeight}" rx="8" fill="#1f2933"/>`
+  );
+  lines.push(
+    `<text class="phase-title" x="${phaseX + 12}" y="${headerY + 26}" fill="#ffffff">${escapeSvgText(`Phase ${phaseLayout.displayNumber}: ${phaseLayout.name}${rewardText}`)}</text>`
+  );
+
+  const groupHeaderX = phaseX + layout.phasePaddingX;
+  const checkAreaX = groupHeaderX + layout.groupHeaderWidth + layout.groupHeaderGap;
+  const outputX = checkAreaX + phaseLayout.checkAreaWidth + layout.outputGap;
+
+  for (const groupLayout of phaseLayout.groupLayouts) {
+    const groupKey = `${phaseLayout.id}:group:${groupLayout.id}`;
+    nodeMap.set(groupKey, {
+      x: groupHeaderX,
+      y: groupLayout.y,
+      w: layout.groupHeaderWidth,
+      h: layout.groupHeaderHeight,
+    });
+    lines.push(
+      `<rect x="${groupHeaderX}" y="${groupLayout.y}" width="${layout.groupHeaderWidth}" height="${layout.groupHeaderHeight}" rx="6" fill="#e9eef5"/>`
+    );
+    lines.push(
+      `<text class="group-title" x="${groupHeaderX + 10}" y="${groupLayout.y + 16}">${escapeSvgText(groupLayout.name)}</text>`
+    );
+
+    for (const checkLayout of groupLayout.checks) {
+      const check = checkLayout.check;
+      const checkKey = `${phaseLayout.id}:check:${check.id}`;
+      const depthIndex = Math.max(1, check.depth) - 1;
+      const checkX = checkAreaX + depthIndex * (layout.checkWidth + layout.colGap);
+      const badges = [];
+      if (check.completeGroupOnSuccess) badges.push("CG");
+      if (check.completePhaseOnSuccess) badges.push("CP");
+      if (check.checkCompleteMacro) badges.push("M");
+      const actorName = check.restrictedActorUuid
+        ? getActorNameFromUuid(check.restrictedActorUuid)
+        : "";
+      const actorLabel = actorName ? ` [Actor: ${actorName}]` : "";
+      const badgeText = badges.length ? ` [${badges.join(", ")}]` : "";
+      const rewardParts = [];
+      const itemParts = [];
+      for (const entry of check.checkSuccessItems ?? []) {
+        if (!entry) continue;
+        let uuid = "";
+        let qty = 1;
+        if (typeof entry === "string") {
+          uuid = entry.trim();
+        } else {
+          uuid = String(entry.uuid ?? entry.itemUuid ?? entry.id ?? "").trim();
+          const qtyRaw = Number(entry.qty ?? entry.quantity ?? entry.count ?? 1);
+          qty = Number.isFinite(qtyRaw) && qtyRaw > 0 ? Math.round(qtyRaw) : 1;
+        }
+        if (!uuid) continue;
+        const entryName = typeof entry === "object" && entry?.name ? String(entry.name).trim() : "";
+        const name = entryName || getItemNameFromUuid(uuid) || uuid;
+        itemParts.push(qty > 1 ? `${name} x${qty}` : name);
+      }
+      if (itemParts.length) rewardParts.push(`Items: ${itemParts.join(", ")}`);
+      if (Number.isFinite(check.checkSuccessGold) && check.checkSuccessGold !== 0) {
+        rewardParts.push(`Gold ${check.checkSuccessGold > 0 ? `+${check.checkSuccessGold}` : `${check.checkSuccessGold}`}`);
+      }
+      const rewardText = truncateText(rewardParts.join(" | "), 64);
+      const hasRewards = rewardText.length > 0;
+      nodeMap.set(checkKey, {
+        x: checkX,
+        y: checkLayout.y,
+        w: layout.checkWidth,
+        h: layout.checkHeight,
+      });
+      lines.push(
+        `<rect x="${checkX}" y="${checkLayout.y}" width="${layout.checkWidth}" height="${layout.checkHeight}" rx="6" fill="#ffffff" stroke="#c7d2e2"/>`
+      );
+      lines.push(
+        `<text class="check-title" x="${checkX + 10}" y="${checkLayout.y + (hasRewards ? 17 : 24)}">${escapeSvgText(`${check.name}${badgeText}${actorLabel}`)}</text>`
+      );
+      if (hasRewards) {
+        lines.push(
+          `<text class="check-reward" x="${checkX + 10}" y="${checkLayout.y + 33}">${escapeSvgText(rewardText)}</text>`
+        );
+      }
+    }
+  }
+
+  if (phaseLayout.successLayouts.length || phaseLayout.failureLayouts.length) {
+    if (phaseLayout.successLayouts.length) {
+      const headerYSuccess = phaseLayout.outputStartY;
+      lines.push(
+        `<text class="line-title" x="${outputX}" y="${headerYSuccess + 14}">Success Lines</text>`
+      );
+      for (const entry of phaseLayout.successLayouts) {
+        const lineKey = `${phaseLayout.id}:line:success:${entry.line.id}`;
+        nodeMap.set(lineKey, {
+          x: outputX,
+          y: entry.y,
+          w: layout.lineNodeWidth,
+          h: layout.lineNodeHeight,
+        });
+        lines.push(
+          `<rect x="${outputX}" y="${entry.y}" width="${layout.lineNodeWidth}" height="${layout.lineNodeHeight}" rx="4" fill="#f0fdf4" stroke="#bbf7d0"/>`
+        );
+        lines.push(
+          `<text class="line-text" x="${outputX + 8}" y="${entry.y + 14}">${escapeSvgText(entry.line.text)}</text>`
+        );
+      }
+    }
+    if (phaseLayout.failureLayouts.length) {
+      const headerYFailure = phaseLayout.failureLayouts[0].y - layout.lineHeaderHeight - layout.lineRowGap;
+      lines.push(
+        `<text class="line-title" x="${outputX}" y="${headerYFailure + 14}">Failure Lines</text>`
+      );
+      for (const entry of phaseLayout.failureLayouts) {
+        const lineKey = `${phaseLayout.id}:line:failure:${entry.line.id}`;
+        nodeMap.set(lineKey, {
+          x: outputX,
+          y: entry.y,
+          w: layout.lineNodeWidth,
+          h: layout.lineNodeHeight,
+        });
+        lines.push(
+          `<rect x="${outputX}" y="${entry.y}" width="${layout.lineNodeWidth}" height="${layout.lineNodeHeight}" rx="4" fill="#fef2f2" stroke="#fecaca"/>`
+        );
+        lines.push(
+          `<text class="line-text" x="${outputX + 8}" y="${entry.y + 14}">${escapeSvgText(entry.line.text)}</text>`
+        );
+      }
+    }
+  }
+
+  const successBusX = phaseLayout.successLayouts.length ? outputX - 26 : null;
+  const failureBusX = phaseLayout.failureLayouts.length ? outputX - 46 : null;
+  const addBusLine = (busX, layouts, color) => {
+    if (!busX || !layouts.length) return;
+    const minY = layouts[0].y - 4;
+    const maxY = layouts[layouts.length - 1].y + layout.lineNodeHeight + 4;
+    lines.push(
+      `<line x1="${busX}" y1="${minY}" x2="${busX}" y2="${maxY}" stroke="${color}" stroke-opacity="0.35" stroke-width="2" stroke-dasharray="3 6" />`
+    );
+  };
+  addBusLine(successBusX, phaseLayout.successLayouts, "#16a34a");
+  addBusLine(failureBusX, phaseLayout.failureLayouts, "#dc2626");
+
+  const connections = [];
+  const phaseKeyForConnections = `${phaseLayout.id}:phase`;
+  for (const group of phaseLayout.phase.groups) {
+    for (const check of group.checks) {
+      const targetKey = `${phaseLayout.id}:check:${check.id}`;
+      for (const dep of check.dependsOn ?? []) {
+        const kind = dep.kind ?? "check";
+        const depType = dep.type ?? "block";
+        const sourceKey = kind === "group"
+          ? `${phaseLayout.id}:group:${dep.id}`
+          : `${phaseLayout.id}:check:${dep.id}`;
+        const color = depColors[depType] ?? "#6b7280";
+        const dashed = depType === "triumph"
+          || depType === "success"
+          || depType === "failure"
+          || depType === "despair";
+        connections.push({
+          sourceKey,
+          targetKey,
+          color,
+          dashed,
+          thickness: 1.6,
+          route: "dep",
+          dashPattern: dashed ? "9 6" : "",
+        });
+      }
+    }
+  }
+
+  const connectLineEntries = (entries, kind) => {
+    const color = kind === "success" ? "#22c55e" : "#ef4444";
+    const busX = kind === "success" ? successBusX : failureBusX;
+    for (const line of entries) {
+      const lineKey = `${phaseLayout.id}:line:${kind}:${line.id}`;
+      const deps = [
+        ...line.dependsOnGroups.map((id) => ({ kind: "group", id })),
+        ...line.dependsOnChecks.map((id) => ({ kind: "check", id })),
+      ];
+      if (!deps.length) {
+        connections.push({
+          sourceKey: phaseKeyForConnections,
+          targetKey: lineKey,
+          color,
+          dashed: true,
+          thickness: 1.6,
+          route: "line",
+          dashPattern: "4 4",
+          busX,
+        });
+        continue;
+      }
+      for (const dep of deps) {
+        const sourceKey = dep.kind === "group"
+          ? `${phaseLayout.id}:group:${dep.id}`
+          : `${phaseLayout.id}:check:${dep.id}`;
+        connections.push({
+          sourceKey,
+          targetKey: lineKey,
+          color,
+          dashed: true,
+          thickness: 1.6,
+          route: "line",
+          dashPattern: "4 4",
+          busX,
+        });
+      }
+    }
+  };
+
+  connectLineEntries(phaseLayout.phase.successLines, "success");
+  connectLineEntries(phaseLayout.phase.failureLines, "failure");
+
+  const sourceCounts = new Map();
+  const targetCounts = new Map();
+  for (const connection of connections) {
+    sourceCounts.set(connection.sourceKey, (sourceCounts.get(connection.sourceKey) ?? 0) + 1);
+    targetCounts.set(connection.targetKey, (targetCounts.get(connection.targetKey) ?? 0) + 1);
+  }
+  const busRouteTotals = new Map();
+  for (const connection of connections) {
+    if (connection.route !== "line") continue;
+    if (!Number.isFinite(connection.busX)) continue;
+    const key = `${connection.busX}`;
+    busRouteTotals.set(key, (busRouteTotals.get(key) ?? 0) + 1);
+  }
+  const sourceOffsets = new Map();
+  const targetOffsets = new Map();
+  const busRouteOffsets = new Map();
+
+  const drawConnector = (from, to, options) => {
+    const startX = from.x + from.w;
+    const startY = from.y + from.h / 2 + (options.startOffset ?? 0);
+    const endX = to.x;
+    const endY = to.y + to.h / 2 + (options.endOffset ?? 0);
+    const midX = startX + (endX - startX) / 2;
+    const dashPattern = options.dashPattern || "6 5";
+    const dash = options.dashed ? `stroke-dasharray=\"${dashPattern}\"` : "";
+    const markerAttr = `marker-end=\"url(#arrow)\"`;
+    const thickness = options.thickness ?? 1.6;
+    const routeOffset = Number.isFinite(options.routeOffset) ? options.routeOffset : 0;
+    const routeX = options.route === "line" && Number.isFinite(options.busX)
+      ? options.busX + routeOffset
+      : midX;
+    const path = `M ${startX} ${startY} L ${routeX} ${startY} L ${routeX} ${endY} L ${endX} ${endY}`;
+    lines.push(
+      `<path d=\"${path}\" stroke=\"#ffffff\" stroke-width=\"${thickness + 2}\" fill=\"none\" stroke-linecap=\"round\" stroke-linejoin=\"round\" />`
+    );
+    lines.push(
+      `<path d=\"${path}\" stroke=\"${options.color}\" stroke-width=\"${thickness}\" fill=\"none\" stroke-linecap=\"round\" stroke-linejoin=\"round\" ${dash} ${markerAttr} />`
+    );
+    if (options.route === "line") {
+      lines.push(
+        `<circle cx="${startX}" cy="${startY}" r="2.6" fill="${options.color}" stroke="#ffffff" stroke-width="1" />`
+      );
+      lines.push(
+        `<circle cx="${endX}" cy="${endY}" r="2.8" fill="${options.color}" stroke="#ffffff" stroke-width="1" />`
+      );
+    }
+  };
+
+  for (const connection of connections) {
+    const sourceNode = nodeMap.get(connection.sourceKey);
+    const targetNode = nodeMap.get(connection.targetKey);
+    if (!sourceNode || !targetNode) continue;
+    const sourceIndex = sourceOffsets.get(connection.sourceKey) ?? 0;
+    sourceOffsets.set(connection.sourceKey, sourceIndex + 1);
+    const targetIndex = targetOffsets.get(connection.targetKey) ?? 0;
+    targetOffsets.set(connection.targetKey, targetIndex + 1);
+    const sourceTotal = sourceCounts.get(connection.sourceKey) ?? 1;
+    const targetTotal = targetCounts.get(connection.targetKey) ?? 1;
+    const sourceOffset = (sourceIndex - (sourceTotal - 1) / 2) * 4;
+    const targetOffset = (targetIndex - (targetTotal - 1) / 2) * 6;
+    let routeOffset = 0;
+    if (connection.route === "line" && Number.isFinite(connection.busX)) {
+      const busKey = `${connection.busX}`;
+      const index = busRouteOffsets.get(busKey) ?? 0;
+      busRouteOffsets.set(busKey, index + 1);
+      const total = busRouteTotals.get(busKey) ?? 1;
+      routeOffset = (index - (total - 1) / 2) * 8;
+    }
+    drawConnector(sourceNode, targetNode, {
+      color: connection.color,
+      dashed: connection.dashed,
+      thickness: connection.thickness,
+      startOffset: sourceOffset,
+      endOffset: targetOffset,
+      routeOffset,
+      busX: connection.busX,
+      route: connection.route,
+      dashPattern: connection.dashPattern,
+    });
+  }
+
+  lines.push(`</svg>`);
+  return lines.join("");
+};
+
+
+const openFlowDiagramWindow = (trackerId) => {
+  const phaseConfig = getPhaseConfig(trackerId);
+  if (!Array.isArray(phaseConfig) || !phaseConfig.length) {
+    ui.notifications.warn("Indy Downtime Tracker: no phases to display.");
+    return;
+  }
+  const labels = phaseConfig.map((phase, index) => {
+    const name = phase?.name ?? "Phase";
+    return `Phase ${index + 1}: ${name}`;
+  });
+  const svgs = phaseConfig.map((_phase, index) => buildFlowDiagramSvg(trackerId, { phaseIndex: index }));
+
+  const win = window.open("", "_blank", "width=1400,height=900");
+  if (!win) {
+    ui.notifications.warn("Indy Downtime Tracker: popup blocked.");
+    return;
+  }
+  const doc = win.document;
+  const title = "Indy Downtime Flow Diagram";
+  const escapeHtml = (value) => String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+  const optionsHtml = labels
+    .map((label, index) => `<option value="${index}">${escapeHtml(label)}</option>`)
+    .join("");
+  const safeSvgs = JSON.stringify(svgs).replace(/<\/script>/gi, "<\\/script>");
+  const safeLabels = JSON.stringify(labels).replace(/<\/script>/gi, "<\\/script>");
+
+  doc.open();
+  doc.write(`<!doctype html>
+    <html>
+      <head>
+        <meta charset="utf-8" />
+        <title>${title}</title>
+        <style>
+          body { margin: 0; background: #f4f6f8; font-family: Arial, sans-serif; }
+          .toolbar { padding: 12px 16px; background: #1f2933; color: #fff; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+          .toolbar button, .toolbar select { font-size: 14px; }
+          .toolbar button { background: #334155; border: none; color: #fff; padding: 6px 10px; border-radius: 6px; cursor: pointer; }
+          .toolbar button:disabled { opacity: 0.5; cursor: not-allowed; }
+          .toolbar select { background: #fff; color: #111827; padding: 6px 8px; border-radius: 6px; border: none; }
+          .toolbar .label { font-weight: 600; }
+          .diagram { padding: 16px; overflow: auto; }
+          .diagram svg { max-width: none; height: auto; display: block; background: #fff; border-radius: 8px; box-shadow: 0 8px 20px rgba(0,0,0,0.12); }
+        </style>
+      </head>
+      <body>
+        <div class="toolbar">
+          <button type="button" data-action="prev">Prev Phase</button>
+          <button type="button" data-action="next">Next Phase</button>
+          <label class="label" for="phase-select">Phase</label>
+          <select id="phase-select">${optionsHtml}</select>
+          <span class="label" id="phase-label"></span>
+        </div>
+        <div class="diagram" id="diagram"></div>
+        <script>
+          const phaseSvgs = ${safeSvgs};
+          const phaseLabels = ${safeLabels};
+          let index = 0;
+          const diagram = document.getElementById("diagram");
+          const select = document.getElementById("phase-select");
+          const label = document.getElementById("phase-label");
+          const prevBtn = document.querySelector("[data-action='prev']");
+          const nextBtn = document.querySelector("[data-action='next']");
+
+          const render = () => {
+            diagram.innerHTML = phaseSvgs[index] || "";
+            label.textContent = phaseLabels[index] || "";
+            select.value = String(index);
+            prevBtn.disabled = index <= 0;
+            nextBtn.disabled = index >= phaseSvgs.length - 1;
+          };
+
+          prevBtn.addEventListener("click", () => {
+            if (index > 0) {
+              index -= 1;
+              render();
+            }
+          });
+          nextBtn.addEventListener("click", () => {
+            if (index < phaseSvgs.length - 1) {
+              index += 1;
+              render();
+            }
+          });
+          select.addEventListener("change", (event) => {
+            const next = Number(event.target.value);
+            if (Number.isFinite(next)) {
+              index = Math.max(0, Math.min(next, phaseSvgs.length - 1));
+              render();
+            }
+          });
+          render();
+        </script>
+      </body>
+    </html>`);
+  doc.close();
+};
+
+
 const buildPotentialRollData = (phase, check, checkProgress, resolvedChecks = {}, trackerId = null) => {
   const deps = normalizeCheckDependencies(check?.dependsOn ?? []);
   if (!deps.length) return null;
@@ -709,6 +1430,10 @@ class DowntimeRepSettings extends HandlebarsApplicationMixin(ApplicationV2) {
         new DowntimeRepPhaseConfig({
           trackerId: getCurrentTrackerId(),
         }).render(true);
+        return;
+      }
+      if (action === "open-flow-diagram") {
+        openFlowDiagramWindow(getCurrentTrackerId());
         return;
       }
       if (action === "open-progress-state") {

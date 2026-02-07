@@ -31,6 +31,7 @@ Building the Plan:
 - System-agnostic support: manual success/failure results, manual skill/ability overrides, and selectable d20/d100/narrative check modes (with per-tracker override).
 - Optional sheet injection toggle (most system sheets should work but you can disable this and open the plan from Token Controls if yours doesn't)
 - Import/export for a tracker, a phase, all settings, or all state.
+- Flow diagram export: open a read-only diagram image of phases, groups, and checks from the tracker settings.
 - Checks can optionally complete their group or phase when they succeed.
 - Compatible with default DnD5e sheets, Tidy5e, and PF2e character sheets and many other system sheets.
 

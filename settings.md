@@ -51,6 +51,7 @@ Open Game Settings -> Module Settings -> Indy Downtime Tracker **as GM**. You wi
 
 ### Configuration
 - Edit Phase Configuration: open the phase settings dialog.
+- Open Flow Diagram: opens a read-only diagram image of phases, groups, and checks in a new window.
 - Edit Progress State: open the progress editing dialog.
 
 ### Activity Log
