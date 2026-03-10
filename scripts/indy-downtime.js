@@ -56,7 +56,116 @@ function findSheetTabNav($html) {
   return nav;
 }
 function getInjectedTrackers() {
-  return getTrackers().filter((tracker) => shouldInjectIntoSheet(tracker.id));
+  const trackers = getTrackers();
+  const settingKey = `${MODULE_ID}.${INJECT_INTO_SHEET_SETTING}`;
+  if (game?.settings?.settings?.has(settingKey)) {
+    return shouldInjectIntoSheet() ? trackers : [];
+  }
+  return trackers.filter((tracker) => shouldInjectIntoSheet(tracker.id));
+}
+function getElementTabId(element) {
+  if (!element) return "";
+  return (
+    element.dataset?.tab ??
+    element.dataset?.tabId ??
+    element.dataset?.tabid ??
+    element.dataset?.tabTarget ??
+    ""
+  );
+}
+function getActiveSheetTabId($html, app) {
+  const activeDomTab = $html
+    .find("[data-tab].active, [data-tab][aria-selected='true'], .tab.active[data-tab]")
+    .first();
+  const domTabId = getElementTabId(activeDomTab?.[0]);
+  if (domTabId) return domTabId;
+  const tabs = app?._tabs ?? app?.tabs;
+  const controllers = [];
+  if (tabs instanceof Map) {
+    controllers.push(...tabs.values());
+  } else if (Array.isArray(tabs)) {
+    controllers.push(...tabs);
+  } else if (tabs && typeof tabs === "object") {
+    controllers.push(...Object.values(tabs));
+  }
+  for (const controller of controllers) {
+    if (!controller) continue;
+    if (typeof controller.active === "string" && controller.active) return controller.active;
+    if (controller.active?.tab) return controller.active.tab;
+  }
+  return "";
+}
+function markLazyTrackerPlaceholder(host) {
+  if (!host?.length) return;
+  if (host.find("[data-drep-root]").length) return;
+  host.html("<div class=\"drep-muted\">Open this tab to load downtime details.</div>");
+}
+async function renderTrackerContent(app, host, tracker, actor) {
+  if (!host?.length || !tracker?.id) return false;
+  if (!isActorAllowed(actor, tracker)) {
+    const shell = host.closest(".window-content, .application, .app");
+    if (shell?.length) hideDowntimeTab(shell, tracker.id);
+    return false;
+  }
+  if (host.data("drepRendering")) return false;
+  if (host.data("drepRendered")) return true;
+  host.data("drepRendering", true);
+  try {
+    const trackerData = buildTrackerData({
+      actor,
+      showActorSelect: false,
+      embedded: true,
+      trackerId: tracker.id,
+    });
+    const renderFn = foundry?.applications?.handlebars?.renderTemplate ?? renderTemplate;
+    const rendered = await renderFn(
+      "modules/indy-downtime/templates/indy-downtime.hbs",
+      trackerData
+    );
+    host.html(rendered);
+  } catch (error) {
+    console.error(error);
+    debugLog("Failed to render downtime tab", { trackerId: tracker.id });
+    host.data("drepRendering", false);
+    return false;
+  }
+  host.data("drepRendering", false);
+  host.data("drepRendered", true);
+  const root = host.find("[data-drep-root]").first();
+  if (!root.length) {
+    debugLog("Downtime tab root not found", { trackerId: tracker.id });
+    return false;
+  }
+  debugLog("Downtime tab ready", {
+    rollButtons: root.find("[data-drep-action='roll-interval']").length,
+    trackerId: tracker.id,
+  });
+  attachTrackerListeners(root, { render: () => app.render(), actor, app });
+  return true;
+}
+function bindLazyTrackerRendering(app, $html, targetsByTabId, actor) {
+  if (!targetsByTabId?.size) return;
+  const ns = ".indyDowntimeLazyRender";
+  $html.off(`click${ns}`);
+  const ensureRenderedByTabId = (tabId) => {
+    if (!tabId || !targetsByTabId.has(tabId)) return;
+    const target = targetsByTabId.get(tabId);
+    if (!target?.host?.length) return;
+    void renderTrackerContent(app, target.host, target.tracker, actor);
+  };
+  $html.on(`click${ns}`, "[data-tab]", (event) => {
+    const tabId = getElementTabId(event.currentTarget);
+    ensureRenderedByTabId(tabId);
+  });
+  const checkActive = () => {
+    const activeTabId = getActiveSheetTabId($html, app);
+    ensureRenderedByTabId(activeTabId);
+  };
+  if (typeof requestAnimationFrame === "function") {
+    requestAnimationFrame(() => requestAnimationFrame(checkActive));
+  } else {
+    setTimeout(checkActive, 0);
+  }
 }
 function getSheetTabGroup($html, tabNav) {
   if (!tabNav?.length) return "primary";
@@ -175,24 +284,26 @@ async function renderDowntimeSheet(app, html, { allowInsert = false } = {}) {
     isEditable: app?.isEditable,
   });
   const $html = html instanceof jQuery ? html : $(html);
+  const actor = app?.actor ?? app?.document ?? null;
   const trackers = getInjectedTrackers();
   const trackerIds = new Set(trackers.map((tracker) => tracker.id));
   const prefix = `${SHEET_TAB_ID}-`;
   const tabNav = allowInsert ? findSheetTabNav($html) : null;
   const canInsert = Boolean(allowInsert && tabNav?.length);
   let insertedAny = false;
+  const targetsByTabId = new Map();
   $html.find(`[data-tab^='${SHEET_TAB_ID}-']`).each((_, element) => {
-    const tabId = element?.dataset?.tab ?? element?.dataset?.tabId ?? "";
+    const tabId = getElementTabId(element);
     if (!tabId.startsWith(prefix)) return;
     const trackerId = tabId.slice(prefix.length);
     if (!trackerId || trackerIds.has(trackerId)) return;
     hideDowntimeTab($html, trackerId);
   });
   if (allowInsert && !tabNav?.length) {
-    debugLog("Downtime fallback: no tab navigation found", { actorName: app?.actor?.name });
+    debugLog("Downtime fallback: no tab navigation found", { actorName: actor?.name });
   }
   for (const tracker of trackers) {
-    if (!isActorAllowed(app?.actor, tracker.id)) {
+    if (!isActorAllowed(actor, tracker)) {
       hideDowntimeTab($html, tracker.id);
       continue;
     }
@@ -215,34 +326,17 @@ async function renderDowntimeSheet(app, html, { allowInsert = false } = {}) {
       debugLog("Downtime tab content not found", { trackerId: tracker.id });
       continue;
     }
-    try {
-      const trackerData = buildTrackerData({
-        actor: app.actor,
-        showActorSelect: false,
-        embedded: true,
-        trackerId: tracker.id,
-      });
-      const renderFn = foundry?.applications?.handlebars?.renderTemplate ?? renderTemplate;
-      const rendered = await renderFn(
-        "modules/indy-downtime/templates/indy-downtime.hbs",
-        trackerData
-      );
-      root.html(rendered);
-    } catch (error) {
-      console.error(error);
-      debugLog("Failed to render downtime tab", { trackerId: tracker.id });
-    }
-    root = root.find("[data-drep-root]").first();
-    if (!root.length) {
-      debugLog("Downtime tab root not found", { trackerId: tracker.id });
-      continue;
-    }
-    debugLog("Downtime tab ready", {
-      rollButtons: root.find("[data-drep-action='roll-interval']").length,
-      trackerId: tracker.id,
-    });
-    attachTrackerListeners(root, { render: () => app.render(), actor: app.actor, app });
+    root.data("drepRendered", false);
+    root.data("drepRendering", false);
+    markLazyTrackerPlaceholder(root);
+    targetsByTabId.set(tabId, { tracker, host: root });
   }
+  const activeTabId = getActiveSheetTabId($html, app);
+  if (activeTabId && targetsByTabId.has(activeTabId)) {
+    const activeTarget = targetsByTabId.get(activeTabId);
+    await renderTrackerContent(app, activeTarget.host, activeTarget.tracker, actor);
+  }
+  bindLazyTrackerRendering(app, $html, targetsByTabId, actor);
   if (insertedAny) {
     rebindSheetTabs(app, $html);
   }
@@ -293,8 +387,9 @@ async function renderPf2eSheet(app, html) {
   const sheetBody = $html.find(".sheet-body").first();
   const sheetContent = sheetBody.find(".sheet-content").first();
   const tabContainer = sheetContent.length ? sheetContent : (sheetBody.length ? sheetBody : tabNav.closest(".window-content"));
+  const targetsByTabId = new Map();
   for (const tracker of trackers) {
-    if (!isActorAllowed(actor, tracker.id)) {
+    if (!isActorAllowed(actor, tracker)) {
       hideDowntimeTab($html, tracker.id);
       continue;
     }
@@ -325,31 +420,17 @@ async function renderPf2eSheet(app, html) {
         $html.append(tabContent);
       }
     }
-    try {
-      const trackerData = buildTrackerData({
-        actor,
-        showActorSelect: false,
-        embedded: true,
-        trackerId: tracker.id,
-      });
-      const renderFn = foundry?.applications?.handlebars?.renderTemplate ?? renderTemplate;
-      const rendered = await renderFn(
-        "modules/indy-downtime/templates/indy-downtime.hbs",
-        trackerData
-      );
-      tabContent.html(rendered);
-    } catch (error) {
-      console.error(error);
-      debugLog("Failed to render PF2e downtime tab", { trackerId: tracker.id });
-      continue;
-    }
-    const root = tabContent.find("[data-drep-root]").first();
-    if (!root.length) {
-      debugLog("PF2e downtime tab root not found", { trackerId: tracker.id });
-      continue;
-    }
-    attachTrackerListeners(root, { render: () => app.render(), actor, app });
+    tabContent.data("drepRendered", false);
+    tabContent.data("drepRendering", false);
+    markLazyTrackerPlaceholder(tabContent);
+    targetsByTabId.set(tabId, { tracker, host: tabContent });
   }
+  const activeTabId = getActiveSheetTabId($html, app);
+  if (activeTabId && targetsByTabId.has(activeTabId)) {
+    const activeTarget = targetsByTabId.get(activeTabId);
+    await renderTrackerContent(app, activeTarget.host, activeTarget.tracker, actor);
+  }
+  bindLazyTrackerRendering(app, $html, targetsByTabId, actor);
   rebindSheetTabs(app, $html);
   restorePendingTab(app, $html);
 }
@@ -566,9 +647,10 @@ Hooks.on("getSceneControlButtons", (controls) => {
     const name = String(tool?.name ?? key ?? "");
     return name.startsWith("indy-downtime-");
   });
-  const trackers = getTrackers().filter((tracker) => !shouldInjectIntoSheet(tracker.id));
+  const injectIntoSheet = shouldInjectIntoSheet();
+  const trackers = injectIntoSheet ? [] : getTrackers();
   debugLog("scene controls refreshed", {
-    injectIntoSheet: shouldInjectIntoSheet(),
+    injectIntoSheet,
     trackerCount: trackers.length,
   });
   if (!trackers.length) return;

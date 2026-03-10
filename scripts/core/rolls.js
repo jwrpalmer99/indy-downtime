@@ -562,13 +562,6 @@ async function runIntervalRoll({ actor, checkChoice, trackerId }) {
     actorUuid: actor?.uuid ?? "",
     result: macroResult,
   });
-  await grantCheckSuccessGold({
-    check: selectedCheck,
-    actor,
-    actorId: actor?.id ?? "",
-    actorUuid: actor?.uuid ?? "",
-    result: macroResult,
-  });
   await runCheckCompleteMacro({
     phase: activePhase,
     check: selectedCheck,
@@ -1293,6 +1286,7 @@ async function handleCompletion(state, activePhase, actor, trackerId) {
   if (!Array.isArray(state.log)) {
     state.log = [];
   }
+  // The caller persists once after appending the triggering check entry.
   const nextPhaseId = getNextIncompletePhaseId(state, trackerId);
   const nextPhase = nextPhaseId
     ? getPhaseDefinition(nextPhaseId, trackerId)
@@ -1314,7 +1308,6 @@ async function handleCompletion(state, activePhase, actor, trackerId) {
     state.activePhaseId = nextPhaseId;
     initializePhaseState(state, nextPhase);
   }
-  await setWorldState(state, trackerId);
   const baseNote = nextPhaseName
     ? `Next phase activated: ${nextPhaseName}.`
     : "All phases completed.";

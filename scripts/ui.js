@@ -10,6 +10,9 @@ import {
 
   DEFAULT_TAB_LABEL,
 
+  INJECT_INTO_SHEET_SETTING,
+  MODULE_ID,
+
   SHEET_TAB_ID,
 
   SOCKET_EVENT_REQUEST,
@@ -71,7 +74,9 @@ import {
   runManualIntervalResult,
 
   grantCheckSuccessItems,
+  grantCheckSuccessGold,
   grantPhaseCompletionItems,
+  grantPhaseCompletionGold,
   runCheckCompleteMacro,
   runPhaseCompleteMacro,
 
@@ -104,7 +109,12 @@ let lastKnownTrackerIds = new Set();
 const pendingTabRestore = new WeakMap();
 
 function getInjectedTrackers() {
-  return getTrackers().filter((tracker) => shouldInjectIntoSheet(tracker.id));
+  const trackers = getTrackers();
+  const settingKey = `${MODULE_ID}.${INJECT_INTO_SHEET_SETTING}`;
+  if (game?.settings?.settings?.has(settingKey)) {
+    return shouldInjectIntoSheet() ? trackers : [];
+  }
+  return trackers.filter((tracker) => shouldInjectIntoSheet(tracker.id));
 }
 
 function requestTabRestore(app, tabId) {
@@ -1524,6 +1534,12 @@ async function applyRequestedState(state, trackerId) {
         actorId: entry.actorId,
         actorUuid: entry.actorUuid,
       });
+      await grantPhaseCompletionGold({
+        phase,
+        actor,
+        actorId: entry.actorId,
+        actorUuid: entry.actorUuid,
+      });
 
       await runPhaseCompleteMacro({
 
@@ -1574,6 +1590,13 @@ async function applyRequestedState(state, trackerId) {
         result = "failure";
       }
       await grantCheckSuccessItems({
+        check,
+        actor,
+        actorId: entry.actorId,
+        actorUuid: entry.actorUuid,
+        result,
+      });
+      await grantCheckSuccessGold({
         check,
         actor,
         actorId: entry.actorId,
@@ -1957,7 +1980,7 @@ function createTidyTab(api, tracker) {
 
       }
 
-      if (!isActorAllowed(actor, tracker.id)) {
+      if (!isActorAllowed(actor, tracker)) {
 
         return foundry.utils.mergeObject(base, { isAllowedActor: false }, {
 
@@ -2017,7 +2040,7 @@ function createTidyTab(api, tracker) {
 
       }
 
-      if (!isActorAllowed(actor, tracker.id)) {
+      if (!isActorAllowed(actor, tracker)) {
 
         const root = $(params.app?.element ?? []);
 
@@ -2374,16 +2397,15 @@ function registerTidyTab() {
 
 
 
-function isActorAllowed(actor, trackerId) {
-
-  const restricted = getRestrictedActorUuids(trackerId);
-
+function isActorAllowed(actor, trackerOrId) {
+  const restricted = Array.isArray(trackerOrId?.restrictedActorUuids)
+    ? trackerOrId.restrictedActorUuids
+    : getRestrictedActorUuids(
+      typeof trackerOrId === "string" ? trackerOrId : trackerOrId?.id
+    );
   if (!restricted.length) return true;
-
   if (!actor?.uuid) return false;
-
   return restricted.includes(actor.uuid);
-
 }
 
 
