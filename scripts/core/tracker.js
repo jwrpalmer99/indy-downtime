@@ -129,7 +129,7 @@ function normalizeTrackers(trackers) {
 }
 
 
-function updateTrackerSettings(trackerId, updates) {
+async function updateTrackerSettings(trackerId, updates) {
   if (!trackerId) return;
   const trackers = getTrackers();
   const index = trackers.findIndex((tracker) => tracker.id === trackerId);
@@ -138,17 +138,17 @@ function updateTrackerSettings(trackerId, updates) {
     ...trackers[index],
     ...updates,
   };
-  game.settings.set(MODULE_ID, TRACKERS_SETTING, trackers);
+  return game.settings.set(MODULE_ID, TRACKERS_SETTING, trackers);
 }
 
 
 function setTrackerPhaseConfig(trackerId, phaseConfig) {
-  updateTrackerSettings(trackerId, { phaseConfig });
+  return updateTrackerSettings(trackerId, { phaseConfig });
 }
 
 
 function setTrackerState(trackerId, state) {
-  updateTrackerSettings(trackerId, { state });
+  return updateTrackerSettings(trackerId, { state });
 }
 
 

@@ -81,6 +81,7 @@ import {
   refreshSheetTabLabel,
   registerSheetTab,
   rerenderCharacterSheets,
+  rerenderTrackerApps,
   rerenderSettingsApps,
   updateTidyTabLabel,
 } from "./ui.js";
@@ -1572,6 +1573,7 @@ class DowntimeRepSettings extends HandlebarsApplicationMixin(ApplicationV2) {
     }
 
     await setWorldState(state, trackerId);
+    rerenderTrackerApps(trackerId);
     this.render();
     ui.notifications.info("Indy Downtime Tracker: maintenance action applied.");
   }
@@ -1617,6 +1619,7 @@ class DowntimeRepSettings extends HandlebarsApplicationMixin(ApplicationV2) {
 
     const recalculated = recalculateStateFromLog(state, trackerId);
     await setWorldState(recalculated, trackerId);
+    rerenderTrackerApps(trackerId);
     this.render();
     ui.notifications.info("Indy Downtime Tracker: log updated.");
   }
@@ -1626,6 +1629,7 @@ class DowntimeRepSettings extends HandlebarsApplicationMixin(ApplicationV2) {
     const state = getWorldState(trackerId);
     const recalculated = recalculateStateFromLog(state, trackerId);
     await setWorldState(recalculated, trackerId);
+    rerenderTrackerApps(trackerId);
     this.render();
     ui.notifications.info("Indy Downtime Tracker: progress recalculated.");
   }
@@ -2436,11 +2440,14 @@ class DowntimeRepPhaseConfig extends HandlebarsApplicationMixin(ApplicationV2) {
 
 class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
   constructor(options = {}) {
+    const trackerId = options.trackerId ?? getCurrentTrackerId();
     if (options.phaseId && !options.id) {
-      options.id = `indy-downtime-phase-flow-${options.phaseId}`;
+      const safeTrackerId = String(trackerId ?? "tracker");
+      const safePhaseId = String(options.phaseId);
+      options.id = `indy-downtime-phase-flow-${safeTrackerId}-${safePhaseId}`;
     }
     super(options);
-    this._trackerId = options.trackerId ?? getCurrentTrackerId();
+    this._trackerId = trackerId;
     this._phaseId = options.phaseId ?? null;
     this._phase = options.phase ?? null;
     this._actor = options.actor ?? null;
@@ -4443,7 +4450,7 @@ class DowntimeRepProgressState extends HandlebarsApplicationMixin(ApplicationV2)
     applyStateOverridesFromForm(state, data, phaseConfig);
     await setWorldState(state, trackerId);
     rerenderCharacterSheets();
-    rerenderSettingsApps();
+    rerenderTrackerApps(trackerId);
     ui.notifications.info("Indy Downtime Tracker: progress state saved.");
   }
 }

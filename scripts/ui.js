@@ -1053,6 +1053,8 @@ async function handleRoll(root, { render, actorOverride, trackerId, app } = {}) 
 
   }
 
+  rerenderTrackerApps(resolvedTrackerId);
+
   if (!app && activeTabId) {
 
     setTimeout(() => restoreActiveTab(app, root, activeTabId), 0);
@@ -1620,8 +1622,7 @@ async function applyRequestedState(state, trackerId) {
   }
 
   rerenderCharacterSheets();
-
-  rerenderSettingsApps();
+  rerenderTrackerApps(trackerKey);
 
 }
 
@@ -1637,11 +1638,13 @@ function handleSocketMessage(payload) {
 
     if (payload.userId && payload.userId === game.user?.id) return;
 
-    debugLog("Received state update notification");
+    debugLog("Received state update notification", {
+      trackerId: payload.trackerId ?? null,
+      userId: payload.userId ?? null,
+    });
 
     rerenderCharacterSheets();
-
-    rerenderSettingsApps();
+    rerenderTrackerApps(payload.trackerId ?? null);
 
     return;
 
@@ -2195,6 +2198,8 @@ function cleanupStaleSheetTabs(trackerIds) {
 function rerenderCharacterSheets() {
 
   for (const app of getOpenApps()) {
+    const appId = String(app?.id ?? app?.options?.id ?? "");
+    if (appId.startsWith("indy-downtime")) continue;
 
     const actor = app?.actor ?? app?.document;
 
@@ -2208,14 +2213,31 @@ function rerenderCharacterSheets() {
 
 
 
-function rerenderSettingsApps(dofocus = false) {
+function rerenderTrackerApps(trackerId, { focus = false } = {}) {
+  if (!trackerId) return;
   for (const app of getOpenApps()) {
     const appId = String(app?.id ?? app?.options?.id ?? "");
     if (!appId.startsWith("indy-downtime")) continue;
     if (appId === "indy-downtime-phase-config") continue;
     if (appId === "indy-downtime-settings") continue;
     if (appId === "indy-downtime-dep-editor") continue;
-    if (appId === "indy-downtime-phase-flow") continue;
+    const appTrackerId = app?._trackerId ?? app?.options?.trackerId ?? null;
+    if (appTrackerId !== trackerId) continue;
+    forceRenderApp(app, { focus });
+  }
+}
+
+
+
+function rerenderSettingsApps(dofocus = false, trackerId = null) {
+  for (const app of getOpenApps()) {
+    const appId = String(app?.id ?? app?.options?.id ?? "");
+    if (!appId.startsWith("indy-downtime")) continue;
+    if (appId === "indy-downtime-phase-config") continue;
+    if (appId === "indy-downtime-settings") continue;
+    if (appId === "indy-downtime-dep-editor") continue;
+    const appTrackerId = app?._trackerId ?? app?.options?.trackerId ?? null;
+    if (trackerId && appTrackerId && appTrackerId !== trackerId) continue;
     forceRenderApp(app, { focus: dofocus });
   }
 }
@@ -2326,9 +2348,6 @@ function refreshSceneControls() {
     activeTool,
   });
   if (!controls) return;
-  if (controlList) {
-    Hooks.callAll("getSceneControlButtons", controlList);
-  }
   if (typeof controls.render === "function") {
     try {
       controls.render({ force: true, controls: activeControl, tool: activeTool });
@@ -2465,6 +2484,7 @@ export {
   refreshSheetTabLabel,
   restorePendingTab,
   rerenderCharacterSheets,
+  rerenderTrackerApps,
   rerenderSettingsApps,
   updateTidyTabLabel,
 };

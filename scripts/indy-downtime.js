@@ -48,6 +48,19 @@ import {
   restorePendingTab,
   updateTidyTabLabel,
 } from "./ui.js";
+
+let lastTrackerStructureFingerprint = "";
+
+function getTrackerStructureFingerprint(trackers = []) {
+  if (!Array.isArray(trackers)) return "[]";
+  return JSON.stringify(
+    trackers.map((tracker) => {
+      const { state, ...rest } = tracker ?? {};
+      return rest;
+    })
+  );
+}
+
 function findSheetTabNav($html) {
   const candidates = $html.find("nav.sheet-navigation, nav.tabs, nav.sheet-tabs, .sheet-tabs, .tabs, .sheet-navigation");
   if (!candidates.length) return null;
@@ -527,7 +540,14 @@ Hooks.once("init", () => {
     config: false,
     type: Object,
     default: [],
-    onChange: () => {
+    onChange: (value) => {
+      const nextFingerprint = getTrackerStructureFingerprint(value);
+      const structureChanged = nextFingerprint !== lastTrackerStructureFingerprint;
+      lastTrackerStructureFingerprint = nextFingerprint;
+      if (!structureChanged) {
+        debugLog("trackers updated (state only)");
+        return;
+      }
       debugLog("trackers updated");
       registerSheetTab();
       updateTidyTabLabel();
@@ -693,6 +713,7 @@ Hooks.once("ready", () => {
   if (game.socket) {
     game.socket.on(`module.${MODULE_ID}`, handleSocketMessage);
   }
+  lastTrackerStructureFingerprint = getTrackerStructureFingerprint(getTrackers());
   registerSheetTab();
   registerTidyTab();
   updateTidyTabLabel();

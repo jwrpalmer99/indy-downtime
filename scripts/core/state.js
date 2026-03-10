@@ -46,7 +46,7 @@ async function setWorldState(state, trackerId) {
     return;
   }
   const trackerKey = trackerId ?? getCurrentTrackerId();
-  setTrackerState(trackerKey, state);
+  await setTrackerState(trackerKey, state);
   notifyStateUpdated(trackerKey);
 }
 
