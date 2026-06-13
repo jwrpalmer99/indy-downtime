@@ -39,6 +39,9 @@ Building the Plan:
 > for tutorial see https://github.com/jwrpalmer99/indy-downtime/blob/main/tutorial.md
 
 > [!TIP]
+> for GM/player downtime workflow guide see https://github.com/jwrpalmer99/indy-downtime/blob/main/guide.md
+
+> [!TIP]
 > for detailed settings guide see https://github.com/jwrpalmer99/indy-downtime/blob/main/settings.md
 
 ## Quick Start
@@ -74,4 +77,4 @@ Building the Plan:
 - Tidy5e character sheet
 - System-agnostic worlds (manual roll results + skill/ability overrides)
 
-See settings.md for a full settings walkthrough and tutorial.md for a step-by-step example.
+See guide.md for a GM/player workflow, settings.md for a full settings walkthrough, and tutorial.md for a step-by-step example.
