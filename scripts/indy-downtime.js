@@ -108,9 +108,16 @@ function getActiveSheetTabId($html, app) {
   }
   return "";
 }
-function markLazyTrackerPlaceholder(host) {
+function markLazyTrackerPlaceholder(host, trackerId = "") {
   if (!host?.length) return;
-  if (host.find("[data-drep-root]").length) return;
+  const renderedRoot = host.find("[data-drep-root]").first();
+  if (renderedRoot.length) {
+    const renderedTrackerId =
+      renderedRoot.data("drepTracker") ||
+      renderedRoot.attr("data-drep-tracker") ||
+      "";
+    if (!trackerId || renderedTrackerId === trackerId) return;
+  }
   host.html("<div class=\"drep-muted\">Open this tab to load downtime details.</div>");
 }
 async function renderTrackerContent(app, host, tracker, actor) {
@@ -281,6 +288,10 @@ function ensureGenericSheetTab($html, tracker, tabNav) {
   return root;
 }
 const recentRenderNodes = new WeakSet();
+function isTidySheetApp(app) {
+  const className = String(app?.constructor?.name ?? "");
+  return className.includes("Tidy5e");
+}
 function shouldSkipRenderHook(html) {
   const element = html?.[0] ?? html;
   if (!element) return false;
@@ -341,7 +352,7 @@ async function renderDowntimeSheet(app, html, { allowInsert = false } = {}) {
     }
     root.data("drepRendered", false);
     root.data("drepRendering", false);
-    markLazyTrackerPlaceholder(root);
+    markLazyTrackerPlaceholder(root, tracker.id);
     targetsByTabId.set(tabId, { tracker, host: root });
   }
   const activeTabId = getActiveSheetTabId($html, app);
@@ -435,7 +446,7 @@ async function renderPf2eSheet(app, html) {
     }
     tabContent.data("drepRendered", false);
     tabContent.data("drepRendering", false);
-    markLazyTrackerPlaceholder(tabContent);
+    markLazyTrackerPlaceholder(tabContent, tracker.id);
     targetsByTabId.set(tabId, { tracker, host: tabContent });
   }
   const activeTabId = getActiveSheetTabId($html, app);
@@ -634,7 +645,7 @@ function addSceneControlTool(control, tool) {
     if (!tools[tool.name]) tools[tool.name] = tool;
     return;
   }
-  control.tools = [tool];
+  control.tools = { [tool.name]: tool };
 }
 function removeSceneControlTools(control, predicate) {
   if (!control || typeof predicate !== "function") return;
@@ -681,28 +692,37 @@ Hooks.on("getSceneControlButtons", (controls) => {
       title: tracker.tabLabel || tracker.name || DEFAULT_TAB_LABEL,
       icon: tracker.tabIcon || DEFAULT_TAB_ICON,
       button: true,
-      onClick: () => {
-        openDowntimeDialog({
-          trackerId: tracker.id,
-          actorId: getControlledActorId(),
-        });
-      },
+      onChange: () => openDowntimeDialog({
+        trackerId: tracker.id,
+        actorId: getControlledActorId(),
+      }),
     });
   }
 });
 Hooks.on("renderCharacterActorSheet", async (app, html) => {
+  if (isTidySheetApp(app)) return;
   if (shouldSkipRenderHook(html)) return;
   await renderDowntimeSheet(app, html, { allowInsert: false });
 });
 Hooks.on("renderActorSheet", async (app, html) => {
+  if (game.system?.id === "pf2e") return;
+  if (game.system?.id === "dnd5e" && isTidySheetApp(app)) return;
   if (shouldSkipRenderHook(html)) return;
-  if (game.system?.id === "dnd5e" || game.system?.id === "pf2e") return;
+  if (game.system?.id === "dnd5e") {
+    await renderDowntimeSheet(app, html, { allowInsert: false });
+    return;
+  }
   //if (app?.actor?.type !== "character" && app?.actor?.type.toLowerCase() !== "player") return;
   await renderDowntimeSheet(app, html, { allowInsert: true });
 });
 Hooks.on("renderActorSheetV2", async (app, html) => {
+  if (game.system?.id === "pf2e") return;
+  if (game.system?.id === "dnd5e" && isTidySheetApp(app)) return;
   if (shouldSkipRenderHook(html)) return;
-  if (game.system?.id === "dnd5e" || game.system?.id === "pf2e") return;
+  if (game.system?.id === "dnd5e") {
+    await renderDowntimeSheet(app, html, { allowInsert: false });
+    return;
+  }
   //if (app?.actor?.type.toLowerCase() !== "character" && app?.actor?.type.toLowerCase() !== "player") return;
   await renderDowntimeSheet(app, html, { allowInsert: true });
 });

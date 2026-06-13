@@ -87,28 +87,38 @@ import {
 } from "./ui.js";
 import { normalizeProjectState } from "./core/state.js";
 
-const confirmDialogV2 = ({ title, content, yesLabel = "Yes", noLabel = "Cancel" }) =>
-  new Promise((resolve) => {
-    const dialog = new foundry.applications.api.DialogV2({
-      window: { title },
-      content: `<div>${content}</div>`,
-      buttons: [
-        {
-          action: "yes",
-          label: yesLabel,
-          default: true,
-          callback: () => resolve(true),
-        },
-        {
-          action: "no",
-          label: noLabel,
-          callback: () => resolve(false),
-        },
-      ],
-      close: () => resolve(false),
-    });
-    dialog.render(true);
-  });
+const confirmDialogV2 = async ({ title, content, yesLabel = "Yes", noLabel = "Cancel" }) =>
+  Boolean(await foundry.applications.api.DialogV2.confirm({
+    window: { title },
+    content: `<div>${content}</div>`,
+    yes: {
+      label: yesLabel,
+      default: true,
+    },
+    no: {
+      label: noLabel,
+      default: false,
+    },
+    rejectClose: false,
+  }));
+
+function getOpenApplicationById(appId) {
+  if (!appId) return null;
+  const id = String(appId);
+  return ui?.windows?.[id]
+    ?? foundry?.applications?.instances?.get?.(id)
+    ?? null;
+}
+
+function findOpenApplication(predicate) {
+  if (typeof predicate !== "function") return null;
+  const apps = [];
+  if (ui?.windows) apps.push(...Object.values(ui.windows));
+  const instances = foundry?.applications?.instances;
+  if (instances instanceof Map) apps.push(...instances.values());
+  else if (instances && typeof instances === "object") apps.push(...Object.values(instances));
+  return [...new Set(apps)].find(predicate) ?? null;
+}
 
 const serializeOverrideLines = (map = {}) =>
   Object.entries(map)
@@ -2095,7 +2105,7 @@ class DowntimeRepPhaseConfig extends HandlebarsApplicationMixin(ApplicationV2) {
         phase,
         onUpdate: applyFlowUpdate,
         openedFromSettings: true,
-        settingsAppId: this.appId,
+        settingsAppId: this.id ?? this.appId,
       });
       app.render(true);
     });
@@ -2849,12 +2859,12 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
   async _onClose(options = {}) {
     await super._onClose(options);
     if (this._openedFromSettings) {
-      const app = this._settingsAppId ? ui.windows[this._settingsAppId] : null;
+      const app = getOpenApplicationById(this._settingsAppId);
       if (app) {
         app.render(true, { focus: false });
         return;
       }
-      const fallback = Object.values(ui.windows).find(
+      const fallback = findOpenApplication(
         (win) => win?.id === "indy-downtime-phase-config"
       );
       if (fallback) {
@@ -3492,32 +3502,10 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
       const groupId = event.currentTarget?.dataset?.groupId;
       if (!groupId) return;
 
-      const confirm = await new Promise((resolve) => {
-        let resolved = false;
-        const finish = (value) => {
-          if (resolved) return;
-          resolved = true;
-          resolve(value);
-        };
-        const dialog = new foundry.applications.api.DialogV2({
-          window: { title: "Delete Group" },
-          content: "<p>Delete this group? This cannot be undone.</p>",
-          buttons: [
-            {
-              action: "delete",
-              label: "Delete",
-              default: true,
-              callback: () => finish(true),
-            },
-            {
-              action: "cancel",
-              label: "Cancel",
-              callback: () => finish(false),
-            },
-          ],
-          close: () => finish(false),
-        });
-        dialog.render(true);
+      const confirm = await confirmDialogV2({
+        title: "Delete Group",
+        content: "<p>Delete this group? This cannot be undone.</p>",
+        yesLabel: "Delete",
       });
       if (!confirm) return;
 
@@ -3569,39 +3557,29 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
       const current = Number.isFinite(Number(group.maxChecks)) ? Number(group.maxChecks) : 0;
       const currentDisplay = current > 0 ? String(current) : "";
 
-      const value = await new Promise((resolve) => {
-        let resolved = false;
-        const finish = (val) => {
-          if (resolved) return;
-          resolved = true;
-          resolve(val);
-        };
-        let dialogRef = null;
-        const dialog = new foundry.applications.api.DialogV2({
-          window: { title: "Set Max Success" },
-          content: `<div class="drep-input-row"><label>Max checks for this group</label><input type="number" min="1" step="1" value="${currentDisplay}" data-drep-max-input></div>`,
-          buttons: [
-            {
-              action: "save",
-              label: "Save",
-              default: true,
-              callback: () => {
-                const input = dialogRef?.element?.querySelector("[data-drep-max-input]");
-                finish(input ? input.value : "");
-              },
+      const value = await foundry.applications.api.DialogV2.wait({
+        window: { title: "Set Max Success" },
+        content: `<div class="drep-input-row"><label>Max checks for this group</label><input type="number" min="1" step="1" value="${currentDisplay}" data-drep-max-input></div>`,
+        buttons: [
+          {
+            action: "save",
+            label: "Save",
+            default: true,
+            callback: (_event, button) => {
+              const input = button?.form?.querySelector("[data-drep-max-input]");
+              return input ? input.value : "";
             },
-            {
-              action: "cancel",
-              label: "Cancel",
-              callback: () => finish(null),
-            },
-          ],
-          close: () => finish(null),
-        });
-        dialogRef = dialog;
-        dialog.render(true);
+          },
+          {
+            action: "cancel",
+            label: "Cancel",
+            callback: () => false,
+          },
+        ],
+        close: () => null,
+        rejectClose: false,
       });
-      if (value === null) return;
+      if (value === null || value === false) return;
       const trimmed = String(value ?? "").trim();
       if (!trimmed) {
         group.maxChecks = 0;
@@ -3638,32 +3616,10 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
       const checkId = checkCard?.dataset?.drepCheckId;
       if (!checkId) return;
 
-      const confirm = await new Promise((resolve) => {
-        let resolved = false;
-        const finish = (value) => {
-          if (resolved) return;
-          resolved = true;
-          resolve(value);
-        };
-        const dialog = new foundry.applications.api.DialogV2({
-          window: { title: "Delete Check" },
-          content: "<p>Delete this check? This cannot be undone.</p>",
-          buttons: [
-            {
-              action: "delete",
-              label: "Delete",
-              default: true,
-              callback: () => finish(true),
-            },
-            {
-              action: "cancel",
-              label: "Cancel",
-              callback: () => finish(false),
-            },
-          ],
-          close: () => finish(false),
-        });
-        dialog.render(true);
+      const confirm = await confirmDialogV2({
+        title: "Delete Check",
+        content: "<p>Delete this check? This cannot be undone.</p>",
+        yesLabel: "Delete",
       });
       if (!confirm) return;
 
@@ -3775,39 +3731,33 @@ class DowntimeRepPhaseFlow extends HandlebarsApplicationMixin(ApplicationV2) {
     }
 
 
-    const promptLineAssignment = (targetLabel) => new Promise((resolve) => {
-      let resolved = false;
-      const finish = (value) => {
-        if (resolved) return;
-        resolved = true;
-        resolve(value);
-      };
+    const promptLineAssignment = (targetLabel) => {
       const content = `<p>Copy or move this line to <strong>${targetLabel}</strong>?</p>`;
-      const dialog = new foundry.applications.api.DialogV2({
+      return foundry.applications.api.DialogV2.wait({
         window: { title: "Assign Line" },
         content: `<div>${content}</div>`,
         buttons: [
           {
             action: "copy",
             label: "Copy",
-            callback: () => finish("copy"),
+            callback: () => "copy",
           },
           {
             action: "move",
             label: "Move",
             default: true,
-            callback: () => finish("move"),
+            callback: () => "move",
           },
           {
             action: "cancel",
             label: "Cancel",
-            callback: () => finish(null),
+            callback: () => false,
           },
         ],
-        close: () => finish(null),
+        close: () => null,
+        rejectClose: false,
       });
-      dialog.render(true);
-    });
+    };
 
     html.on("click.drepFlow", ".drep-flow-line-remove", (event) => {
       event.preventDefault();
@@ -4579,8 +4529,8 @@ class DowntimeRepPhaseConfigExport extends DowntimeRepImportExportDialog {
         rerenderSettingsApps();
         if (typeof options.onImport === "function") {
           options.onImport();
-        } else if (options.settingsAppId && ui.windows[options.settingsAppId]) {
-          ui.windows[options.settingsAppId].render(true, { focus: false });
+        } else {
+          getOpenApplicationById(options.settingsAppId)?.render(true, { focus: false });
         }
         ui.notifications.info("Indy Downtime Tracker: phase imported.");
       },

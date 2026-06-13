@@ -4,7 +4,7 @@
   "description": "A module to plan and track skill based player (downtime) projects.",
   "version": "#{VERSION}#",
   "authors": [{ "name": "PinguTwo" }],
-  "compatibility": { "minimum": "13", "verified": "13" },
+  "compatibility": { "minimum": "13", "verified": "14" },
   "socket": true,
   "url": "#{URL}#",
   "manifest": "#{MANIFEST}#",

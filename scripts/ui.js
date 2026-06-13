@@ -1126,36 +1126,34 @@ function promptNarrativeOutcome({ checkLabel, skillLabel }) {
         <p><strong>${checkLabel}</strong></p>
         <p>Resolve ${skillText} and choose the outcome below.</p>
       </div>`;
-  return new Promise((resolve) => {
-    const dialog = new foundry.applications.api.DialogV2({
-      window: { title: "Narrative Outcome" },
-      content,
-      buttons: [
-        {
-          action: "triumph",
-          label: "Triumph",
-          callback: () => resolve("triumph"),
-        },
-        {
-          action: "success",
-          label: "Success",
-          default: true,
-          callback: () => resolve("success"),
-        },
-        {
-          action: "failure",
-          label: "Failure",
-          callback: () => resolve("failure"),
-        },
-        {
-          action: "despair",
-          label: "Despair",
-          callback: () => resolve("despair"),
-        },
-      ],
-      close: () => resolve(null),
-    });
-    dialog.render(true);
+  return foundry.applications.api.DialogV2.wait({
+    window: { title: "Narrative Outcome" },
+    content,
+    buttons: [
+      {
+        action: "triumph",
+        label: "Triumph",
+        callback: () => "triumph",
+      },
+      {
+        action: "success",
+        label: "Success",
+        default: true,
+        callback: () => "success",
+      },
+      {
+        action: "failure",
+        label: "Failure",
+        callback: () => "failure",
+      },
+      {
+        action: "despair",
+        label: "Despair",
+        callback: () => "despair",
+      },
+    ],
+    close: () => null,
+    rejectClose: false,
   });
 }
 
@@ -1176,26 +1174,24 @@ function promptManualRoll({ checkLabel, skillLabel, dc, dcLabel, dcLabelType, ad
         <p>${rollHint}</p>
         <p>Then choose the outcome below.</p>
       </div>`;
-  return new Promise((resolve) => {
-    const dialog = new foundry.applications.api.DialogV2({
-      window: { title: "Manual Check" },
-      content,
-      buttons: [
-        {
-          action: "success",
-          label: "Mark Success",
-          default: true,
-          callback: () => resolve(true),
-        },
-        {
-          action: "failure",
-          label: "Mark Failure",
-          callback: () => resolve(false),
-        },
-      ],
-      close: () => resolve(null),
-    });
-    dialog.render(true);
+  return foundry.applications.api.DialogV2.wait({
+    window: { title: "Manual Check" },
+    content,
+    buttons: [
+      {
+        action: "success",
+        label: "Mark Success",
+        default: true,
+        callback: () => true,
+      },
+      {
+        action: "failure",
+        label: "Mark Failure",
+        callback: () => false,
+      },
+    ],
+    close: () => null,
+    rejectClose: false,
   });
 }
 
@@ -2350,7 +2346,7 @@ function refreshSceneControls() {
   if (!controls) return;
   if (typeof controls.render === "function") {
     try {
-      controls.render({ force: true, controls: activeControl, tool: activeTool });
+      controls.render({ force: true, control: activeControl, tool: activeTool });
       return;
     } catch (error) {
       // fall through

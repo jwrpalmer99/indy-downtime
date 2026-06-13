@@ -176,6 +176,11 @@ function resolveActorMethod(actor, methodName) {
   return null;
 }
 
+function normalizeRollResult(result) {
+  if (Array.isArray(result)) return result[0] ?? null;
+  return result ?? null;
+}
+
 async function rollSkill(actor, skillKey, advantage, disadvantage, difficulty = null) {
   if (advantage && disadvantage) {
     advantage = false;
@@ -211,35 +216,21 @@ async function rollSkill(actor, skillKey, advantage, disadvantage, difficulty = 
     // Detect Midi-QOL (works in v13)
     const hasMidi = !!game.modules.get("midi-qol")?.active;
     // Base config works for both
-     if (game.system?.id == "dnd5e")
-    {
+    if (game.system?.id === "dnd5e") {
       const rollConfig = { skill: skillKey };
-      // Put adv/dis in the right place depending on Midi-QOL
+      // Use dnd5e's native config and include Midi-QOL's metadata when present.
+      if (advantage && !disadvantage) rollConfig.advantage = true;
+      if (disadvantage && !advantage) rollConfig.disadvantage = true;
       if (hasMidi) {
         rollConfig.midiOptions = {
           advantage: !!advantage,
-          disadvantage: !!disadvantage
+          disadvantage: !!disadvantage,
         };
-      } else {
-        // dnd5e native path
-        if (advantage && !disadvantage) rollConfig.advantage = true;
-        if (disadvantage && !advantage) rollConfig.disadvantage = true;
       }
-      // Fast-forward + modifier-keys (safe for both; mostly matters for Midi)
-      const event =
-        advantage && !disadvantage ? { altKey: true } :
-        disadvantage && !advantage ? { ctrlKey: true } :
-        {};
-      const rolls = await rollSkillFn.call(actor, rollConfig, {
-        fastForward: true,
-        event
-      });
-   
-      if (Array.isArray(rolls)) {
-        return rolls[0] ?? null;
-      }
+      const rolls = await rollSkillFn.call(actor, rollConfig, { configure: false });
+      return normalizeRollResult(rolls);
     }
-    else if (game.system?.id == "CoC7")
+    else if (game.system?.id === "CoC7")
     {
       //coc7
       let difstring  = "?";
@@ -280,7 +271,7 @@ async function rollSkillDirect(actor, skillKey, advantage, disadvantage) {
   const skillData = actor.system?.skills?.[skillKey];
   const mod = Number(skillData?.total ?? skillData?.mod ?? 0);
   const formula = advantage ? "2d20kh + @mod" : (disadvantage ? "2d20kl + @mod" : "1d20 + @mod");
-  const roll = await new Roll(formula, { mod }).evaluate({ async: true });
+  const roll = await new Roll(formula, { mod }).evaluate();
   await roll.toMessage({
     speaker: ChatMessage.getSpeaker({ actor }),
     flavor: `${getSkillLabel(skillKey)} Check`,
@@ -325,6 +316,12 @@ async function rollAbility(actor, abilityKey, advantage, disadvantage) {
     if (game.user?.isGM && actor?.hasPlayerOwner) {
       return await rollAbilityDirect(actor, abilityKey, advantage, disadvantage);
     }
+    if (game.system?.id === "dnd5e" && typeof actor?.rollAbilityCheck === "function") {
+      const dnd5eOptions = { ability: abilityKey };
+      if (advantage) dnd5eOptions.advantage = true;
+      if (disadvantage) dnd5eOptions.disadvantage = true;
+      return normalizeRollResult(await actor.rollAbilityCheck(dnd5eOptions, { configure: false }));
+    }
     let roll = null;
     roll = await tryRoll(actor?.rollAbilityTest, abilityKey, options);
     if (!roll) roll = await tryRoll(actor?.rollAbilityTest, abilityOptions);
@@ -348,7 +345,7 @@ async function rollAbilityDirect(actor, abilityKey, advantage, disadvantage) {
   const abilityData = actor.system?.abilities?.[abilityKey] ?? {};
   const mod = Number(abilityData?.mod ?? abilityData?.value ?? 0);
   const formula = advantage ? "2d20kh + @mod" : (disadvantage ? "2d20kl + @mod" : "1d20 + @mod");
-  const roll = await new Roll(formula, { mod }).evaluate({ async: true });
+  const roll = await new Roll(formula, { mod }).evaluate();
   const label = getSkillLabel("ability:" + abilityKey);
   await roll.toMessage({
     speaker: ChatMessage.getSpeaker({ actor }),
